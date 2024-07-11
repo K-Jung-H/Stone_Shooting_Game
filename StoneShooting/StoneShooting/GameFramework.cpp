@@ -457,14 +457,14 @@ void CGameFramework::BuildObjects()
 	m_pScene->m_pPlayer = m_pPlayer;
 
 	//===================================================
-	ui_num = 2;
-	pUI_list = new UICamera * [ui_num];
 
 	D3D12_RECT power_ui_area = { 600, 0, 800, 90 };
-	pUI_list[0] = new BAR_UI(power_ui_area);
+	pUI_list.push_back(new BAR_UI(power_ui_area));
 
 	power_ui_area = { 0, 0, 200, 90 };
-	pUI_list[1] = new BAR_UI(power_ui_area);
+	pUI_list.push_back(new BAR_UI(power_ui_area));
+
+	ui_num = pUI_list.size();
 
 	//===================================================
 
@@ -500,24 +500,71 @@ void CGameFramework::AnimateObjects()
 	if (m_pScene)
 		m_pScene->AnimateObjects(m_GameTimer.GetTimeElapsed());
 	
-	if (pUI_list)
+	// 턴 종료 체크
+	if (Limit_time > TURN_MAX_TIME)
+		Need_to_change_turn = true;
+	else if (!Need_to_change_turn)
+		Need_to_change_turn = m_pScene->Check_Turn();
+
+	if (Need_to_change_turn)
 	{
-		power_degree = pUI_list[0]->Update(m_GameTimer.GetTimeElapsed(), power_charge);
+		if (Delay_time >= TURN_DELAY)
+		{
+			Limit_time = 0.0f;
+			Delay_time = 0.0f;
+			Need_to_change_turn = false;
+			m_pScene->Change_Turn();
+		}
+		else
+			Delay_time += m_GameTimer.GetTimeElapsed();
+	}
+	else
+	{
+		Limit_time += m_GameTimer.GetTimeElapsed();
 	}
 
 
 
+	if (m_pScene->Player_Turn) // 플레이어 턴
+	{
+		pUI_list[0]->Active = true;
+		pUI_list[1]->Active = false;
+
+		power_degree = pUI_list[0]->Update(m_GameTimer.GetTimeElapsed(), power_charge);
+
+	}
+	else if (m_pScene->Com_Turn) // 컴퓨터 턴
+	{
+		pUI_list[0]->Active = false;
+		pUI_list[1]->Active = true;
+
+		if (!m_pScene->Com_Shot)
+		{
+			if(0.0f > random_time)
+				random_time = uid(dre) / 1000;
+
+			if (random_time < sum_time)
+			{
+				if (m_pScene->Game_Over == false)  // 필요한 조건인가
+				{
+					random_time = -1;
+					m_pScene->Shoot_Stone_Com(power_degree);
+					sum_time = 0;
+				}
+			}
+			else
+			{
+				power_degree = pUI_list[1]->Update(m_GameTimer.GetTimeElapsed(), true);
+				sum_time += m_GameTimer.GetTimeElapsed();
+			}
+		}
+	}
+	
 	m_pScene->CheckObject_Out_Board_Collisions();
 	m_pScene->CheckObjectByObjectCollisions();
+	m_pScene->Defend_Overlap();
 
 
-	if (m_pScene->Com_Turn && !m_pScene->Com_Shot)
-		if (m_pScene->Game_Over == false)
-			m_pScene->Shoot_Stone_Com(power_degree);
-
-	if (m_pScene->Check_Turn())
-		m_pScene->Change_Turn();
-	
 }
 
 void CGameFramework::WaitForGpuComplete()
@@ -585,10 +632,11 @@ void CGameFramework::FrameAdvance()
 	if (m_pScene) 
 		m_pScene->Render(m_pd3dDevice, m_pd3dCommandList, pMainCamera);
 
-	if (pUI_list)
+	if (pUI_list.size())
 	{
-		for (int i = 0; i < ui_num; ++i)
-			m_pScene->UI_Render(m_pd3dDevice, m_pd3dCommandList, pUI_list[i]);
+		for (UICamera* ui_ptr : pUI_list)
+			if(ui_ptr->Active)
+				m_pScene->UI_Render(m_pd3dDevice, m_pd3dCommandList, ui_ptr);
 	}
 	// D3D12 그리기 동작 끝
 
@@ -621,16 +669,32 @@ void CGameFramework::FrameAdvance()
 
 	m_pd2dDeviceContext->SetTransform(D2D1::Matrix3x2F::Identity());
 
+	// 출력 화면 크기
 	D2D1_SIZE_F szRenderTarget = m_ppd2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
-	m_GameTimer.GetFrameRate(m_pszFrameRate + 12, 37);
 
-	std::wstring wsPower = std::to_wstring(power_degree);
-	D2D1_RECT_F player_shooting_power = D2D1::RectF(500, 0, 600, 90);
-	m_pd2dDeviceContext->DrawTextW(wsPower.c_str(), (UINT32)wcslen(wsPower.c_str()), m_pdwFont, &player_shooting_power, m_pd2dbrText);
+	// 플레이어 모은 파워 출력
+	if (pUI_list[0]->Active)
+	{
+		std::wstring wsPower = std::to_wstring(power_degree);
+		D2D1_RECT_F player_shooting_power = D2D1::RectF(500, 0, 600, 90);
+		m_pd2dDeviceContext->DrawTextW(wsPower.c_str(), (UINT32)wcslen(wsPower.c_str()), m_pdwFont, &player_shooting_power, m_pd2dbrText);
+	}
 
-	//D2D1_RECT_F rcLowerText = D2D1::RectF(0, szRenderTarget.height * 0.5f, szRenderTarget.width, szRenderTarget.height);
-	//m_pd2dDeviceContext->DrawTextW(L"한글 테스트", (UINT32)wcslen(L"한글 테스트"), m_pdwFont, &rcLowerText, m_pd2dbrText);
+	// COM의 모은 파워 출력
+	if (pUI_list[1]->Active)
+	{
+		std::wstring ws_COM_Power = std::to_wstring(power_degree);
+		D2D1_RECT_F COM_shooting_power = D2D1::RectF(200, 0, 300, 90);
+		m_pd2dDeviceContext->DrawTextW(ws_COM_Power.c_str(), (UINT32)wcslen(ws_COM_Power.c_str()), m_pdwFont, &COM_shooting_power, m_pd2dbrText);
+	}
 	
+
+	// 시간 제한 출력
+	std::wstring wsTimeLimit = std::to_wstring(TURN_MAX_TIME - static_cast<int>(Limit_time));
+	D2D1_RECT_F player_Time_Limit = D2D1::RectF(350, 0, 450, 100);
+	m_pd2dDeviceContext->DrawTextW(wsTimeLimit.c_str(), (UINT32)wcslen(wsTimeLimit.c_str()), m_pdwFont, &player_Time_Limit, m_pd2dbrText);
+
+	// 	m_pd2dDeviceContext->DrawTextW(L"한글 테스트", (UINT32)wcslen(L"한글 테스트"), m_pdwFont, &rcLowerText, m_pd2dbrText);
 	
 	m_pd2dDeviceContext->EndDraw();
 
@@ -786,6 +850,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_SPACE:
 			power_charge = false;
 			pUI_list[0]->Reset();
+			pUI_list[1]->Reset();
 			if (m_pScene->Player_Turn && m_pScene->Player_Shot == false)
 			{
 				if (m_pScene->m_pSelectedObject != NULL)
@@ -801,16 +866,19 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 
 		case VK_TAB:
-			Camera_First_Person_View = !Camera_First_Person_View;
-			if (Camera_First_Person_View)
+			if (m_pScene->m_pSelectedObject)
 			{
-				if (m_pPlayer)
-					pMainCamera = m_pPlayer->ChangeCamera(STONE_CAMERA, m_GameTimer.GetTimeElapsed());
-			}
-			else
-			{
-				if (m_pPlayer)
-					pMainCamera = m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed());
+				Camera_First_Person_View = !Camera_First_Person_View;
+				if (Camera_First_Person_View)
+				{
+					if (m_pPlayer)
+						pMainCamera = m_pPlayer->ChangeCamera(STONE_CAMERA, m_GameTimer.GetTimeElapsed());
+				}
+				else
+				{
+					if (m_pPlayer)
+						pMainCamera = m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed());
+				}
 			}
 			break;
 

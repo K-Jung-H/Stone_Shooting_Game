@@ -50,6 +50,10 @@ public:
 	void Change_Turn();
 	bool Check_Turn();
 	bool Check_GameOver();
+
+	void Defend_Overlap();
+
+
 protected:
 	CObjectsShader* m_pShaders = NULL;
 	int m_nShaders = 1;

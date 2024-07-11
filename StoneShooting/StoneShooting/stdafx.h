@@ -61,12 +61,20 @@
 #include <DirectXColors.h>
 #include <DirectXCollision.h>
 
+
+//=======================C++================
+#include <random>
 #include <vector>
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
 using Microsoft::WRL::ComPtr;
+
+extern std::default_random_engine dre;
+extern std::uniform_int_distribution<int> uid;
+
+
 
 extern ID3D12Resource* CreateBufferResource(
 	ID3D12Device* pd3dDevice,

@@ -6,6 +6,9 @@
 #include "Player.h"
 #include "UI.h"
 
+#define TURN_MAX_TIME 30
+#define TURN_DELAY 0
+
 class CGameFramework
 {
 private:
@@ -71,9 +74,11 @@ private:
 	CCamera* pMainCamera = NULL;
 
 	// 화면에 출력할 UI 리스트
-	UICamera** pUI_list = NULL;
+	std::vector<UICamera*> pUI_list;
 	int ui_num = 0;
 
+	float random_time = -1;
+	float sum_time = 0;
 private:
 	// DX2D전용
 #ifdef _WITH_DIRECT2D
@@ -102,7 +107,16 @@ public:
 	//마지막으로 마우스 버튼을 클릭할 때의 마우스 커서의 위치이다.
 	POINT m_ptOldCursorPos;
 
+	// 파워 게이지 값 저장변수
 	bool power_level = 0;
+
+	// 턴 시간 제한
+	float Limit_time = 0.0f;
+	
+	// 턴 넘김 시간 : 2초
+	float Delay_time = 0.0f;
+
+	bool Need_to_change_turn = false;
 
 public:
 

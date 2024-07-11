@@ -138,12 +138,16 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	CSphereMeshDiffused* pWhiteStoneMesh = new CSphereMeshDiffused(pd3dDevice, pd3dCommandList, 6.0f, 20, 20, false);
 	std::vector<XMFLOAT3> w_stone_pos_list;
 
+
 	w_stone_pos_list.push_back({ -50, 5, 100 });
 	w_stone_pos_list.push_back({ 0, 5, 100 });
 	w_stone_pos_list.push_back({ 50, 5, 100 });
 	w_stone_pos_list.push_back({ -25, 5, 150 });
 	w_stone_pos_list.push_back({ 0, 5, 150 });
 	w_stone_pos_list.push_back({ 25, 5, 150 });
+
+	w_stone_pos_list.push_back({ 0, 5, 155 });
+	w_stone_pos_list.push_back({ 0, 5, 145 });
 
 	for(XMFLOAT3& w_stone_pos : w_stone_pos_list)
 		Setting_Stone(pd3dDevice, pd3dCommandList, pWhiteStoneMesh, w_stone_pos, true);
@@ -349,6 +353,79 @@ void CScene::CheckObjectByObjectCollisions()
 	}
 }
 
+void CScene::Defend_Overlap()
+{
+	auto& objshader_ptrs = m_pShaders[0].GetObjects();
+	int objs_N = objshader_ptrs.size();
+
+	// 충돌 체크 및 overlaped 상태 설정
+	for (int i = 0; i < objs_N; ++i)
+	{
+		auto* stone_1 = static_cast<StoneObject*>(objshader_ptrs[i]);
+		if (!stone_1->m_bActive || stone_1->m_fMovingSpeed > 1.0f)
+			continue;
+
+		for (int j = i + 1; j < objs_N; ++j)
+		{
+			auto* stone_2 = static_cast<StoneObject*>(objshader_ptrs[j]);
+			if (!stone_2->m_bActive || stone_2->m_fMovingSpeed > 1.0f)
+				continue;
+
+			if (stone_1->m_xmOOSP.Intersects(stone_2->m_xmOOSP) != DISJOINT)
+			{
+				// 객체를 overlaped 상태로 설정
+				if (stone_1->Overlaped == NULL)
+				{
+					stone_1->Overlaped = stone_2;
+					stone_2->Overlaped = stone_1;
+				}
+			}
+		}
+	}
+
+	// 충돌 처리
+	for (int i = 0; i < objs_N; ++i)
+	{
+		auto* stone_1 = static_cast<StoneObject*>(objshader_ptrs[i]);
+		if (stone_1->Overlaped)
+		{
+			auto* stone_2 = stone_1->Overlaped;
+
+			// 충돌 방향 계산
+			XMFLOAT3 Diff_Pos = XMFLOAT3(
+				stone_2->GetPosition().x - stone_1->GetPosition().x,
+				stone_2->GetPosition().y - stone_1->GetPosition().y,
+				stone_2->GetPosition().z - stone_1->GetPosition().z);
+			XMVECTOR Diff_Vec = XMLoadFloat3(&Diff_Pos);
+			Diff_Vec = XMVector3Normalize(Diff_Vec);
+
+			// 새 이동 방향 설정
+			XMVECTOR New_Speed1 = -Diff_Vec;
+			XMVECTOR New_Speed2 = Diff_Vec;
+
+			stone_1->m_xmf3MovingDirection = XMFLOAT3(XMVectorGetX(New_Speed1), XMVectorGetY(New_Speed1), XMVectorGetZ(New_Speed1));
+			stone_2->m_xmf3MovingDirection = XMFLOAT3(XMVectorGetX(New_Speed2), XMVectorGetY(New_Speed2), XMVectorGetZ(New_Speed2));
+
+			stone_1->m_fMovingSpeed = 5.0f; // 밀어내는 속도
+			stone_2->m_fMovingSpeed = 5.0f; // 밀어내는 속도
+		}
+	}
+
+	// overlaped 상태 정리
+	for (int i = 0; i < objs_N; ++i)
+	{
+		auto* stone_1 = static_cast<StoneObject*>(objshader_ptrs[i]);
+		if (stone_1->Overlaped && stone_1->m_xmOOSP.Intersects(stone_1->Overlaped->m_xmOOSP) == DISJOINT)
+		{
+			stone_1->Overlaped->Overlaped = NULL;
+			stone_1->Overlaped = NULL;
+		}
+	}
+}
+
+
+
+
 void CScene::CheckObject_Out_Board_Collisions()
 {
 	// 충돌 객체 초기화
@@ -401,9 +478,10 @@ bool CScene::Check_Turn()
 
 	int stop_stone_n = 0;
 
-	for (CGameObject* obj_ptr : m_pShaders[0].GetObjects())
+	for (const CGameObject* obj_ptr : m_pShaders[0].GetObjects())
 	{
-		if ((obj_ptr->m_bActive == false) || 0.1f >= obj_ptr->m_fMovingSpeed)
+		const StoneObject* stone_ptr = static_cast<const StoneObject*>(obj_ptr);
+		if (0.1f >= stone_ptr->m_fMovingSpeed && !stone_ptr->m_bBlowingUp)
 			stop_stone_n += 1;
 	}
 
@@ -439,8 +517,6 @@ void CScene::AnimateObjects(float fTimeElapsed)
 {
 	m_pShaders[0].AnimateObjects(fTimeElapsed);
 	m_uiShaders[0].AnimateObjects(fTimeElapsed);
-
-	((CAirplanePlayer*)m_pPlayer)->Animate(fTimeElapsed);
 }
 
 void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
@@ -458,14 +534,12 @@ void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCom
 	// 아직은 움직임이 없을꺼니까
 	m_pBoards->Render(pd3dCommandList, pCamera);
 
-	CAirplanePlayer* pPlayer = (CAirplanePlayer*)m_pPlayer;
-
+	
 	//=======================플레이어 렌더링 =======================
+	//CAirplanePlayer* pPlayer = (CAirplanePlayer*)m_pPlayer;
+	//if (m_pPlayer)
+	//	pPlayer->Render(pd3dCommandList, pCamera);
 
-	if (m_pPlayer)
-	{
-		pPlayer->Render(pd3dCommandList, pCamera);
-	}
 }
 
 void CScene::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
@@ -532,9 +606,35 @@ void CScene::Shoot_Stone_Com(float power)
 	XMStoreFloat3(&direction, XMVectorSubtract(XMLoadFloat3(&p_position), XMLoadFloat3(&c_position)));
 	XMStoreFloat3(&direction, XMVector3Normalize(XMLoadFloat3(&direction))); // 정규화까지 하기
 
+	// 오차 각도 : -5 ~ 5
+	float random_angle = 5 - uid(dre) / 300.0f;
+
+	// 각도를 라디안으로 변환
+	float angleInRadians = XMConvertToRadians(random_angle);
+
+	// Y 축을 기준으로 회전하는 회전 행렬을 생성
+	XMMATRIX rotationMatrix = XMMatrixRotationY(angleInRadians);
+
+	// XMFLOAT3 벡터를 XMVECTOR로 변환
+	XMVECTOR dir = XMLoadFloat3(&direction);
+
+	// 회전 행렬을 적용하여 방향 벡터를 회전
+	XMVECTOR rotatedDir = XMVector3TransformNormal(dir, rotationMatrix);
+
+	// 회전된 벡터를 XMFLOAT3로 변환
+	XMFLOAT3 newDirection;
+	XMStoreFloat3(&newDirection, rotatedDir);
+
+
 	// 돌 날리기
-	c_stone->SetMovingDirection(direction);
-	c_stone->SetMovingSpeed(500.0f);
+	c_stone->SetMovingDirection(newDirection);
+
+	if (power < 100)
+		power = 100;
+	else if (power > 300)
+		power = 500;
+
+	c_stone->SetMovingSpeed(power);
 	Com_Shot = true;
 
 }

@@ -5,7 +5,7 @@ class UICamera : public CCamera
 {
 public:
 	RECT Monitor_Area;
-
+	bool Active = false;
 	UICamera(RECT& monitor_area);
 	virtual ~UICamera() {}
 

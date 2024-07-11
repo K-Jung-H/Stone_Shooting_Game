@@ -429,21 +429,13 @@ void CBoardObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* p
 		m_pMesh->Render(pd3dCommandList);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 StoneObject::StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	m_fDuration = 0.5f;
 	m_fExplosionSpeed = 50.0f;
+	
 }
 
 StoneObject::~StoneObject()
@@ -463,6 +455,7 @@ void StoneObject::Animate(float fElapsedTime)
 	XMVECTOR transformedCenter = XMVector3Transform(center, XMLoadFloat4x4(&m_xmf4x4World));
 	XMStoreFloat3(&m_xmOOSP.Center, transformedCenter);
 
+	// 시작할때 한번만 하면 되는데 어디에 넣지
 	m_xmOOSP.Radius = m_pMesh->m_xmBoundingSphere.Radius;
 }
 

@@ -163,6 +163,8 @@ public:
 class StoneObject : public CExplosiveObject
 {
 public:
+	StoneObject* Overlaped = NULL;
+
 	StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~StoneObject();
 

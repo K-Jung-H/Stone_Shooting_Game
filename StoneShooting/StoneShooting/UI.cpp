@@ -53,31 +53,43 @@ BAR_UI::~BAR_UI()
 
 int BAR_UI::Update(float fTimeElapsed, bool power_charge)
 {
+	if (!Active)
+		return 0;
+
 	DebugOutput(std::to_string(Degree));
 
 	if (power_charge)
 	{
 		if (Degree_increase) {
-			if (Degree < 200) 
-				Degree += 1;			
+			if (Degree < 400) 
+				Degree += 3;			
 			else {
-				// 200에 도달하면 증가 상태를 false로 설정
+				// 400에 도달하면 증가 상태를 false로 설정
 				Degree_increase = false;  
 			}
 		}
 		else {
-			Degree -= 1;
-			if (Degree < 100) 
+			if (Degree > 300)
+				Degree -= 3;
+			else if (Degree > 200)
+				Degree -= 2;
+			else if (Degree > 100)
+				Degree -= 1;
+			else
 				Degree = 100;  // Degree 100 이하 방지
 		}
-
-		SetScissorRect(Monitor_Area.right - Degree, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
+		SetScissorRect(Monitor_Area.right - Degree/2, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
 	}
 	else
-		SetScissorRect(Monitor_Area.left, 0, 0, FRAME_BUFFER_HEIGHT);
+		SetScissorRect(Monitor_Area.left, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
 
-	if( 180 <= Degree && Degree <= 200)
+	if( 380 <= Degree && Degree <= 400)
 		return 500;
+
+	if (Degree_increase == false && Degree == 100)
+	{
+		return 100;
+	}
 
 	return Degree;
 }

@@ -1,5 +1,8 @@
 #include "stdafx.h"
 
+std::default_random_engine dre(static_cast<unsigned>(time(NULL)));
+std::uniform_int_distribution<int> uid(1, 3000);
+
 void DebugOutput(const std::string& message) {
 	std::wstring wMessage(message.begin(), message.end());
 	OutputDebugString((wMessage + L"\n").c_str());
