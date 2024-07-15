@@ -12,14 +12,22 @@
 
 class CPlayer;
 
-struct VS_CB_CAMERA_INFO
+struct CB_CAMERA_INFO
 {
 	XMFLOAT4X4 m_xmf4x4View;
 	XMFLOAT4X4 m_xmf4x4Projection;
+	XMFLOAT3 m_xmf3Position;
 };
 
 class CCamera
 {
+protected:
+	// 카메라에 대한 리소스
+	ID3D12Resource* m_pConstant_Buffer = NULL;
+
+	// 카메라에 대한 리소스 포인터
+	CB_CAMERA_INFO* m_pMapped_camera_info = NULL;
+
 protected:
 	//카메라의 위치(월드좌표계) 벡터이다.
 	XMFLOAT3 m_xmf3Position;
@@ -53,33 +61,37 @@ public:
 	CCamera();
 	CCamera(CCamera* pCamera);
 	virtual ~CCamera();
-	//카메라의 정보를 셰이더 프로그램에게 전달하기 위한 상수 버퍼를 생성하고 갱신한다.
-	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	virtual void ReleaseShaderVariables();
-	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
-	//카메라 변환 행렬을 생성한다.
+
+	//카메라의 정보를 셰이더 프로그램에게 전달하기 위한 상수 버퍼를 생성하고 갱신
+	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Release_Shader_Resource();
+
+	//카메라 변환 행렬을 생성
 	void GenerateViewMatrix();
 	void GenerateViewMatrix(XMFLOAT3 xmf3Position, XMFLOAT3 xmf3LookAt, XMFLOAT3 xmf3Up);
-	/*카메라가 여러번 회전을 하게 되면 누적된 실수 연산의 부정확성 때문에 카메라의 로컬 x-축(Right), y-축(Up), z-
-	축(Look)이 서로 직교하지 않을 수 있다. 카메라의 로컬 x-축(Right), y-축(Up), z-축(Look)이 서로 직교하도록 만들
-	어준다.*/
+	
+	//카메라가 여러번 회전을 하게 되면 
+	// 누적된 실수 연산의 부정확성 때문에 카메라의 로컬 xyz 축이 서로 직교하지 않을 수 있음 
+	//카메라의 로컬 x-축(Right), y-축(Up), z-축(Look)이 서로 직교하도록 재생성
 	void RegenerateViewMatrix();
-	//투영 변환 행렬을 생성한다.
-	void GenerateProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float
-		fAspectRatio, float fFOVAngle);
-	void SetViewport(int xTopLeft, int yTopLeft, int nWidth, int nHeight, float fMinZ =
-		0.0f, float fMaxZ = 1.0f);
+	
+	//투영 변환 행렬을 생성
+	void GenerateProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float fAspectRatio, float fFOVAngle);
+	void SetViewport(int xTopLeft, int yTopLeft, int nWidth, int nHeight, float fMinZ = 0.0f, float fMaxZ = 1.0f);
 	void SetScissorRect(LONG xLeft, LONG yTop, LONG xRight, LONG yBottom);
 	virtual void SetViewportsAndScissorRects(ID3D12GraphicsCommandList* pd3dCommandList);
+	
 	void SetPlayer(CPlayer* pPlayer) { m_pPlayer = pPlayer; }
 	CPlayer* GetPlayer() { return(m_pPlayer); }
+	
 	void SetMode(DWORD nMode) { m_nMode = nMode; }
 	DWORD GetMode() { return(m_nMode); }
+
 	void SetPosition(XMFLOAT3 xmf3Position) { m_xmf3Position = xmf3Position; }
+	void SetLookAtPosition(XMFLOAT3 xmf3LookAtWorld) { m_xmf3LookAtWorld = xmf3LookAtWorld; }
+	
 	XMFLOAT3& GetPosition() { return(m_xmf3Position); }
-	void SetLookAtPosition(XMFLOAT3 xmf3LookAtWorld) {
-		m_xmf3LookAtWorld = xmf3LookAtWorld;
-	}
 	XMFLOAT3& GetLookAtPosition() { return(m_xmf3LookAtWorld); }
 	XMFLOAT3& GetRightVector() { return(m_xmf3Right); }
 	XMFLOAT3& GetUpVector() { return(m_xmf3Up); }
@@ -100,22 +112,25 @@ public:
 	D3D12_VIEWPORT GetViewport() { return(m_d3dViewport); }
 	D3D12_RECT GetScissorRect() { return(m_d3dScissorRect); }
 
-	//카메라를 xmf3Shift 만큼 이동한다.
+	//카메라를 xmf3Shift 만큼 이동
 	virtual void Move(const XMFLOAT3& xmf3Shift) {
 		m_xmf3Position.x += xmf3Shift.x;
 		m_xmf3Position.y += xmf3Shift.y; 
 		m_xmf3Position.z += xmf3Shift.z;
 	}
-	//카메라를 x-축, y-축, z-축으로 회전하는 가상함수이다.
+	//카메라를 x-축, y-축, z-축으로 회전하는 가상함수
 	virtual void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f) { }
-	//카메라의 이동, 회전에 따라 카메라의 정보를 갱신하는 가상함수이다.
+
+	//카메라의 이동, 회전에 따라 카메라의 정보를 갱신하는 가상함수
 	virtual void Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed) { }
-	//3인칭 카메라에서 카메라가 바라보는 지점을 설정한다. 일반적으로 플레이어를 바라보도록 설정한다.
+
+	// 3인칭 카메라에서 카메라가 바라보는 지점을 설정
+	// 일반적으로 플레이어를 바라보도록 설정
 	virtual void SetLookAt(XMFLOAT3& xmf3LookAt) { }
 
-	//절두체(월드 좌표계)를 생성한다. 
+	//절두체(월드 좌표계)를 생성
 	void GenerateFrustum();
-	//바운딩 박스(OOBB, 월드 좌표계)가 절두체에 포함되는 가를 검사한다. 
+	//바운딩 박스(OOBB, 월드 좌표계)가 절두체에 포함되는 가를 검사
 	bool IsInFrustum(BoundingOrientedBox& xmBoundingBox);
 };
 

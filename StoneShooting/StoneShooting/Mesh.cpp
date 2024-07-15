@@ -1,6 +1,7 @@
 ﻿#include "stdafx.h"
 #include "Mesh.h"
 #include <vector>
+
 CMesh::CMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 }
@@ -405,22 +406,6 @@ CAirplaneMeshDiffused::~CAirplaneMeshDiffused()
 {
 }
 
-void CAirplaneMeshDiffused::Make_Another_Color_Mesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-{
-	for (int i = 0; i < m_nVertices; i++)
-	{
-		m_pVertices[i].Change_Diffused_Color(Vector4::Add(XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f), RANDOM_COLOR));
-	}
-
-	picked_m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices,
-		m_nStride * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, 
-		&picked_m_pd3dVertexUploadBuffer);
-
-	picked_m_d3dVertexBufferView.BufferLocation = picked_m_pd3dVertexBuffer->GetGPUVirtualAddress();
-	picked_m_d3dVertexBufferView.StrideInBytes = m_nStride;
-	picked_m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -605,7 +590,7 @@ int CMesh::CheckRayIntersection(XMFLOAT3& xmf3RayOrigin, XMFLOAT3& xmf3RayDirect
 {
 	//하나의 메쉬에서 광선은 여러 개의 삼각형과 교차할 수 있다. 교차하는 삼각형들 중 가장 가까운 삼각형을 찾는다. 
 	int nIntersections = 0;
-	BYTE* pbPositions = (BYTE*)m_pVertices;
+	BYTE* pbPositions = (BYTE*)m_test; // m_pVertices
 	int nOffset = (m_d3dPrimitiveTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST) ? 3 : 1;
 
 	/*메쉬의 프리미티브(삼각형)들의 개수이다. 삼각형 리스트인 경우 (정점의 개수 / 3) 또는 (인덱스의 개수 / 3), 삼각
@@ -654,3 +639,356 @@ int CMesh::CheckRayIntersection(XMFLOAT3& xmf3RayOrigin, XMFLOAT3& xmf3RayDirect
 	return(nIntersections);
 }
 
+
+
+//===============================================
+
+CMeshIlluminated::CMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) : CMesh(pd3dDevice, pd3dCommandList)
+{
+}
+
+CMeshIlluminated::~CMeshIlluminated()
+{
+}
+
+void CMeshIlluminated::CalculateTriangleListVertexNormals(XMFLOAT3* pxmf3Normals, XMFLOAT3* pxmf3Positions, int nVertices)
+{
+	int nPrimitives = nVertices / 3;
+	UINT nIndex0, nIndex1, nIndex2;
+	for (int i = 0; i < nPrimitives; i++)
+	{
+		nIndex0 = i * 3 + 0;
+		nIndex1 = i * 3 + 1;
+		nIndex2 = i * 3 + 2;
+		XMFLOAT3 xmf3Edge01 = Vector3::Subtract(pxmf3Positions[nIndex1], pxmf3Positions[nIndex0]);
+		XMFLOAT3 xmf3Edge02 = Vector3::Subtract(pxmf3Positions[nIndex2], pxmf3Positions[nIndex0]);
+		pxmf3Normals[nIndex0] = pxmf3Normals[nIndex1]
+			= pxmf3Normals[nIndex2]
+			= Vector3::CrossProduct(xmf3Edge01, xmf3Edge02, true);
+	}
+}
+
+void CMeshIlluminated::CalculateTriangleListVertexNormals(XMFLOAT3* pxmf3Normals,
+	XMFLOAT3* pxmf3Positions, UINT nVertices, UINT* pnIndices, UINT nIndices)
+{
+	UINT nPrimitives = (pnIndices) ? (nIndices / 3) : (nVertices / 3);
+	XMFLOAT3 xmf3SumOfNormal, xmf3Edge01, xmf3Edge02, xmf3Normal;
+	UINT nIndex0, nIndex1, nIndex2;
+	for (UINT j = 0; j < nVertices; j++)
+	{
+		xmf3SumOfNormal = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		for (UINT i = 0; i < nPrimitives; i++)
+		{
+			nIndex0 = pnIndices[i * 3 + 0];
+			nIndex1 = pnIndices[i * 3 + 1];
+			nIndex2 = pnIndices[i * 3 + 2];
+			if (pnIndices && ((nIndex0 == j) || (nIndex1 == j) || (nIndex2 == j)))
+			{
+				xmf3Edge01 = Vector3::Subtract(pxmf3Positions[nIndex1],
+					pxmf3Positions[nIndex0]);
+				xmf3Edge02 = Vector3::Subtract(pxmf3Positions[nIndex2],
+					pxmf3Positions[nIndex0]);
+				xmf3Normal = Vector3::CrossProduct(xmf3Edge01, xmf3Edge02, false);
+				xmf3SumOfNormal = Vector3::Add(xmf3SumOfNormal, xmf3Normal);
+			}
+		}
+		pxmf3Normals[j] = Vector3::Normalize(xmf3SumOfNormal);
+	}
+}
+
+void CMeshIlluminated::CalculateTriangleStripVertexNormals(XMFLOAT3* pxmf3Normals, XMFLOAT3* pxmf3Positions, UINT nVertices, UINT* pnIndices, UINT nIndices)
+{
+	UINT nPrimitives = (pnIndices) ? (nIndices - 2) : (nVertices - 2);
+	XMFLOAT3 xmf3SumOfNormal(0.0f, 0.0f, 0.0f);
+	UINT nIndex0, nIndex1, nIndex2;
+	for (UINT j = 0; j < nVertices; j++)
+	{
+		xmf3SumOfNormal = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		for (UINT i = 0; i < nPrimitives; i++)
+		{
+			nIndex0 = ((i % 2) == 0) ? (i + 0) : (i + 1);
+
+			if (pnIndices)
+				nIndex0 = pnIndices[nIndex0];
+
+			nIndex1 = ((i % 2) == 0) ? (i + 1) : (i + 0);
+
+			if (pnIndices)
+				nIndex1 = pnIndices[nIndex1];
+			nIndex2 = (pnIndices) ? pnIndices[i + 2] : (i + 2);
+
+			if ((nIndex0 == j) || (nIndex1 == j) || (nIndex2 == j))
+			{
+				XMFLOAT3 xmf3Edge01 = Vector3::Subtract(pxmf3Positions[nIndex1], pxmf3Positions[nIndex0]);
+				XMFLOAT3 xmf3Edge02 = Vector3::Subtract(pxmf3Positions[nIndex2], pxmf3Positions[nIndex0]);
+				XMFLOAT3 xmf3Normal = Vector3::CrossProduct(xmf3Edge01, xmf3Edge02, true);
+				xmf3SumOfNormal = Vector3::Add(xmf3SumOfNormal, xmf3Normal);
+			}
+		}
+		pxmf3Normals[j] = Vector3::Normalize(xmf3SumOfNormal);
+	}
+}
+
+void CMeshIlluminated::CalculateVertexNormals(XMFLOAT3* pxmf3Normals, XMFLOAT3* pxmf3Positions, int nVertices, UINT* pnIndices, int nIndices)
+{
+	switch (m_d3dPrimitiveTopology)
+	{
+	case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
+		if (pnIndices)
+			CalculateTriangleListVertexNormals(pxmf3Normals, pxmf3Positions, nVertices, pnIndices, nIndices);
+		else
+			CalculateTriangleListVertexNormals(pxmf3Normals, pxmf3Positions, nVertices);
+		break;
+	case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
+		CalculateTriangleStripVertexNormals(pxmf3Normals, pxmf3Positions, nVertices, pnIndices, nIndices);
+		break;
+	default:
+		break;
+	}
+}
+
+
+//=========================================================================
+
+CCubeMeshIlluminated::CCubeMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fWidth, float fHeight, float fDepth)
+	: CMeshIlluminated(pd3dDevice, pd3dCommandList)
+{
+	m_nVertices = 8;
+	m_nStride = sizeof(CIlluminatedVertex);
+	m_nOffset = 0;
+	m_nSlot = 0;
+	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	m_nIndices = 36;
+	UINT pnIndices[36];
+	pnIndices[0] = 3; pnIndices[1] = 1; pnIndices[2] = 0;
+	pnIndices[3] = 2; pnIndices[4] = 1; pnIndices[5] = 3;
+	pnIndices[6] = 0; pnIndices[7] = 5; pnIndices[8] = 4;
+	pnIndices[9] = 1; pnIndices[10] = 5; pnIndices[11] = 0;
+	pnIndices[12] = 3; pnIndices[13] = 4; pnIndices[14] = 7;
+	pnIndices[15] = 0; pnIndices[16] = 4; pnIndices[17] = 3;
+	pnIndices[18] = 1; pnIndices[19] = 6; pnIndices[20] = 5;
+	pnIndices[21] = 2; pnIndices[22] = 6; pnIndices[23] = 1;
+	pnIndices[24] = 2; pnIndices[25] = 7; pnIndices[26] = 6;
+	pnIndices[27] = 3; pnIndices[28] = 7; pnIndices[29] = 2;
+	pnIndices[30] = 6; pnIndices[31] = 4; pnIndices[32] = 5;
+	pnIndices[33] = 7; pnIndices[34] = 4; pnIndices[35] = 6;
+
+
+	m_pd3dIndexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pnIndices, sizeof(UINT) * m_nIndices,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pd3dIndexUploadBuffer);
+
+	m_d3dIndexBufferView.BufferLocation = m_pd3dIndexBuffer->GetGPUVirtualAddress();
+	m_d3dIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
+	m_d3dIndexBufferView.SizeInBytes = sizeof(UINT) * m_nIndices;
+
+
+	XMFLOAT3 pxmf3Positions[8];
+	float fx = fWidth * 0.5f, fy = fHeight * 0.5f, fz = fDepth * 0.5f;
+	pxmf3Positions[0] = XMFLOAT3(-fx, +fy, -fz);
+	pxmf3Positions[1] = XMFLOAT3(+fx, +fy, -fz);
+	pxmf3Positions[2] = XMFLOAT3(+fx, +fy, +fz);
+	pxmf3Positions[3] = XMFLOAT3(-fx, +fy, +fz);
+	pxmf3Positions[4] = XMFLOAT3(-fx, -fy, -fz);
+	pxmf3Positions[5] = XMFLOAT3(+fx, -fy, -fz);
+	pxmf3Positions[6] = XMFLOAT3(+fx, -fy, +fz);
+	pxmf3Positions[7] = XMFLOAT3(-fx, -fy, +fz);
+
+	XMFLOAT3 pxmf3Normals[8];
+	for (int i = 0; i < 8; i++)
+		pxmf3Normals[i] = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	CalculateVertexNormals(pxmf3Normals, pxmf3Positions, m_nVertices, pnIndices, m_nIndices);
+
+
+	CIlluminatedVertex pVertices[8];
+	for (int i = 0; i < 8; i++)
+		pVertices[i] = CIlluminatedVertex(pxmf3Positions[i], pxmf3Normals[i]);
+
+
+	m_pd3dVertexBuffer = CreateBufferResource(pd3dDevice, pd3dCommandList, pVertices, m_nStride * m_nVertices,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
+
+	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
+	m_d3dVertexBufferView.StrideInBytes = m_nStride;
+	m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
+}
+
+CCubeMeshIlluminated::~CCubeMeshIlluminated()
+{
+
+}
+
+//===============================================================================
+
+CSphereMeshIlluminated::CSphereMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
+	float fRadius, int nSlices, int nStacks) : CMeshIlluminated(pd3dDevice, pd3dCommandList)
+{
+	m_nStride = sizeof(CIlluminatedVertex);
+	m_d3dPrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+
+	m_nVertices = 2 + (nSlices * (nStacks - 1));
+
+	XMFLOAT3* pxmf3Positions = new XMFLOAT3[m_nVertices];
+	XMFLOAT3* pxmf3Normals = new XMFLOAT3[m_nVertices];
+
+
+	float fDeltaPhi = float(XM_PI / nStacks);
+	float fDeltaTheta = float((2.0f * XM_PI) / nSlices);
+	float theta_i, phi_j;
+
+	float y_scale = 0.5f;
+
+	int k = 0;
+
+
+	//구의 위(북극)를 나타내는 정점
+	pxmf3Positions[k++] = XMFLOAT3(0.0f, +fRadius * y_scale, 0.0f);
+
+	//원기둥 표면의 정점
+	for (int j = 1; j < nStacks; j++)
+	{
+		phi_j = fDeltaPhi * j;
+		for (int i = 0; i < nSlices; i++)
+		{
+			theta_i = fDeltaTheta * i;
+			pxmf3Positions[k++] = XMFLOAT3(
+				fRadius * sinf(phi_j) * cosf(theta_i),
+				fRadius * cosf(phi_j) * y_scale,
+				fRadius * sinf(phi_j) * sinf(theta_i)
+				);
+		}
+	}
+
+	//구의 아래(남극)를 나타내는 정점
+	pxmf3Positions[k] = XMFLOAT3(0.0f, -fRadius * y_scale, 0.0f);
+
+	for (int i = 0; i < m_nVertices; i++)
+		pxmf3Normals[i] = XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+
+	m_nIndices = (nSlices * 3) * 2 + (nSlices * (nStacks - 2) * 3 * 2);
+	UINT* pnIndices = new UINT[m_nIndices];
+	
+	k = 0;
+	//구의 위쪽 원뿔의 표면을 표현하는 삼각형들의 인덱스 
+	for (int i = 0; i < nSlices; i++)
+	{
+		pnIndices[k++] = 0;
+		pnIndices[k++] = 1 + ((i + 1) % nSlices);
+		pnIndices[k++] = 1 + i;
+	}
+	//구의 원기둥의 표면을 표현하는 삼각형들의 인덱스
+	for (int j = 0; j < nStacks - 2; j++)
+	{
+		for (int i = 0; i < nSlices; i++)
+		{
+			//사각형의 첫 번째 삼각형의 인덱스이다. 
+			pnIndices[k++] = 1 + (i + (j * nSlices));
+			pnIndices[k++] = 1 + (((i + 1) % nSlices) + (j * nSlices));
+			pnIndices[k++] = 1 + (i + ((j + 1) * nSlices));
+			//사각형의 두 번째 삼각형의 인덱스이다. 
+			pnIndices[k++] = 1 + (i + ((j + 1) * nSlices));
+			pnIndices[k++] = 1 + (((i + 1) % nSlices) + (j * nSlices));
+			pnIndices[k++] = 1 + (((i + 1) % nSlices) + ((j + 1) * nSlices));
+		}
+	}
+	//구의 아래쪽 원뿔의 표면을 표현하는 삼각형들의 인덱스
+	for (int i = 0; i < nSlices; i++)
+	{
+		pnIndices[k++] = (m_nVertices - 1);
+		pnIndices[k++] = ((m_nVertices - 1) - nSlices) + i;
+		pnIndices[k++] = ((m_nVertices - 1) - nSlices) + ((i + 1) % nSlices);
+	}
+
+	// 법선 벡터 계산
+	CalculateVertexNormals(pxmf3Normals, pxmf3Positions, m_nVertices, pnIndices, m_nIndices);
+
+	CIlluminatedVertex* pVertices = new CIlluminatedVertex[m_nVertices];
+	for (int i = 0; i < m_nVertices; i++)
+		pVertices[i] = CIlluminatedVertex(pxmf3Positions[i], pxmf3Normals[i]);
+
+	// 객체에 정점 정보 저장
+	m_test = pVertices;
+	m_pnIndices = pnIndices;
+
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pVertices, m_nStride * m_nVertices,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
+
+	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
+	m_d3dVertexBufferView.StrideInBytes = m_nStride;
+	m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
+
+
+	m_pd3dIndexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pnIndices, sizeof(UINT) * m_nIndices,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pd3dIndexUploadBuffer);
+
+	m_d3dIndexBufferView.BufferLocation = m_pd3dIndexBuffer->GetGPUVirtualAddress();
+	m_d3dIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
+	m_d3dIndexBufferView.SizeInBytes = sizeof(UINT) * m_nIndices;
+
+
+	m_xmBoundingSphere = BoundingSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), fRadius);
+	m_xmBoundingBox = BoundingOrientedBox(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(fRadius, fRadius, fRadius), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+}
+
+CSphereMeshIlluminated::~CSphereMeshIlluminated()
+{
+}
+
+//===============================================================================
+
+CPlaneMeshIlluminated::CPlaneMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
+	float fWidth, float fDepth) : CMeshIlluminated(pd3dDevice, pd3dCommandList)
+{
+	int nSubRects = 20;
+
+	float fHalfWidth = fWidth * 0.5f;
+	float fHalfDepth = fDepth * 0.5f;
+	float fCellWidth = fWidth / nSubRects;
+	float fCellDepth = fDepth / nSubRects;
+	
+	m_nVertices = 0;
+	m_nStride = sizeof(CIlluminatedVertex);
+	m_nOffset = 0;
+	m_nSlot = 0;
+	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	std::vector<CIlluminatedVertex> tempVertices;
+
+	for (int i = 0; i < nSubRects; i++) {
+		for (int j = 0; j < nSubRects; j++) {
+			XMFLOAT3 v0(-fHalfWidth + (i * fCellWidth), 0.0f, -fHalfDepth + (j * fCellDepth));
+			XMFLOAT3 v1(-fHalfWidth + ((i + 1) * fCellWidth), 0.0f, -fHalfDepth + (j * fCellDepth));
+			XMFLOAT3 v2(-fHalfWidth + ((i + 1) * fCellWidth), 0.0f, -fHalfDepth + ((j + 1) * fCellDepth));
+			XMFLOAT3 v3(-fHalfWidth + (i * fCellWidth), 0.0f, -fHalfDepth + ((j + 1) * fCellDepth));
+
+			XMFLOAT3 v_normal(0.0f, 1.0f, 0.0f);
+
+			tempVertices.push_back(CIlluminatedVertex(v0, v_normal));
+			tempVertices.push_back(CIlluminatedVertex(v2, v_normal));
+			tempVertices.push_back(CIlluminatedVertex(v1, v_normal));
+
+			tempVertices.push_back(CIlluminatedVertex(v0, v_normal));
+			tempVertices.push_back(CIlluminatedVertex(v3, v_normal));
+			tempVertices.push_back(CIlluminatedVertex(v2, v_normal));
+		}
+	}
+
+	m_nVertices = tempVertices.size();
+	m_test = new CIlluminatedVertex[m_nVertices];
+	std::copy(tempVertices.begin(), tempVertices.end(), m_test);
+
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_test, m_nStride * m_nVertices,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
+	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
+	m_d3dVertexBufferView.StrideInBytes = m_nStride;
+	m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
+
+	m_xmBoundingBox = BoundingOrientedBox(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(fHalfWidth, 10.0f, fHalfDepth), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+}
+
+CPlaneMeshIlluminated::~CPlaneMeshIlluminated() {
+	if (m_pVertices) delete[] m_pVertices;
+	if (m_pd3dVertexBuffer) m_pd3dVertexBuffer->Release();
+	if (m_pd3dVertexUploadBuffer) m_pd3dVertexUploadBuffer->Release();
+}

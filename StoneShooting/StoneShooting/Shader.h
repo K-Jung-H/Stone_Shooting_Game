@@ -5,10 +5,8 @@
 #include <vector>
 //셰이더 소스 코드를 컴파일하고 그래픽스 상태 객체를 생성한다. 
 
-struct CB_GAMEOBJECT_INFO
-{
-	XMFLOAT4X4 m_xmf4x4World;
-};
+
+
 
 class CShader
 {
@@ -31,12 +29,11 @@ public:
 	
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	
-	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	
-	virtual void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4X4* pxmf4x4World);
-	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
 	
-	virtual void ReleaseShaderVariables();
+	virtual void Release_Shader_Resource();
 
 	void AddObjects(CGameObject* gameobject);
 
@@ -82,6 +79,13 @@ public:
 //“CObjectsShader” 클래스는 게임 객체들을 포함하는 셰이더 객체
 class CObjectsShader : public CShader
 {
+//protected:
+//	// 쉐이더 객체에 포함되어 있는 모든 게임 객체들에 대한 리소스
+//	ID3D12Resource* m_pd3dcbGameObjects = NULL;
+//
+//	// 쉐이더 객체에 포함되어 있는 모든 게임 객체들에 대한 리소스 포인터
+//	UINT8* m_pcbMappedGameObjects = NULL;
+
 public:
 	CObjectsShader();
 	virtual ~CObjectsShader();
@@ -91,6 +95,10 @@ public:
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob** ppd3dShaderBlob);
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	
+	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Release_Shader_Resource();
+
 	virtual void AnimateObjects(float fTimeElapsed);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 

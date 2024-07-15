@@ -116,23 +116,45 @@ void CCamera::RegenerateViewMatrix()
 }
 
 
-void CCamera::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+void CCamera::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
+	UINT ncbElementBytes = ((sizeof(CB_CAMERA_INFO) + 255) & ~255); //256의 배수
+	m_pConstant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+
+	m_pConstant_Buffer->Map(0, NULL, (void**)&m_pMapped_camera_info);
 }
 
-void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
+void CCamera::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
 {
+	//================================ 전달할 내용 임시 변수에 저장
 	XMFLOAT4X4 xmf4x4View;
 	XMStoreFloat4x4(&xmf4x4View, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4View)));
-	//루트 파라메터 인덱스 1의
-	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 16, &xmf4x4View, 0);
 
 	XMFLOAT4X4 xmf4x4Projection;
 	XMStoreFloat4x4(&xmf4x4Projection, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4Projection)));
-	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 16, &xmf4x4Projection, 16);
+
+	//================================= 임시 변수의 내용을 리소스를 매핑한 포인터를 통해 전달
+
+	CB_CAMERA_INFO* pcbMappedCamera = (CB_CAMERA_INFO*)(m_pMapped_camera_info);
+	::memcpy(&pcbMappedCamera->m_xmf4x4View, &xmf4x4View, sizeof(XMFLOAT4X4));
+	::memcpy(&pcbMappedCamera->m_xmf4x4Projection, &xmf4x4Projection, sizeof(XMFLOAT4X4));
+	::memcpy(&pcbMappedCamera->m_xmf3Position, &m_xmf3Position, sizeof(XMFLOAT3));
+
+	//================================= 버퍼의 내용을 파이프라인에 연결
+
+	D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
+
+	pd3dCommandList->SetGraphicsRootConstantBufferView(1, d3dGpuVirtualAddress);
+
 }
-void CCamera::ReleaseShaderVariables()
+void CCamera::Release_Shader_Resource()
 {
+	if (m_pConstant_Buffer)
+	{
+		m_pConstant_Buffer->Unmap(0, NULL);
+		m_pConstant_Buffer->Release();
+	}
 }
 
 void CCamera::SetViewportsAndScissorRects(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -224,8 +246,7 @@ void TOP_Camera::Rotate(float x, float y, float z)
 	{
 		//플레이어의 로컬 y-축을 기준으로 회전하는 행렬을 생성한다.
 		XMFLOAT3 xmf3Up = m_pPlayer->GetUpVector();
-		XMMATRIX xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&xmf3Up),
-			XMConvertToRadians(y));
+		XMMATRIX xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&xmf3Up), XMConvertToRadians(y));
 		//카메라의 로컬 x-축, y-축, z-축을 회전 행렬을 사용하여 회전한다.
 		m_xmf3Look = Vector3::TransformNormal(m_xmf3Look, xmmtxRotate);
 		m_xmf3Up = Vector3::TransformNormal(m_xmf3Up, xmmtxRotate);
@@ -235,8 +256,7 @@ void TOP_Camera::Rotate(float x, float y, float z)
 	{
 		//플레이어의 로컬 z-축을 기준으로 회전하는 행렬을 생성한다.
 		XMFLOAT3 xmf3Look = m_pPlayer->GetLookVector();
-		XMMATRIX xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&xmf3Look),
-			XMConvertToRadians(z));
+		XMMATRIX xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&xmf3Look), XMConvertToRadians(z));
 		//카메라의 위치 벡터를 플레이어 좌표계로 표현한다(오프셋 벡터).
 		m_xmf3Position = Vector3::Subtract(m_xmf3Position, m_pPlayer->GetPosition());
 		//오프셋 벡터 벡터를 회전한다.

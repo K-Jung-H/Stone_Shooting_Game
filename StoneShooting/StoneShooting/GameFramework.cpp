@@ -458,13 +458,13 @@ void CGameFramework::BuildObjects()
 
 	//===================================================
 
-	D3D12_RECT power_ui_area = { 600, 0, 800, 90 };
+	/*D3D12_RECT power_ui_area = { 600, 0, 800, 90 };
 	pUI_list.push_back(new BAR_UI(power_ui_area));
 
 	power_ui_area = { 0, 0, 200, 90 };
 	pUI_list.push_back(new BAR_UI(power_ui_area));
 
-	ui_num = pUI_list.size();
+	ui_num = pUI_list.size();*/
 
 	//===================================================
 
@@ -493,8 +493,8 @@ void CGameFramework::ReleaseObjects()
 
 void CGameFramework::AnimateObjects()
 {
-	if (m_pScene->Check_GameOver())
-		::PostQuitMessage(0);
+	//if (m_pScene->Check_GameOver())
+	//	::PostQuitMessage(0);
 
 
 	if (m_pScene)
@@ -524,41 +524,40 @@ void CGameFramework::AnimateObjects()
 	}
 
 
+	//if (m_pScene->Player_Turn) // 플레이어 턴
+	//{
+	//	pUI_list[0]->Active = true;
+	//	pUI_list[1]->Active = false;
 
-	if (m_pScene->Player_Turn) // 플레이어 턴
-	{
-		pUI_list[0]->Active = true;
-		pUI_list[1]->Active = false;
+	//	power_degree = pUI_list[0]->Update(m_GameTimer.GetTimeElapsed(), power_charge);
 
-		power_degree = pUI_list[0]->Update(m_GameTimer.GetTimeElapsed(), power_charge);
+	//}
+	//else if (m_pScene->Com_Turn) // 컴퓨터 턴
+	//{
+	//	pUI_list[0]->Active = false;
+	//	pUI_list[1]->Active = true;
 
-	}
-	else if (m_pScene->Com_Turn) // 컴퓨터 턴
-	{
-		pUI_list[0]->Active = false;
-		pUI_list[1]->Active = true;
+	//	if (!m_pScene->Com_Shot)
+	//	{
+	//		if(0.0f > random_time)
+	//			random_time = uid(dre) / 1000;
 
-		if (!m_pScene->Com_Shot)
-		{
-			if(0.0f > random_time)
-				random_time = uid(dre) / 1000;
-
-			if (random_time < sum_time)
-			{
-				if (m_pScene->Game_Over == false)  // 필요한 조건인가
-				{
-					random_time = -1;
-					m_pScene->Shoot_Stone_Com(power_degree);
-					sum_time = 0;
-				}
-			}
-			else
-			{
-				power_degree = pUI_list[1]->Update(m_GameTimer.GetTimeElapsed(), true);
-				sum_time += m_GameTimer.GetTimeElapsed();
-			}
-		}
-	}
+	//		if (random_time < sum_time)
+	//		{
+	//			if (m_pScene->Game_Over == false)  // 필요한 조건인가
+	//			{
+	//				random_time = -1;
+	//				m_pScene->Shoot_Stone_Com(power_degree);
+	//				sum_time = 0;
+	//			}
+	//		}
+	//		else
+	//		{
+	//			power_degree = pUI_list[1]->Update(m_GameTimer.GetTimeElapsed(), true);
+	//			sum_time += m_GameTimer.GetTimeElapsed();
+	//		}
+	//	}
+	//}
 	
 	m_pScene->CheckObject_Out_Board_Collisions();
 	m_pScene->CheckObjectByObjectCollisions();
@@ -632,12 +631,12 @@ void CGameFramework::FrameAdvance()
 	if (m_pScene) 
 		m_pScene->Render(m_pd3dDevice, m_pd3dCommandList, pMainCamera);
 
-	if (pUI_list.size())
-	{
-		for (UICamera* ui_ptr : pUI_list)
-			if(ui_ptr->Active)
-				m_pScene->UI_Render(m_pd3dDevice, m_pd3dCommandList, ui_ptr);
-	}
+	//if (pUI_list.size())
+	//{
+	//	for (UICamera* ui_ptr : pUI_list)
+	//		if(ui_ptr->Active)
+	//			m_pScene->UI_Render(m_pd3dDevice, m_pd3dCommandList, ui_ptr);
+	//}
 	// D3D12 그리기 동작 끝
 
 
@@ -673,20 +672,20 @@ void CGameFramework::FrameAdvance()
 	D2D1_SIZE_F szRenderTarget = m_ppd2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
 
 	// 플레이어 모은 파워 출력
-	if (pUI_list[0]->Active)
+	/*if (pUI_list[0]->Active)
 	{
 		std::wstring wsPower = std::to_wstring(power_degree);
 		D2D1_RECT_F player_shooting_power = D2D1::RectF(500, 0, 600, 90);
 		m_pd2dDeviceContext->DrawTextW(wsPower.c_str(), (UINT32)wcslen(wsPower.c_str()), m_pdwFont, &player_shooting_power, m_pd2dbrText);
-	}
+	}*/
 
 	// COM의 모은 파워 출력
-	if (pUI_list[1]->Active)
+	/*if (pUI_list[1]->Active)
 	{
 		std::wstring ws_COM_Power = std::to_wstring(power_degree);
 		D2D1_RECT_F COM_shooting_power = D2D1::RectF(200, 0, 300, 90);
 		m_pd2dDeviceContext->DrawTextW(ws_COM_Power.c_str(), (UINT32)wcslen(ws_COM_Power.c_str()), m_pdwFont, &COM_shooting_power, m_pd2dbrText);
-	}
+	}*/
 	
 
 	// 시간 제한 출력
@@ -848,9 +847,10 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 
 		case VK_SPACE:
-			power_charge = false;
+			/*power_charge = false;
 			pUI_list[0]->Reset();
-			pUI_list[1]->Reset();
+			pUI_list[1]->Reset();*/
+			power_degree = 1000;
 			if (m_pScene->Player_Turn && m_pScene->Player_Shot == false)
 			{
 				if (m_pScene->m_pSelectedObject != NULL)

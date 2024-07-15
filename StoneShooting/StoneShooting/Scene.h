@@ -3,6 +3,36 @@
 #include "Timer.h"
 #include "Shader.h"
 
+
+struct LIGHT
+{
+	XMFLOAT4 m_xmf4Ambient;
+	XMFLOAT4 m_xmf4Diffuse;
+	XMFLOAT4 m_xmf4Specular;
+	XMFLOAT3 m_xmf3Position;
+	float m_fFalloff;
+	XMFLOAT3 m_xmf3Direction;
+	float m_fTheta; //cos(m_fTheta)
+	XMFLOAT3 m_xmf3Attenuation;
+	float m_fPhi; //cos(m_fPhi)
+	bool m_bEnable;
+	int m_nType;
+	float m_fRange;
+	float padding;
+};
+
+struct LIGHTS
+{
+	LIGHT m_pLights[MAX_LIGHTS];
+	XMFLOAT4 m_xmf4GlobalAmbient;
+};
+
+struct MATERIALS
+{
+	MATERIAL m_pReflections[MAX_MATERIALS];
+};
+
+
 class CScene
 {
 public:
@@ -17,7 +47,8 @@ public:
 
 	bool ProcessInput(UCHAR* pKeysBuffer);
 	void AnimateObjects(float fTimeElapsed);
-	
+
+
 	void Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 	void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 	
@@ -30,16 +61,27 @@ public:
 
 	ID3D12RootSignature* GetGraphicsRootSignature();
 
-	void CheckObjectByObjectCollisions();
-	void CheckObject_Out_Board_Collisions();
-
-
-
 	//씬의 모든 게임 객체들에 대한 마우스 픽킹을 수행한다. 
 	CGameObject *PickObjectPointedByCursor(int xClient, int yClient, CCamera *pCamera);
 
+	//=============================================
+	
+	//씬의 모든 조명과 재질을 생성
+	void Build_Lights_and_Materials();
+
+	//씬의 모든 조명과 재질을 위한 리소스를 생성하고 갱신
+	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Release_Shader_Resource();
+
+
+	void Update_Lights_and_Materials(ID3D12GraphicsCommandList* pd3dCommandList);
+	//=============================================
 
 	void Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team);
+
+	void CheckObjectByObjectCollisions();
+	void CheckObject_Out_Board_Collisions();
 
 	void Shoot_Stone(float power);
 	void Shoot_Stone_Com(float power);
@@ -53,12 +95,26 @@ public:
 
 	void Defend_Overlap();
 
+	//=============================================
 
 protected:
 	CObjectsShader* m_pShaders = NULL;
 	int m_nShaders = 1;
+
+	LIGHTS* m_pLights = NULL; // 씬의 조명
+
+	ID3D12Resource* m_pd3dcbLights = NULL; // 조명을 나타내는 리소스
+	LIGHTS* m_pcbMappedLights = NULL; // 조명 리소스에 대한 포인터
+
+
+	MATERIALS* m_pMaterials = NULL; //씬의 객체들에 적용되는 재질
+
+
+	ID3D12Resource* m_pd3dcbMaterials = NULL; // 재질을 나타내는 리소스
+	MATERIAL* m_pcbMappedMaterials = NULL; // 재질 리소스에 대한 포인터
+
 public:
-	UIShader* m_uiShaders = NULL;
+	CObjectsShader* m_uiShaders = NULL;
 	int m_n_uiShaders = 1;
 
 	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
@@ -74,6 +130,8 @@ public:
 	CGameObject** m_ppGameObjects = NULL;
 
 	CBoardObject* m_pBoards = NULL;
+
+	std::vector<CParticle*>m_particle;
 
 	CGameObject* m_pSelectedObject = NULL; // 피킹된 것
 	

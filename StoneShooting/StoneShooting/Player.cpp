@@ -41,26 +41,51 @@ CPlayer::CPlayer()
 
 CPlayer::~CPlayer()
 {
-	ReleaseShaderVariables();
+	Release_Shader_Resource();
 	if (m_pCamera) delete m_pCamera;
 }
 
-void CPlayer::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+void CPlayer::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	CGameObject::CreateShaderVariables(pd3dDevice, pd3dCommandList);
-	if (m_pCamera) m_pCamera->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	UINT ncbElementBytes = ((sizeof(CB_PLAYER_INFO) + 255) & ~255); //256의 배수
+	m_pConstant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+
+	m_pConstant_Buffer->Map(0, NULL, (void**)&m_pMapped_player_info);
+
+	//========================================================================
+
+	if (m_pCamera) 
+		m_pCamera->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 }
 
-void CPlayer::ReleaseShaderVariables()
+void CPlayer::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	CGameObject::ReleaseShaderVariables();
-	if (m_pCamera) m_pCamera->ReleaseShaderVariables();
+	XMFLOAT4X4 xmf4x4World;
+	XMStoreFloat4x4(&xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4World)));
+
+	CB_PLAYER_INFO* pcbMappedPlayer = (CB_PLAYER_INFO*)(m_pMapped_player_info);
+	::memcpy(&pcbMappedPlayer->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
+
+	D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
+
+	pd3dCommandList->SetGraphicsRootConstantBufferView(0, d3dGpuVirtualAddress);
 }
 
-void CPlayer::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
+void CPlayer::Release_Shader_Resource()
 {
-	CGameObject::UpdateShaderVariables(pd3dCommandList);
+	if (m_pConstant_Buffer)
+	{
+		m_pConstant_Buffer->Unmap(0, NULL);
+		m_pConstant_Buffer->Release();
+	}
+
+//========================================================================
+
+	if (m_pCamera) 
+		m_pCamera->Release_Shader_Resource();
 }
+
 
 /*플레이어의 위치를 변경하는 함수이다. 플레이어의 위치는 기본적으로 사용자가 플레이어를 이동하기 위한 키보드를
 누를 때 변경된다. 플레이어의 이동 방향(dwDirection)에 따라 플레이어를 fDistance 만큼 이동한다.*/
@@ -284,8 +309,6 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamer
 	//카메라 모드가 3인칭이면 플레이어 객체를 렌더링한다.
 	if (nCameraMode == THIRD_PERSON_CAMERA)
 	{
-		if (m_pShader) 
-			m_pShader->Render(pd3dCommandList, pCamera);
 		CGameObject::Render(pd3dCommandList, pCamera);
 	}
 
@@ -313,9 +336,10 @@ CAirplanePlayer::CAirplanePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	SetMesh(pAirplaneMesh);
 
 	//플레이어의 카메라를 스페이스-쉽 카메라로 변경(생성)한다.
+	m_pCamera = new CCamera();
 
 	//플레이어를 위한 셰이더 변수를 생성한다.
-	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 
 	//플레이어의 위치를 설정한다.
 	SetPosition(XMFLOAT3(0.0f, 0.0f, -50.0f));
@@ -415,13 +439,12 @@ void CAirplanePlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera
 {
 	if (m_bBlowingUp)
 	{
+		Update_Shader_Resource(pd3dCommandList);
 		for (int i = 0; i < EXPLOSION_DEBRISES; i++)
 		{
-			XMFLOAT4X4 xmf4x4World;
-			XMStoreFloat4x4(&xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_pxmf4x4Transforms[i])));
+			D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
 
-			//객체의 월드 변환 행렬을 루트 상수(32-비트 값)를 통하여 셰이더 변수(상수 버퍼)로 복사한다.
-			pd3dCommandList->SetGraphicsRoot32BitConstants(0, 16, &xmf4x4World, 0);
+			pd3dCommandList->SetGraphicsRootConstantBufferView(0, d3dGpuVirtualAddress);
 
 			if (m_pExplosionMesh)
 				m_pExplosionMesh->Render(pd3dCommandList);

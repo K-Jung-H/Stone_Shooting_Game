@@ -19,6 +19,31 @@ XMVECTOR RandomUnitVectorOnSphere()
 	}
 }
 
+//=================================================================================
+
+CMaterial::CMaterial()
+{
+	m_xmf4Albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+CMaterial::~CMaterial()
+{
+	if (m_pShader)
+	{
+		m_pShader->Release_Shader_Resource();
+		m_pShader->Release();
+	}
+}
+
+void CMaterial::SetShader(CShader* pShader)
+{
+	if (m_pShader) m_pShader->Release();
+	m_pShader = pShader;
+	if (m_pShader) m_pShader->AddRef();
+}
+
+//=================================================================================
+
 
 CGameObject::CGameObject()
 {
@@ -28,18 +53,35 @@ CGameObject::CGameObject()
 CGameObject::~CGameObject()
 {
 	if (m_pMesh) m_pMesh->Release();
-	if (m_pShader)
+
+	// 재질에서 처리
+	// 게임 객체는 셰이더가 아니라 재질을 가짐
+	/*if (m_pShader) 
 	{
 		m_pShader->ReleaseShaderVariables();
 		m_pShader->Release();
-	}
+	}*/
+
+	if (m_pMaterial)
+		m_pMaterial->Release();
 }
 
 void CGameObject::SetShader(CShader* pShader)
 {
-	if (m_pShader) m_pShader->Release();
-	m_pShader = pShader;
-	if (m_pShader) m_pShader->AddRef();
+	// 재질에서 처리
+	// 게임 객체는 셰이더가 아니라 재질을 가짐
+	//if (m_pShader) m_pShader->Release();
+	//m_pShader = pShader;
+	//if (m_pShader) m_pShader->AddRef();
+
+	if (!m_pMaterial)
+	{
+		m_pMaterial = new CMaterial();
+		m_pMaterial->AddRef();
+	}
+
+	if (m_pMaterial)
+		m_pMaterial->SetShader(pShader);
 }
 void CGameObject::SetMesh(CMesh* pMesh)
 {
@@ -48,27 +90,64 @@ void CGameObject::SetMesh(CMesh* pMesh)
 	if (m_pMesh) m_pMesh->AddRef();
 }
 
+void CGameObject::SetMaterial(CMaterial* pMaterial)
+{
+	if (m_pMaterial)
+		m_pMaterial->Release();
+
+	m_pMaterial = pMaterial;
+
+	if (m_pMaterial)
+		m_pMaterial->AddRef();
+}
+
+void CGameObject::SetMaterial(UINT nReflection)
+{
+	if (!m_pMaterial)
+		m_pMaterial = new CMaterial();
+
+	m_pMaterial->m_nReflection = nReflection;
+}
+
 void CGameObject::ReleaseUploadBuffers()
 {
 	////정점 버퍼를 위한 업로드 버퍼를 소멸시킨다. 
-	//if (m_pMesh) 
-	//	m_pMesh->ReleaseUploadBuffers();
+	if (m_pMesh) 
+		m_pMesh->ReleaseUploadBuffers();
 }
 
-void CGameObject::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+//객체의 정보를 저장하기 위한 리소스를 생성하고 리소스에 대한 포인터를 가져온다. 
+void CGameObject::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-}
-void CGameObject::ReleaseShaderVariables()
-{
+	UINT ncbElementBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
+	m_pConstant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+
+	m_pConstant_Buffer->Map(0, NULL, (void**)&m_pMapped_object_info);
 }
 
-void CGameObject::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
+//객체의 월드변환 행렬과 재질 번호를 상수 버퍼에 쓴다. 
+void CGameObject::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	XMFLOAT4X4 xmf4x4World;
 	XMStoreFloat4x4(&xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4World)));
 
-	//객체의 월드 변환 행렬을 루트 상수(32-비트 값)를 통하여 셰이더 변수(상수 버퍼)로 복사한다.
-	pd3dCommandList->SetGraphicsRoot32BitConstants(0, 16, &xmf4x4World, 0);
+	CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)m_pMapped_object_info;
+	::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
+	pbMappedcbGameObject->m_nMaterial = m_pMaterial->m_nReflection;
+
+	D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
+
+	pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress);
+}
+
+void CGameObject::Release_Shader_Resource()
+{
+	if (m_pConstant_Buffer)
+	{
+		m_pConstant_Buffer->Unmap(0, NULL);
+		m_pConstant_Buffer->Release();
+	}
 }
 
 
@@ -120,16 +199,10 @@ void CGameObject::OnPrepareRender()
 
 void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
-	//게임 객체가 카메라에 보이면 렌더링한다. // IsVisible(pCamera)
-	if (true)
-	{
-		UpdateShaderVariables(pd3dCommandList);
-		if (m_pShader) 
-			m_pShader->Render(pd3dCommandList, pCamera);
-		if (m_pMesh) 
-			m_pMesh->Render(pd3dCommandList, picked);
-	}
 
+	Update_Shader_Resource(pd3dCommandList);
+	if (m_pMesh)
+		m_pMesh->Render(pd3dCommandList);
 }
 
 
@@ -241,7 +314,6 @@ void CGameObject::LookAt(XMFLOAT3& xmf3LookAt, XMFLOAT3& xmf3Up)
 
 bool CGameObject::IsVisible(CCamera* pCamera)
 {
-	OnPrepareRender();
 	bool bIsVisible = false;
 	BoundingOrientedBox xmBoundingBox = m_pMesh->GetBoundingBox();
 
@@ -296,8 +368,6 @@ CRotatingObject::~CRotatingObject()
 void CRotatingObject::Rotate_to_Player(float fElapsedTime, XMFLOAT3& xmf3LookTo)
 {
 	LookAt(xmf3LookTo, GetLook());
-	//m_xmf4x4World = Matrix4x4::Multiply(XMMatrixRotationRollPitchYaw(XMConvertToRadians(90.0f), 0.0f, 0.0f), m_xmf4x4World);
-	//m_xmf4x4World = Matrix4x4::Multiply(XMMatrixRotationRollPitchYaw(0.0f, XMConvertToRadians(180.0f), 0.0f), m_xmf4x4World);
 }
 
 void CRotatingObject::Animate(float fTimeElapsed)
@@ -310,9 +380,6 @@ void CRotatingObject::Animate(float fTimeElapsed)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
-XMFLOAT3 CExplosiveObject::m_pxmf3SphereVectors[EXPLOSION_DEBRISES];
-CMesh* CExplosiveObject::m_WExplosionMesh = NULL;
-CMesh* CExplosiveObject::m_BExplosionMesh = NULL;
 
 CExplosiveObject::CExplosiveObject()
 {
@@ -324,39 +391,15 @@ CExplosiveObject::~CExplosiveObject()
 {
 }
 
-void CExplosiveObject::PrepareExplosion(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-{
-	for (int i = 0; i < EXPLOSION_DEBRISES; i++) 
-		XMStoreFloat3(&m_pxmf3SphereVectors[i], ::RandomUnitVectorOnSphere());
-
-	m_BExplosionMesh = new CCubeMeshDiffused(pd3dDevice, pd3dCommandList, 0.5f, 0.5f, 0.5f,
-		{ 0.1f, 0.1f, 0.1f, 1.0f }, { 0.2f, 0.2f, 0.2f, 1.0f });
-
-	m_WExplosionMesh = new CCubeMeshDiffused(pd3dDevice, pd3dCommandList, 0.5f, 0.5f, 0.5f,
-		{ 0.9f, 0.9f, 0.9f, 1.0f }, { 0.7f, 0.7f, 0.7f, 1.0f });
-}
-
 void CExplosiveObject::Animate(float fElapsedTime)
 {
 	if (m_bBlowingUp)
 	{
-		m_fElapsedTimes += fElapsedTime;
-		if (m_fElapsedTimes <= m_fDuration)
-		{
-			XMFLOAT3 xmf3Position = GetPosition();
-			for (int i = 0; i < EXPLOSION_DEBRISES; i++)
-			{
-				m_pxmf4x4Transforms[i] = Matrix4x4::Identity();
-				m_pxmf4x4Transforms[i]._41 = xmf3Position.x + m_pxmf3SphereVectors[i].x * m_fExplosionSpeed * m_fElapsedTimes;
-				m_pxmf4x4Transforms[i]._42 = xmf3Position.y + m_pxmf3SphereVectors[i].y * m_fExplosionSpeed * m_fElapsedTimes;
-				m_pxmf4x4Transforms[i]._43 = xmf3Position.z + m_pxmf3SphereVectors[i].z * m_fExplosionSpeed * m_fElapsedTimes;
-				m_pxmf4x4Transforms[i] = Matrix4x4::Multiply(Matrix4x4::RotationAxis(m_pxmf3SphereVectors[i], m_fExplosionRotation * m_fElapsedTimes), m_pxmf4x4Transforms[i]);
-			}
-		}
+		if (true)
+			return;
 		else
 		{
 			m_bBlowingUp = false;
-			m_fElapsedTimes = 0.0f;
 			m_bActive = false;
 		}
 	}
@@ -370,42 +413,115 @@ void CExplosiveObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamer
 {
 	if (m_bBlowingUp)
 	{
-		Render_Particle(pd3dCommandList, pCamera);
+		//Render_Particle(pd3dCommandList, pCamera);
 	}
 	else
-	{
+	{	
 		CGameObject::Render(pd3dCommandList, pCamera);
 	}
 }
 
-void CExplosiveObject::Render_Particle(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+XMFLOAT3 CParticle::m_pxmf3SphereVectors[EXPLOSION_DEBRISES];
+CMesh* CParticle::m_ExplosionMesh = NULL;
+
+CParticle::CParticle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	m_fDuration = 50.5f;
+	m_fExplosionSpeed = 50.0f;
+
+	Prepare_Particle(pd3dDevice, pd3dCommandList);
+	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
+
+}
+
+CParticle::~CParticle()
+{
+}
+
+void CParticle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	for (int i = 0; i < EXPLOSION_DEBRISES; ++i)
+		XMStoreFloat3(&m_pxmf3SphereVectors[i], ::RandomUnitVectorOnSphere());
+
+	m_ExplosionMesh = new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 5.5f, 5.5f, 5.5f);
+}
+ 
+void CParticle::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	UINT ncbElementBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
+	m_pConstant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes * EXPLOSION_DEBRISES,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+
+	m_pConstant_Buffer->Map(0, NULL, (void**)&particles_info);
+}
+
+void CParticle::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
+	XMFLOAT4X4 xmf4x4World;
+	for (int i = 0; i < EXPLOSION_DEBRISES; ++i)
+	{
+		XMStoreFloat4x4(&xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_pxmf4x4Transforms[i])));
+		
+		CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)(particles_info + (i * ncbGameObjectBytes));
+		::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
+		pbMappedcbGameObject->m_nMaterial = m_pMaterial->m_nReflection;
+	}
+}
+
+void CParticle::Release_Shader_Resource()
+{
+	if (m_pConstant_Buffer)
+	{
+		m_pConstant_Buffer->Unmap(0, NULL);
+		m_pConstant_Buffer->Release();
+	}
+}
+
+void CParticle::Animate(float fElapsedTime)
+{
+	m_fElapsedTimes += fElapsedTime;
+	if (m_fElapsedTimes <= m_fDuration)
+	{
+		XMFLOAT3 xmf3Position = GetPosition();
+		for (int i = 0; i < EXPLOSION_DEBRISES; i++)
+		{
+			m_pxmf4x4Transforms[i] = Matrix4x4::Identity();
+			m_pxmf4x4Transforms[i]._41 = xmf3Position.x + m_pxmf3SphereVectors[i].x * m_fExplosionSpeed * m_fElapsedTimes;
+			m_pxmf4x4Transforms[i]._42 = xmf3Position.y + m_pxmf3SphereVectors[i].y * m_fExplosionSpeed * m_fElapsedTimes;
+			m_pxmf4x4Transforms[i]._43 = xmf3Position.z + m_pxmf3SphereVectors[i].z * m_fExplosionSpeed * m_fElapsedTimes;
+			m_pxmf4x4Transforms[i] = Matrix4x4::Multiply(Matrix4x4::RotationAxis(m_pxmf3SphereVectors[i], m_fExplosionRotation * m_fElapsedTimes), m_pxmf4x4Transforms[i]);
+		}
+	}
+	else
+	{
+		m_fElapsedTimes = 0.0f;
+	}
+}
+
+void CParticle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
 	//IsVisible(pCamera)
 	if (true)
 	{
-		if (m_pShader)
-			m_pShader->Render(pd3dCommandList, pCamera);
-		for (int i = 0; i < EXPLOSION_DEBRISES; i++)
+		Update_Shader_Resource(pd3dCommandList);
+
+		UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255);
+		D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
+		
+		if (m_ExplosionMesh)
 		{
-			XMFLOAT4X4 xmf4x4World;
-			XMStoreFloat4x4(&xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_pxmf4x4Transforms[i])));
-
-			//객체의 월드 변환 행렬을 루트 상수(32-비트 값)를 통하여 셰이더 변수(상수 버퍼)로 복사한다.
-			pd3dCommandList->SetGraphicsRoot32BitConstants(0, 16, &xmf4x4World, 0);
-
-			if (player_team)
+			for (int j = 0; j < EXPLOSION_DEBRISES; j++)
 			{
-				if (m_WExplosionMesh)
-					m_WExplosionMesh->Render(pd3dCommandList);
+				pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * j));
+
+				m_ExplosionMesh->Render(pd3dCommandList);
+
 			}
-			else
-			{
-				if (m_BExplosionMesh)
-					m_BExplosionMesh->Render(pd3dCommandList);
-			}
-		}
+		}			
 	}
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -421,21 +537,14 @@ CBoardObject::~CBoardObject()
 
 void CBoardObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
-	UpdateShaderVariables(pd3dCommandList);
-	if (m_pShader)
-		m_pShader->Render(pd3dCommandList, pCamera);
+	CGameObject::Render(pd3dCommandList, pCamera);
 
-	if (m_pMesh)
-		m_pMesh->Render(pd3dCommandList);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 StoneObject::StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-{
-	m_fDuration = 0.5f;
-	m_fExplosionSpeed = 50.0f;
-	
+{	
 }
 
 StoneObject::~StoneObject()

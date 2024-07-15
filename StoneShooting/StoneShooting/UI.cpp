@@ -56,7 +56,7 @@ int BAR_UI::Update(float fTimeElapsed, bool power_charge)
 	if (!Active)
 		return 0;
 
-	DebugOutput(std::to_string(Degree));
+	//DebugOutput(std::to_string(Degree));
 
 	if (power_charge)
 	{

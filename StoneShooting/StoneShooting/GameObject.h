@@ -1,18 +1,67 @@
 #pragma once
 #include "Camera.h"
 #include "Mesh.h"
+
 class CShader;
+
+// 객체를 렌더링할 때 적용하는 상수 버퍼 데이터
+struct CB_GAMEOBJECT_INFO
+{
+	XMFLOAT4X4 m_xmf4x4World;
+
+	// 객체에 적용될 재질 번호
+	UINT m_nMaterial;
+};
+
+struct MATERIAL
+{
+	XMFLOAT4 m_xmf4Ambient;
+	XMFLOAT4 m_xmf4Diffuse;
+	XMFLOAT4 m_xmf4Specular; //(r,g,b,a=power)
+	XMFLOAT4 m_xmf4Emissive;
+};
+
+class CMaterial
+{
+public:
+	CMaterial();
+	virtual ~CMaterial();
+private:
+	int m_nReferences = 0;
+public:
+	void AddRef() { m_nReferences++; }
+	void Release() { if (--m_nReferences <= 0) delete this; }
+
+	//재질의 기본 색상
+	XMFLOAT4 m_xmf4Albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	//재질의 번호
+	UINT m_nReflection = 0;
+
+	// 별도로 재질을 적용하여 렌더링을 하기 위한 쉐이더
+	CShader* m_pShader = NULL;
+	void SetAlbedo(XMFLOAT4& xmf4Albedo) { m_xmf4Albedo = xmf4Albedo; }
+	void SetReflection(UINT nReflection) { m_nReflection = nReflection; }
+	void SetShader(CShader* pShader);
+};
+
 
 class CGameObject
 {
 private:
 	int m_nReferences = 0;
-protected:
-
-	CShader* m_pShader = NULL;
 
 public:
 	CMesh* m_pMesh = NULL;
+	CMaterial* m_pMaterial = NULL; // 게임 객체가 쉐이더를 가지지 않고 재질을 가짐
+	
+	// 객체에 대한 리소스 포인터
+	CB_GAMEOBJECT_INFO* m_pMapped_object_info = NULL;
+
+	// 쉐이더 객체에 포함되어 있는 모든 게임 객체들에 대한 리소스
+	ID3D12Resource* m_pConstant_Buffer = NULL;
+
+
 	bool						m_bActive = true;
 	bool						picked = false;
 	bool						player_team = false;
@@ -20,7 +69,7 @@ public:
 
 	BoundingOrientedBox			m_xmOOBB = BoundingOrientedBox();
 	BoundingSphere				m_xmOOSP = BoundingSphere();
-	CGameObject* m_pObjectCollided = NULL;
+	CGameObject*				m_pObjectCollided = NULL;
 	DWORD						m_dwDefaultColor = RGB(255, 0, 0);
 	DWORD						m_dwColor = RGB(255, 0, 0);
 
@@ -38,16 +87,19 @@ public:
 
 	void SetActive(bool bActive) { m_bActive = bActive; }
 
-	//상수 버퍼를 생성한다.
-	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	
-	//상수 버퍼의 내용을 갱신한다.
-	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
-	virtual void ReleaseShaderVariables();
+
+	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Release_Shader_Resource();
 
 	void ReleaseUploadBuffers();
+	
 	virtual void SetMesh(CMesh* pMesh);
 	virtual void SetShader(CShader* pShader);
+
+	void SetMaterial(CMaterial* pMaterial);
+	void SetMaterial(UINT nReflection);
+
 	virtual void Animate(float fTimeElapsed);
 	virtual void OnPrepareRender();
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
@@ -118,7 +170,6 @@ public:
 	virtual void Animate(float fTimeElapsed);
 };
 
-#define EXPLOSION_DEBRISES		240
 
 class CExplosiveObject : public CRotatingObject
 {
@@ -128,24 +179,40 @@ public:
 
 	bool						m_bBlowingUp = false;
 
+	virtual void Animate(float fElapsedTime);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+};
+
+
+
+#define EXPLOSION_DEBRISES		240
+
+class CParticle : public CRotatingObject
+{
+public:
+	UINT8* particles_info = NULL;
+
+	static CMesh* m_ExplosionMesh;
+	static XMFLOAT3				m_pxmf3SphereVectors[EXPLOSION_DEBRISES];
 	XMFLOAT4X4					m_pxmf4x4Transforms[EXPLOSION_DEBRISES];
 
 	float						m_fElapsedTimes = 0.0f;
 	float						m_fDuration = 2.0f;
 	float						m_fExplosionSpeed = 10.0f;
 	float						m_fExplosionRotation = 720.0f;
+	
+	CParticle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual ~CParticle();
+
+	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+
+	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Release_Shader_Resource();
 
 	virtual void Animate(float fElapsedTime);
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
-	
+	virtual void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 
-	static CMesh* m_WExplosionMesh;
-	static CMesh* m_BExplosionMesh;
-	
-	static XMFLOAT3				m_pxmf3SphereVectors[EXPLOSION_DEBRISES];
-
-	static void PrepareExplosion(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	void Render_Particle(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 };
 
 

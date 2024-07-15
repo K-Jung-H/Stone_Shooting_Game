@@ -8,8 +8,21 @@
 #include "GameObject.h"
 #include "Camera.h"
 
+// 플레이어 객체를 렌더링할 때 적용하는 상수 버퍼 데이터
+struct CB_PLAYER_INFO
+{
+	XMFLOAT4X4 m_xmf4x4World;
+};
+
 class CPlayer : public CGameObject
 {
+protected:
+	// 카메라에 대한 리소스
+	ID3D12Resource* m_pConstant_Buffer = NULL;
+
+	// 카메라에 대한 리소스 포인터
+	CB_PLAYER_INFO* m_pMapped_player_info = NULL;
+
 protected:
 	//플레이어의 위치 벡터, x-축(Right), y-축(Up), z-축(Look) 벡터이다.
 	XMFLOAT3 m_xmf3Position;
@@ -92,9 +105,10 @@ public:
 	//카메라의 위치가 바뀔 때마다 호출되는 함수와 그 함수에서 사용하는 정보를 설정하는 함수이다.
 	virtual void OnCameraUpdateCallback(float fTimeElapsed) { }
 	void SetCameraUpdatedContext(LPVOID pContext) { m_pCameraUpdatedContext = pContext; }
-	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	virtual void ReleaseShaderVariables();
-	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
+
+	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Release_Shader_Resource();
 
 	//카메라를 변경하기 위하여 호출하는 함수이다.
 	CCamera* OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode);
