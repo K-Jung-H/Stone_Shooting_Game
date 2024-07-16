@@ -3,21 +3,6 @@
 #include "Player.h"
 #include <vector>
 
-XMFLOAT3& Get_Random_Normalize_Direction()
-{
-	float randX = static_cast<float>(rand()) / RAND_MAX; 
-	float randY = static_cast<float>(rand()) / RAND_MAX; 
-	float randZ = static_cast<float>(rand()) / RAND_MAX; 
-
-	XMFLOAT3 random_D(randX, randY, randZ);
-
-	XMVECTOR normalized_D= XMVector3Normalize(XMLoadFloat3(&random_D));
-
-	XMStoreFloat3(&random_D, normalized_D);
-
-	return random_D;
-}
-
 //=========================================================================================
 
 CScene::CScene()
@@ -156,7 +141,7 @@ void CScene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 
 	if (player_team)
 	{
-		pStoneObject->SetMaterial(UINT(1));
+		pStoneObject->SetMaterial(UINT(0));
 		pStoneObject->SetMovingDirection(XMFLOAT3(0.0f, 0.0f, -1.0f));	// Default
 	}
 	else
@@ -172,11 +157,8 @@ void CScene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 
 void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	
-	CParticle* particle = new CParticle(pd3dDevice, pd3dCommandList);
-	m_particle.push_back(particle);
-	m_particle[0]->Prepare_Particle(pd3dDevice, pd3dCommandList);
-	m_particle[0]->SetMaterial(UINT(1));
+	Explosion_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
+
 
 	Build_Lights_and_Materials();
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
@@ -437,11 +419,11 @@ void CScene::CheckObjectByObjectCollisions()
 	// 충돌 체크 및 충돌 객체 설정
 	for (int i = 0; i < objs_N; ++i)
 	{
-		if (objshader_ptrs[i]->m_bActive)
+		if (objshader_ptrs[i]->active)
 		{
 			for (int j = (i + 1); j < objs_N; ++j)
 			{
-				if (objshader_ptrs[j]->m_bActive)
+				if (objshader_ptrs[j]->active)
 				{
 					if (objshader_ptrs[i]->m_xmOOSP.Intersects(objshader_ptrs[j]->m_xmOOSP))
 					{
@@ -520,13 +502,13 @@ void CScene::Defend_Overlap()
 	for (int i = 0; i < objs_N; ++i)
 	{
 		auto* stone_1 = static_cast<StoneObject*>(objshader_ptrs[i]);
-		if (!stone_1->m_bActive || stone_1->m_fMovingSpeed > 1.0f)
+		if (!stone_1->active || stone_1->m_fMovingSpeed > 1.0f)
 			continue;
 
 		for (int j = i + 1; j < objs_N; ++j)
 		{
 			auto* stone_2 = static_cast<StoneObject*>(objshader_ptrs[j]);
-			if (!stone_2->m_bActive || stone_2->m_fMovingSpeed > 1.0f)
+			if (!stone_2->active || stone_2->m_fMovingSpeed > 1.0f)
 				continue;
 
 			if (stone_1->m_xmOOSP.Intersects(stone_2->m_xmOOSP) != DISJOINT)
@@ -581,21 +563,29 @@ void CScene::Defend_Overlap()
 	}
 }
 
-void CScene::CheckObject_Out_Board_Collisions()
+void CScene::CheckObject_Out_Board_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	// 충돌 객체 초기화
 	for (CGameObject* obj_ptr : m_pShaders[0].GetObjects())
 	{
-		if (!obj_ptr->m_bActive)
+		if (!obj_ptr->active)
 			continue;
 		ContainmentType containType = m_pBoards->m_xmOOBB.Contains(obj_ptr->m_xmOOSP);
 		switch (containType)
 		{
 		case DISJOINT:
 		{
-			CExplosiveObject* pExplosiveObject = (CExplosiveObject*)obj_ptr;
-			pExplosiveObject->SetMovingSpeed(0.0f);
-			pExplosiveObject->m_bBlowingUp = true;
+			obj_ptr->SetMovingSpeed(0.0f);
+			obj_ptr->GetPosition();
+
+			if (obj_ptr->active == true)
+			{
+				if (obj_ptr->player_team)
+					Setting_Particle(pd3dDevice, pd3dCommandList, obj_ptr->GetPosition(), UINT(0), ParticleType::Explosion);
+				else if (!obj_ptr->player_team)
+					Setting_Particle(pd3dDevice, pd3dCommandList, obj_ptr->GetPosition(), UINT(1), ParticleType::Explosion);
+			}
+			obj_ptr->active = false;
 		}
 		break;
 
@@ -635,8 +625,10 @@ bool CScene::Check_Turn()
 	for (const CGameObject* obj_ptr : m_pShaders[0].GetObjects())
 	{
 		const StoneObject* stone_ptr = static_cast<const StoneObject*>(obj_ptr);
-		if (0.1f >= stone_ptr->m_fMovingSpeed && !stone_ptr->m_bBlowingUp)
+		if (0.1f >= stone_ptr->m_fMovingSpeed || !stone_ptr->active)
 			stop_stone_n += 1;
+		else
+			stone_ptr = stone_ptr;
 	}
 
 	if (stop_stone_n == m_pShaders[0].GetObjects().size())
@@ -652,7 +644,7 @@ bool CScene::Check_GameOver()
 	int dead_Black_Stone = 0;
 	for (CGameObject* obj_ptr : m_pShaders[0].GetObjects())
 	{
-		if (obj_ptr->m_bActive == false)
+		if (obj_ptr->active == false)
 		{
 			if (obj_ptr->player_team)
 				dead_White_Stone += 1;
@@ -667,13 +659,53 @@ bool CScene::Check_GameOver()
 		return false;
 }
 
+void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, UINT material, ParticleType type)
+{
+	bool Done = false;
+	for (Particle* particle : m_particle)
+	{
+		if (particle->type == type && particle->active == false)
+		{
+			particle->SetPosition(pos);
+			particle->SetActive(true);
+			particle->SetMaterial(material);
+			Done = true;
+			break;
+		}
+	}
+
+	if (Done == false)
+	{
+		Particle* particle = NULL;
+		switch (type)
+		{
+
+		case ParticleType::Explosion:
+		{
+			particle = new Explosion_Particle(pd3dDevice, pd3dCommandList, UINT(material), ParticleType::Explosion);
+			particle->SetActive(true);
+			particle->SetPosition(pos);
+			m_particle.push_back(particle);
+		}
+		break;
+
+		case ParticleType::None:
+		default:
+			break;
+		}
+	}
+
+}
+
 void CScene::AnimateObjects(float fTimeElapsed)
 {
 	m_pShaders[0].AnimateObjects(fTimeElapsed);
 	//m_uiShaders[0].AnimateObjects(fTimeElapsed);
 
-	m_particle[0]->Animate(fTimeElapsed);
-	
+	//m_particle[0]->Animate(fTimeElapsed);
+	for (Particle* particle : m_particle)
+		particle->Animate(fTimeElapsed);
+
 	if (m_pLights)
 	{
 		m_pLights->m_pLights[1].m_xmf3Position = m_pPlayer->GetPosition();
@@ -698,7 +730,9 @@ void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCom
 	// 아직은 움직임이 없을꺼니까
 	m_pBoards->Render(pd3dCommandList, pCamera);
 
-	m_particle[0]->Particle_Render(pd3dCommandList, pCamera);
+	for(Particle* particle : m_particle)
+		particle->Particle_Render(pd3dCommandList, pCamera);
+
 	//=======================플레이어 렌더링 =======================
 	//CAirplanePlayer* pPlayer = (CAirplanePlayer*)m_pPlayer;
 	//if (m_pPlayer)
@@ -811,12 +845,12 @@ std::pair<StoneObject*, StoneObject*> CScene::Find_Nearest_Enemy_Stone()
 	std::vector< StoneObject*>Living_Player_Stone;
 	for (CGameObject* obj_ptr : m_pShaders[0].GetObjects())
 	{
-		if ((obj_ptr->m_bActive == true) && (obj_ptr->player_team == false))
+		if ((obj_ptr->active == true) && (obj_ptr->player_team == false))
 		{
 			StoneObject* com_stone = (StoneObject*)obj_ptr;
 			Living_C_Stone.push_back(com_stone);
 		}
-		else if ((obj_ptr->m_bActive == true) && (obj_ptr->player_team == true))
+		else if ((obj_ptr->active == true) && (obj_ptr->player_team == true))
 		{
 			StoneObject* player_stone = (StoneObject*)obj_ptr;
 			Living_Player_Stone.push_back(player_stone);

@@ -2,7 +2,7 @@
 #include "Camera.h"
 #include "Timer.h"
 #include "Shader.h"
-
+#include "Particle.h"
 
 struct LIGHT
 {
@@ -81,7 +81,7 @@ public:
 	void Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team);
 
 	void CheckObjectByObjectCollisions();
-	void CheckObject_Out_Board_Collisions();
+	void CheckObject_Out_Board_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	void Shoot_Stone(float power);
 	void Shoot_Stone_Com(float power);
@@ -95,6 +95,7 @@ public:
 
 	void Defend_Overlap();
 
+	void Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, UINT material, ParticleType type);
 	//=============================================
 
 protected:
@@ -131,7 +132,7 @@ public:
 
 	CBoardObject* m_pBoards = NULL;
 
-	std::vector<CParticle*>m_particle;
+	std::vector<Particle*>m_particle;
 
 	CGameObject* m_pSelectedObject = NULL; // 피킹된 것
 	

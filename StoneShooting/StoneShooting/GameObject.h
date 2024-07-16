@@ -62,7 +62,7 @@ public:
 	ID3D12Resource* m_pConstant_Buffer = NULL;
 
 
-	bool						m_bActive = true;
+	bool						active = true;
 	bool						picked = false;
 	bool						player_team = false;
 	XMFLOAT4X4					m_xmf4x4World = Matrix4x4::Identity();
@@ -85,7 +85,7 @@ public:
 	void AddRef() { m_nReferences++; }
 	void Release() { if (--m_nReferences <= 0) delete this; }
 
-	void SetActive(bool bActive) { m_bActive = bActive; }
+	void SetActive(bool bActive) { active = bActive; }
 
 
 	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
@@ -182,39 +182,6 @@ public:
 	virtual void Animate(float fElapsedTime);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 };
-
-
-
-#define EXPLOSION_DEBRISES		240
-
-class CParticle : public CRotatingObject
-{
-public:
-	UINT8* particles_info = NULL;
-
-	static CMesh* m_ExplosionMesh;
-	static XMFLOAT3				m_pxmf3SphereVectors[EXPLOSION_DEBRISES];
-	XMFLOAT4X4					m_pxmf4x4Transforms[EXPLOSION_DEBRISES];
-
-	float						m_fElapsedTimes = 0.0f;
-	float						m_fDuration = 2.0f;
-	float						m_fExplosionSpeed = 10.0f;
-	float						m_fExplosionRotation = 720.0f;
-	
-	CParticle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	virtual ~CParticle();
-
-	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-
-	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
-	virtual void Release_Shader_Resource();
-
-	virtual void Animate(float fElapsedTime);
-	virtual void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
-
-};
-
 
 class CBoardObject : public CGameObject
 {

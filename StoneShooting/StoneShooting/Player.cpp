@@ -315,20 +315,6 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamer
 
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
-
-XMFLOAT3 CAirplanePlayer::m_pxmf3SphereVectors[EXPLOSION_DEBRISES];
-CMesh* CAirplanePlayer::m_pExplosionMesh = NULL;
-
-void CAirplanePlayer::PrepareExplosion(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-{
-	for (int i = 0; i < EXPLOSION_DEBRISES; i++) 
-		XMStoreFloat3(&m_pxmf3SphereVectors[i], pRandomUnitVectorOnSphere());
-
-	m_pExplosionMesh = new CCubeMeshDiffused(pd3dDevice, pd3dCommandList, 0.5f, 0.5f, 0.5f,
-	{ 0.0f, 0.8f, 0.0f, 1.0f }, { 0.0f, 0.7f, 0.0f, 1.0f });
-}
-
-
 CAirplanePlayer::CAirplanePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
 {
 	//비행기 메쉬를 생성한다.
@@ -350,9 +336,6 @@ CAirplanePlayer::CAirplanePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	SetShader(pShader);
 
 	m_pCamera = ChangeCamera(TOP_VIEW_CAMERA, 0.0f);
-
-	PrepareExplosion(pd3dDevice, pd3dCommandList);
-
 
 }
 CAirplanePlayer::~CAirplanePlayer()
@@ -437,63 +420,14 @@ CCamera* CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 
 void CAirplanePlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
-	if (m_bBlowingUp)
-	{
-		Update_Shader_Resource(pd3dCommandList);
-		for (int i = 0; i < EXPLOSION_DEBRISES; i++)
-		{
-			D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
-
-			pd3dCommandList->SetGraphicsRootConstantBufferView(0, d3dGpuVirtualAddress);
-
-			if (m_pExplosionMesh)
-				m_pExplosionMesh->Render(pd3dCommandList);
-		}
-	}
-	else
-	{
-
-		CPlayer::Render(pd3dCommandList, pCamera);
-
-	}
+	CPlayer::Render(pd3dCommandList, pCamera);
 }
 
 
 
 void CAirplanePlayer::Animate(float fElapsedTime)
 {
-	if (Life == 0)
-	{
-		m_bBlowingUp = true;
-	}
-
-	if (m_bBlowingUp)
-	{
-		m_fElapsedTimes += fElapsedTime;
-		if (m_fElapsedTimes <= m_fDuration)
-		{
-			XMFLOAT3 xmf3Position = GetPosition();
-			for (int i = 0; i < EXPLOSION_DEBRISES; i++)
-			{
-				m_pxmf4x4Transforms[i] = Matrix4x4::Identity();
-				m_pxmf4x4Transforms[i]._41 = xmf3Position.x + m_pxmf3SphereVectors[i].x * m_fExplosionSpeed * m_fElapsedTimes;
-				m_pxmf4x4Transforms[i]._42 = xmf3Position.y + m_pxmf3SphereVectors[i].y * m_fExplosionSpeed * m_fElapsedTimes;
-				m_pxmf4x4Transforms[i]._43 = xmf3Position.z + m_pxmf3SphereVectors[i].z * m_fExplosionSpeed * m_fElapsedTimes;
-				m_pxmf4x4Transforms[i] = Matrix4x4::Multiply(Matrix4x4::RotationAxis(m_pxmf3SphereVectors[i], m_fExplosionRotation * m_fElapsedTimes), m_pxmf4x4Transforms[i]);
-			}
-		}
-		else
-		{
-			game_over = true;
-			m_bBlowingUp = false;
-			m_fElapsedTimes = 0.0f;
-			Life = 3;
-		}
-	}
-	else
-	{
-		CPlayer::Animate(fElapsedTime);
-	}
+	CPlayer::Animate(fElapsedTime);
 
 }
 

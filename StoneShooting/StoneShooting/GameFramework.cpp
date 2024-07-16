@@ -524,42 +524,43 @@ void CGameFramework::AnimateObjects()
 	}
 
 
-	//if (m_pScene->Player_Turn) // 플레이어 턴
-	//{
-	//	pUI_list[0]->Active = true;
-	//	pUI_list[1]->Active = false;
+	if (m_pScene->Player_Turn) // 플레이어 턴
+	{
+		//pUI_list[0]->Active = true;
+		//pUI_list[1]->Active = false;
 
-	//	power_degree = pUI_list[0]->Update(m_GameTimer.GetTimeElapsed(), power_charge);
+		//power_degree = pUI_list[0]->Update(m_GameTimer.GetTimeElapsed(), power_charge);
 
-	//}
-	//else if (m_pScene->Com_Turn) // 컴퓨터 턴
-	//{
-	//	pUI_list[0]->Active = false;
-	//	pUI_list[1]->Active = true;
+	}
+	else if (m_pScene->Com_Turn) // 컴퓨터 턴
+	{
+		/*pUI_list[0]->Active = false;
+		pUI_list[1]->Active = true;*/
 
-	//	if (!m_pScene->Com_Shot)
-	//	{
-	//		if(0.0f > random_time)
-	//			random_time = uid(dre) / 1000;
+		if (!m_pScene->Com_Shot)
+		{
+			if(0.0f > random_time)
+				random_time = uid(dre) / 1000;
 
-	//		if (random_time < sum_time)
-	//		{
-	//			if (m_pScene->Game_Over == false)  // 필요한 조건인가
-	//			{
-	//				random_time = -1;
-	//				m_pScene->Shoot_Stone_Com(power_degree);
-	//				sum_time = 0;
-	//			}
-	//		}
-	//		else
-	//		{
-	//			power_degree = pUI_list[1]->Update(m_GameTimer.GetTimeElapsed(), true);
-	//			sum_time += m_GameTimer.GetTimeElapsed();
-	//		}
-	//	}
-	//}
+			if (random_time < sum_time)
+			{
+				if (m_pScene->Game_Over == false)  // 필요한 조건인가
+				{
+					random_time = -1;
+					//m_pScene->Shoot_Stone_Com(power_degree);
+					m_pScene->Shoot_Stone_Com(500);
+					sum_time = 0;
+				}
+			}
+			else
+			{
+				//power_degree = pUI_list[1]->Update(m_GameTimer.GetTimeElapsed(), true);
+				sum_time += m_GameTimer.GetTimeElapsed();
+			}
+		}
+	}
 	
-	m_pScene->CheckObject_Out_Board_Collisions();
+	m_pScene->CheckObject_Out_Board_Collisions(m_pd3dDevice, m_pd3dCommandList);
 	m_pScene->CheckObjectByObjectCollisions();
 	m_pScene->Defend_Overlap();
 

@@ -390,7 +390,7 @@ void CObjectsShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera*
 
 	for(CGameObject* obj_ptr : m_ppObjects)
 	{
-		if (obj_ptr != NULL && obj_ptr->m_bActive)
+		if (obj_ptr != NULL && obj_ptr->active)
 		{
 			obj_ptr->Render(pd3dCommandList, pCamera);
 		}

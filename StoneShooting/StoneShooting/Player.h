@@ -137,29 +137,10 @@ public:
 	virtual void CAirplanePlayer::Animate(float fElapsedTime);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
 
-	void PrepareExplosion(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	void Armored(float fElapsedTime);
 
 	bool game_over = false;
 	float Life{ 3 };
 	float						m_fBulletEffectiveRange = 150.0f;
 	
 	//==================================================
-	
-	//================================================== for blow up
-	bool						m_bBlowingUp = false;
-
-	XMFLOAT4X4					m_pxmf4x4Transforms[EXPLOSION_DEBRISES];
-
-	float						m_fElapsedTimes = 0.0f;
-	float						m_fDuration = 1.0f;
-	float						m_fExplosionSpeed = 20.0f;
-	float						m_fExplosionRotation = 720.0f;
-
-	bool						m_Armored = false;
-	float						m_aElapsedTimes = 0.0f;
-
-	static CMesh* m_pExplosionMesh;
-	static XMFLOAT3				m_pxmf3SphereVectors[EXPLOSION_DEBRISES];
-
 };
