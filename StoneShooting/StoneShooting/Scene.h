@@ -3,7 +3,7 @@
 #include "Timer.h"
 #include "Shader.h"
 #include "Particle.h"
-
+#include "UI.h"
 struct LIGHT
 {
 	XMFLOAT4 m_xmf4Ambient;
@@ -42,15 +42,20 @@ public:
 	//씬에서 마우스와 키보드 메시지를 처리한다. 
 	bool OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	bool OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
+	
+	void BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void ReleaseObjects();
 
 	bool ProcessInput(UCHAR* pKeysBuffer);
 	void AnimateObjects(float fTimeElapsed);
-
+	void Scene_Update(float fTimeElapsed);
 
 	void Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
-	void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+
+	void Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	
 	void ReleaseUploadBuffers();
 
@@ -63,7 +68,7 @@ public:
 
 	//씬의 모든 게임 객체들에 대한 마우스 픽킹을 수행한다. 
 	CGameObject *PickObjectPointedByCursor(int xClient, int yClient, CCamera *pCamera);
-
+	bool is_Object_Selectable(CGameObject* gameobject);
 	//=============================================
 	
 	//씬의 모든 조명과 재질을 생성
@@ -76,6 +81,8 @@ public:
 
 
 	void Update_Lights_and_Materials(ID3D12GraphicsCommandList* pd3dCommandList);
+
+	
 	//=============================================
 
 	void Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team);
@@ -86,6 +93,8 @@ public:
 	void Shoot_Stone(float power);
 	void Shoot_Stone_Com(float power);
 	
+	bool is_Player_Turn();
+
 	std::pair<StoneObject*, StoneObject*> Find_Nearest_Enemy_Stone();
 
 
@@ -97,6 +106,10 @@ public:
 
 	void Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, UINT material, ParticleType type);
 	//=============================================
+private:
+	CCamera* pMainCamera = NULL;
+
+
 
 protected:
 	CObjectsShader* m_pShaders = NULL;
@@ -113,10 +126,11 @@ protected:
 
 	ID3D12Resource* m_pd3dcbMaterials = NULL; // 재질을 나타내는 리소스
 	MATERIAL* m_pcbMappedMaterials = NULL; // 재질 리소스에 대한 포인터
+	
 
 public:
-	CObjectsShader* m_uiShaders = NULL;
-	int m_n_uiShaders = 1;
+	//UIShader* m_uiShaders = NULL;
+	//int m_n_uiShaders = 1;
 
 	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
 	//루트 시그너쳐를 나타내는 인터페이스 포인터이다.
@@ -133,6 +147,14 @@ public:
 	CBoardObject* m_pBoards = NULL;
 
 	std::vector<Particle*>m_particle;
+	std::vector<UI*> pUI_list;
+	int ui_num = 0;
+
+	UI* ui_player_power;
+	UI* ui_player_power_endline;
+
+	UI* ui_com_power;
+	UI* ui_com_power_endline;
 
 	CGameObject* m_pSelectedObject = NULL; // 피킹된 것
 	
@@ -148,4 +170,10 @@ public:
 
 	bool Game_Over = false;
 
+	// turn update
+	float random_time = -1;
+	float sum_time = 0;
+
+	bool power_charge = false;
+	int power_degree = 0;
 };

@@ -425,7 +425,7 @@ D3D12_SHADER_BYTECODE UIShader::CreateVertexShader(ID3DBlob** ppd3dShaderBlob)
 }
 D3D12_SHADER_BYTECODE UIShader::CreatePixelShader(ID3DBlob** ppd3dShaderBlob)
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSDiffused", "ps_5_1", ppd3dShaderBlob));
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSUI", "ps_5_1", ppd3dShaderBlob));
 }
 
 void UIShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature)
@@ -447,6 +447,7 @@ void UIShader::AnimateObjects(float fTimeElapsed)
 void UIShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
 	CShader::Render(pd3dCommandList, pCamera);
+
 	for (CGameObject* obj_ptr : m_ppObjects)
 	{
 		if (obj_ptr != NULL)

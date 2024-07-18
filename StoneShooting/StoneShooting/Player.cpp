@@ -244,7 +244,6 @@ CCamera* CPlayer::OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode)
 	{
 	case TOP_VIEW_CAMERA:
 		pNewCamera = new TOP_Camera(m_pCamera);
-
 		break;
 	case THIRD_PERSON_CAMERA:
 		pNewCamera = new CThirdPersonCamera(m_pCamera);

@@ -54,6 +54,20 @@ float4 PSPlayer(VS_OUTPUT input) : SV_TARGET
 
 //========================================================================
 
+VS_OUTPUT VSUI(VS_INPUT input)
+{
+    VS_OUTPUT output;
+    output.position = mul(mul(float4(input.position, 1.0f), gmtxGameObject), gmtxProjection);
+    output.color = input.color;
+    return (output);
+}
+
+float4 PSUI(VS_OUTPUT input) : SV_TARGET
+{
+    return (input.color);
+}
+//========================================================================
+
 // 객체를 그릴 시, 정점 조명을 사용
 #define _WITH_VERTEX_LIGHTING
 

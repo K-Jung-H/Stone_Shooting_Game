@@ -3,8 +3,9 @@
 
 //=================================================================================
 // UICamera 생성자
-UICamera::UICamera(RECT& monitor_area) : CCamera()
+UICamera::UICamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area) : CCamera()
 {
+	//UI의 영역값
 	Monitor_Area = monitor_area;
 	float ui_width = monitor_area.right - monitor_area.left;
 	float ui_height = monitor_area.bottom - monitor_area.top; 
@@ -22,6 +23,9 @@ UICamera::UICamera(RECT& monitor_area) : CCamera()
 	// UI의 최대 넓이 길이: ui_width
 	// UI의 최대 높이 길이: ui_height
 	SetOrthographicProjection(ui_width, ui_height, 0.0f, 100.0f);
+
+	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
+
 }
 
 int UICamera::Update(float fTimeElapsed, bool sign)
@@ -38,13 +42,51 @@ void UICamera::SetOrthographicProjection(float viewWidth, float viewHeight, floa
 {
 	m_xmf4x4Projection = Matrix4x4::OrthographicLH(viewWidth, viewHeight, nearZ, farZ);
 }
+//=================================================================================
+UI::UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, RECT& monitor_area) : UICamera(pd3dDevice, pd3dCommandList, monitor_area)
+{
+	// UI에 그릴 객체들 + 해당 객체를 그릴 셰이더
+	// 셰이더에서 객체 관리
+	m_uiShaders = new UIShader[m_n_uiShaders];
+	m_uiShaders[0].CreateShader(pd3dDevice, pd3dGraphicsRootSignature);
+}
+void UI::AnimateObjects(float fTimeElapsed)
+{
+	for (int i = 0; i < m_n_uiShaders; ++i)
+	{
+		m_uiShaders[i].AnimateObjects(fTimeElapsed);
+	}
+}
+
+void UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+{
+	SetViewportsAndScissorRects(pd3dCommandList);
+	pd3dCommandList->SetGraphicsRootSignature(pd3dGraphicsRootSignature);
+	Update_Shader_Resource(pd3dCommandList);
+
+	for (int i = 0; i < m_n_uiShaders; ++i)
+	{
+		m_uiShaders[i].Render(pd3dCommandList, this);
+	}
+}
+
+int UI::Update(float fTimeElapsed, bool sign)
+{
+	return 0;
+}
+
+void UI::Reset()
+{
+}
 
 //=================================================================================
 // BAR_UI 생성자
-BAR_UI::BAR_UI(RECT& monitor_area) : UICamera(monitor_area)
+BAR_UI::BAR_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, RECT& monitor_area, bool Right_to_Left)
+	: UI(pd3dDevice, pd3dCommandList,pd3dGraphicsRootSignature, monitor_area)
 {
 	Max_Width = monitor_area.right - monitor_area.left;
 	Max_Height = monitor_area.bottom - monitor_area.top;
+	Right_Start = Right_to_Left;
 }
 
 BAR_UI::~BAR_UI()
@@ -78,7 +120,10 @@ int BAR_UI::Update(float fTimeElapsed, bool power_charge)
 			else
 				Degree = 100;  // Degree 100 이하 방지
 		}
-		SetScissorRect(Monitor_Area.right - Degree/2, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
+		if (Right_Start)
+			SetScissorRect(Monitor_Area.right - Degree/2, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
+		else
+			SetScissorRect(Monitor_Area.left, 0, Monitor_Area.left + Degree / 2, FRAME_BUFFER_HEIGHT);
 	}
 	else
 		SetScissorRect(Monitor_Area.left, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);

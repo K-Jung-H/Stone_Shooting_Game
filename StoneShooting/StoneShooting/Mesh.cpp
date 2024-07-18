@@ -529,7 +529,7 @@ CSphereMeshDiffused::~CSphereMeshDiffused()
 {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-UIMesh::UIMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fWidth, float fHeight, float layer_z, XMFLOAT4 xmf4Color)
+UIMesh::UIMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fWidth, float fHeight, float layer_z, XMFLOAT4 xmf4Color, bool Color_Mix)
 	: CMesh(pd3dDevice, pd3dCommandList)
 {
 
@@ -538,7 +538,11 @@ UIMesh::UIMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandL
 	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	
 	float fx = fWidth * 0.5f, fy = fHeight * 0.5f, fz = layer_z * 0.5f;
-	XMFLOAT4 another_color = { 1.0f - xmf4Color.x, 1.0f - xmf4Color.y , 1.0f - xmf4Color.z , 1.0f };
+	XMFLOAT4 another_color;
+	if (Color_Mix)
+		another_color = { 1.0f - xmf4Color.x, 1.0f - xmf4Color.y , 1.0f - xmf4Color.z , 1.0f };
+	else
+		another_color = xmf4Color;
 
 
 	m_pVertices = new CDiffusedVertex[m_nVertices];
@@ -940,7 +944,7 @@ CSphereMeshIlluminated::~CSphereMeshIlluminated()
 CPlaneMeshIlluminated::CPlaneMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
 	float fWidth, float fDepth) : CMeshIlluminated(pd3dDevice, pd3dCommandList)
 {
-	int nSubRects = 20;
+	int nSubRects = 50;
 
 	float fHalfWidth = fWidth * 0.5f;
 	float fHalfDepth = fDepth * 0.5f;

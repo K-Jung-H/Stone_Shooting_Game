@@ -177,7 +177,7 @@ class UIMesh : public CMesh
 {
 public:
 	UIMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
-		float fWidth = 200.0f, float fHeight = 90.0f, float layer_z = 1.0f, XMFLOAT4 xmf4Color = { 1.0f, 0.0f, 0.0f, 1.0f });
+		float fWidth = 200.0f, float fHeight = 90.0f, float layer_z = 1.0f, XMFLOAT4 xmf4Color = { 1.0f, 0.0f, 0.0f, 1.0f }, bool Color_Mix = true);
 	virtual ~UIMesh();
 };
 

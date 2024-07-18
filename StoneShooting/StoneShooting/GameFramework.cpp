@@ -446,8 +446,8 @@ void CGameFramework::BuildObjects()
 
 	m_pScene = new CScene();
 	
-		if (m_pScene)
-			m_pScene->BuildObjects(m_pd3dDevice, m_pd3dCommandList);
+	if (m_pScene)
+		m_pScene->BuildScene(m_pd3dDevice, m_pd3dCommandList);
 
 	
 	CAirplanePlayer* pAirplanePlayer = new CAirplanePlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
@@ -455,16 +455,6 @@ void CGameFramework::BuildObjects()
 	m_pPlayer = pAirplanePlayer;
 	pMainCamera = m_pPlayer->GetCamera();
 	m_pScene->m_pPlayer = m_pPlayer;
-
-	//===================================================
-
-	/*D3D12_RECT power_ui_area = { 600, 0, 800, 90 };
-	pUI_list.push_back(new BAR_UI(power_ui_area));
-
-	power_ui_area = { 0, 0, 200, 90 };
-	pUI_list.push_back(new BAR_UI(power_ui_area));
-
-	ui_num = pUI_list.size();*/
 
 	//===================================================
 
@@ -496,15 +486,14 @@ void CGameFramework::AnimateObjects()
 	//if (m_pScene->Check_GameOver())
 	//	::PostQuitMessage(0);
 
+	float Elapsed_Time = m_GameTimer.GetTimeElapsed();
 
 	if (m_pScene)
-		m_pScene->AnimateObjects(m_GameTimer.GetTimeElapsed());
+		m_pScene->AnimateObjects(Elapsed_Time);
 	
 	// 턴 종료 체크
 	if (Limit_time > TURN_MAX_TIME)
 		Need_to_change_turn = true;
-	else if (!Need_to_change_turn)
-		Need_to_change_turn = m_pScene->Check_Turn();
 
 	if (Need_to_change_turn)
 	{
@@ -516,49 +505,15 @@ void CGameFramework::AnimateObjects()
 			m_pScene->Change_Turn();
 		}
 		else
-			Delay_time += m_GameTimer.GetTimeElapsed();
+			Delay_time += Elapsed_Time;
 	}
 	else
 	{
-		Limit_time += m_GameTimer.GetTimeElapsed();
+		Need_to_change_turn = m_pScene->Check_Turn();
+		Limit_time += Elapsed_Time;
 	}
 
-
-	if (m_pScene->Player_Turn) // 플레이어 턴
-	{
-		//pUI_list[0]->Active = true;
-		//pUI_list[1]->Active = false;
-
-		//power_degree = pUI_list[0]->Update(m_GameTimer.GetTimeElapsed(), power_charge);
-
-	}
-	else if (m_pScene->Com_Turn) // 컴퓨터 턴
-	{
-		/*pUI_list[0]->Active = false;
-		pUI_list[1]->Active = true;*/
-
-		if (!m_pScene->Com_Shot)
-		{
-			if(0.0f > random_time)
-				random_time = uid(dre) / 1000;
-
-			if (random_time < sum_time)
-			{
-				if (m_pScene->Game_Over == false)  // 필요한 조건인가
-				{
-					random_time = -1;
-					//m_pScene->Shoot_Stone_Com(power_degree);
-					m_pScene->Shoot_Stone_Com(500);
-					sum_time = 0;
-				}
-			}
-			else
-			{
-				//power_degree = pUI_list[1]->Update(m_GameTimer.GetTimeElapsed(), true);
-				sum_time += m_GameTimer.GetTimeElapsed();
-			}
-		}
-	}
+	m_pScene->Scene_Update(Elapsed_Time);
 	
 	m_pScene->CheckObject_Out_Board_Collisions(m_pd3dDevice, m_pd3dCommandList);
 	m_pScene->CheckObjectByObjectCollisions();
@@ -632,12 +587,6 @@ void CGameFramework::FrameAdvance()
 	if (m_pScene) 
 		m_pScene->Render(m_pd3dDevice, m_pd3dCommandList, pMainCamera);
 
-	//if (pUI_list.size())
-	//{
-	//	for (UICamera* ui_ptr : pUI_list)
-	//		if(ui_ptr->Active)
-	//			m_pScene->UI_Render(m_pd3dDevice, m_pd3dCommandList, ui_ptr);
-	//}
 	// D3D12 그리기 동작 끝
 
 
@@ -672,21 +621,21 @@ void CGameFramework::FrameAdvance()
 	// 출력 화면 크기
 	D2D1_SIZE_F szRenderTarget = m_ppd2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
 
-	// 플레이어 모은 파워 출력
-	/*if (pUI_list[0]->Active)
-	{
-		std::wstring wsPower = std::to_wstring(power_degree);
-		D2D1_RECT_F player_shooting_power = D2D1::RectF(500, 0, 600, 90);
-		m_pd2dDeviceContext->DrawTextW(wsPower.c_str(), (UINT32)wcslen(wsPower.c_str()), m_pdwFont, &player_shooting_power, m_pd2dbrText);
-	}*/
+	//// 플레이어 모은 파워 출력
+	//if (pUI_list[0]->Active)
+	//{
+	//	std::wstring wsPower = std::to_wstring(power_degree);
+	//	D2D1_RECT_F player_shooting_power = D2D1::RectF(500, 0, 600, 90);
+	//	m_pd2dDeviceContext->DrawTextW(wsPower.c_str(), (UINT32)wcslen(wsPower.c_str()), m_pdwFont, &player_shooting_power, m_pd2dbrText);
+	//}
 
-	// COM의 모은 파워 출력
-	/*if (pUI_list[1]->Active)
-	{
-		std::wstring ws_COM_Power = std::to_wstring(power_degree);
-		D2D1_RECT_F COM_shooting_power = D2D1::RectF(200, 0, 300, 90);
-		m_pd2dDeviceContext->DrawTextW(ws_COM_Power.c_str(), (UINT32)wcslen(ws_COM_Power.c_str()), m_pdwFont, &COM_shooting_power, m_pd2dbrText);
-	}*/
+	//// COM의 모은 파워 출력
+	//if (pUI_list[1]->Active)
+	//{
+	//	std::wstring ws_COM_Power = std::to_wstring(power_degree);
+	//	D2D1_RECT_F COM_shooting_power = D2D1::RectF(200, 0, 300, 90);
+	//	m_pd2dDeviceContext->DrawTextW(ws_COM_Power.c_str(), (UINT32)wcslen(ws_COM_Power.c_str()), m_pdwFont, &COM_shooting_power, m_pd2dbrText);
+	//}
 	
 
 	// 시간 제한 출력
@@ -791,19 +740,18 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	{
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
-		if (m_pScene->Player_Turn && m_pScene->Player_Shot == false)
+		if (m_pScene->is_Player_Turn())
 		{
 			//마우스 캡쳐를 하고 현재 마우스 위치를 가져온다.
 			m_pSelectedObject = m_pScene->PickObjectPointedByCursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
-			if (m_pSelectedObject != NULL && m_pSelectedObject != m_pScene->m_pSelectedObject)
+			
+			if (m_pScene->is_Object_Selectable(m_pSelectedObject))
 			{
-				if (m_pSelectedObject->player_team)
-				{
-					m_pScene->m_pSelectedObject = m_pSelectedObject;
-					m_pPlayer->SetPosition(m_pSelectedObject->GetPosition());
+				m_pScene->m_pSelectedObject = m_pSelectedObject;
+				m_pPlayer->SetPosition(m_pSelectedObject->GetPosition());
 
-					pMainCamera = m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed());
-				}
+				pMainCamera = m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed());
+
 			}
 		}
 		::SetCapture(hWnd);
@@ -829,13 +777,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		switch (wParam)
 		{
 		case VK_SPACE:
-			if (m_pScene->Player_Turn && m_pScene->Player_Shot == false)
-			{
-				power_charge = true;
-			}
 			break;
-
-
 		default:
 			break;
 		}
@@ -843,24 +785,16 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	case WM_KEYUP:
 		switch (wParam)
 		{
-		case VK_ESCAPE:
-			::PostQuitMessage(0);
-			break;
-
 		case VK_SPACE:
-			/*power_charge = false;
-			pUI_list[0]->Reset();
-			pUI_list[1]->Reset();*/
-			power_degree = 1000;
-			if (m_pScene->Player_Turn && m_pScene->Player_Shot == false)
+			if (m_pScene->is_Player_Turn())
 			{
 				if (m_pScene->m_pSelectedObject != NULL)
 				{
-					power_charge = false;
-					m_pScene->Shoot_Stone(power_degree);
-					m_pScene->Player_Shot = true;
+					m_pScene->Shoot_Stone(m_pScene->power_degree);
+
 					m_pSelectedObject = NULL;
 					m_pScene->m_pSelectedObject = NULL;
+
 					pMainCamera = m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, m_GameTimer.GetTimeElapsed());
 				}
 			}
@@ -883,13 +817,13 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			}
 			break;
 
-		case VK_F8:
-			break;
-
 		case VK_F9:
 			ChangeSwapChainState();
 			break;
 
+		case VK_ESCAPE:
+			::PostQuitMessage(0);
+			break;
 		default:
 			break;
 		}
@@ -915,7 +849,7 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 	case WM_RBUTTONUP:
 	case WM_MOUSEMOVE:
 		OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
-		m_pScene->OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
+		
 		break;
 	case WM_KEYDOWN:
 	case WM_KEYUP:
