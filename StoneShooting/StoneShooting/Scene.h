@@ -91,6 +91,8 @@ public:
 	void CheckObject_Out_Board_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	void Shoot_Stone(float power);
+
+	std::pair<StoneObject*, StoneObject*> Select_Stone_Com();
 	void Shoot_Stone_Com(float power);
 	
 	bool is_Player_Turn();
@@ -157,7 +159,9 @@ public:
 	UI* ui_com_power_endline;
 
 	CGameObject* m_pSelectedObject = NULL; // 피킹된 것
-	
+	Charge_Particle* Charge_Effect = NULL;
+
+
 	int m_nGameObjects = 0;
 
 	float m_fElapsedTime = 0.0f;
@@ -170,10 +174,15 @@ public:
 
 	bool Game_Over = false;
 
-	// turn update
-	float random_time = -1;
-	float sum_time = 0;
-
 	bool power_charge = false;
 	int power_degree = 0;
+
+	struct Computer
+	{
+		StoneObject* select_Stone;
+		StoneObject* target_Stone;
+		float random_time = -1;
+		float sum_time = 0;
+
+	}computer;
 };

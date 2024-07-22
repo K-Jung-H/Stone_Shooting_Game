@@ -70,6 +70,7 @@
 //=======================C++================
 #include <random>
 #include <vector>
+#include <algorithm>
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;

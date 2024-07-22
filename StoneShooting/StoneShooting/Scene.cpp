@@ -20,7 +20,7 @@ void CScene::Build_Lights_and_Materials()
 
 	m_pLights->m_pLights[0].m_bEnable = true;
 	m_pLights->m_pLights[0].m_nType = POINT_LIGHT;
-	m_pLights->m_pLights[0].m_fRange = 200.0f;
+	m_pLights->m_pLights[0].m_fRange = 300.0f;
 	m_pLights->m_pLights[0].m_xmf4Ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	m_pLights->m_pLights[0].m_xmf4Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	m_pLights->m_pLights[0].m_xmf4Specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
@@ -65,9 +65,9 @@ void CScene::Build_Lights_and_Materials()
 	::ZeroMemory(m_pMaterials, sizeof(MATERIALS));
 	m_pMaterials->m_pReflections[0] = { XMFLOAT4(0.5f, 0.5, 0.5f, 1.0f), XMFLOAT4(1.0f, 1.0, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0, 1.0f, 20.0f), XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f) };
 	m_pMaterials->m_pReflections[1] = { XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f) };
-	m_pMaterials->m_pReflections[2] = { XMFLOAT4(1.0f, 0.8f, 0.2f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f) };
-	m_pMaterials->m_pReflections[3] = { XMFLOAT4(0.5f, 0.0f, 1.0f, 1.0f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 20.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) };
-	m_pMaterials->m_pReflections[4] = { XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f), XMFLOAT4(0.5f, 0.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 25.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) };
+	m_pMaterials->m_pReflections[2] = { XMFLOAT4(2.0f, 1.5f, 0.2f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f) };
+	m_pMaterials->m_pReflections[3] = { XMFLOAT4(0.0f, 0.5f, 0.0f, 1.0f), XMFLOAT4(0.1f, 0.3f, 0.1f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 100.0f), XMFLOAT4(0.0f, 0.2f, 0.0f, 1.0f) };
+	m_pMaterials->m_pReflections[4] = { XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f), XMFLOAT4(0.3f, 0.1f, 0.1f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 100.0f), XMFLOAT4(0.2f, 0.0f, 0.0f, 1.0f) };
 	m_pMaterials->m_pReflections[5] = { XMFLOAT4(0.0f, 0.5f, 0.5f, 1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) };
 	m_pMaterials->m_pReflections[6] = { XMFLOAT4(0.5f, 0.5f, 1.0f, 1.0f), XMFLOAT4(0.5f, 0.5f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 35.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) };
 	m_pMaterials->m_pReflections[7] = { XMFLOAT4(1.0f, 0.5f, 1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 40.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) };
@@ -126,7 +126,7 @@ void CScene::Release_Shader_Resource()
 void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	Explosion_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
-	
+	Charge_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
 	Build_Lights_and_Materials();
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
 
@@ -218,24 +218,8 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	for (XMFLOAT3& b_stone_pos : b_stone_pos_list)
 		Setting_Stone(pd3dDevice, pd3dCommandList, StoneMesh, b_stone_pos, false);
 
-
 	//===========================================================
-	// UI 객체 // UIShader CObjectsShader
-	//m_uiShaders = new UIShader[m_n_uiShaders];
-	//m_uiShaders[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
-
-	//CMesh* ui_power_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 200.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.5f, 0.0f, 1.0f));
-	// 
-	//CGameObject* ui_sample = NULL;
-	//ui_sample = new CGameObject();
-	//ui_sample->SetMesh(ui_power_mesh);
-	//ui_sample->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-
-	//ui_sample->SetMaterial(UINT(1));
-	//m_uiShaders->AddObjects(ui_sample);
-
-	//===========================================================
-
+	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, UINT(0), ParticleType::Charge);
 }
 
 void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -683,13 +667,30 @@ void CScene::Change_Turn()
 		Player_Turn = false;
 		Com_Turn = true;
 		Com_Shot = false;
+
+		if (m_pSelectedObject->active)
+			m_pSelectedObject->SetMaterial(UINT(0));
+
+		m_pSelectedObject = NULL;
+		Charge_Effect->SetMaterial(UINT(1));
 	}
 	else if (Com_Turn)
 	{
 		Player_Turn = true;
 		Player_Shot = false;
 		Com_Turn = false;
+		
+		if (computer.select_Stone->active)
+		{
+			computer.select_Stone->SetMaterial(UINT(1));
+			computer.select_Stone = NULL;
+			computer.target_Stone = NULL;
+		
+		}
+		Charge_Effect->SetMaterial(UINT(0));
 	}
+
+	Charge_Effect->Reset();
 }
 
 bool CScene::Check_Turn()
@@ -769,6 +770,13 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		}
 		break;
 
+		case ParticleType::Charge:
+		{
+			particle = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, UINT(material), ParticleType::Charge);
+			particle->SetActive(true);
+			particle->SetPosition(pos);
+			m_particle.push_back(particle);
+		}
 		case ParticleType::None:
 		default:
 			break;
@@ -787,12 +795,23 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	for (Particle* particle : m_particle)
 		particle->Animate(fTimeElapsed);
 
+	if (Charge_Effect)
+	{
+		Charge_Effect->Animate(fTimeElapsed);
+	}
+
 	if (m_pLights)
 	{
 		if (m_pSelectedObject)
 		{
 			m_pLights->m_pLights[3].m_bEnable = true;
 			m_pLights->m_pLights[3].m_xmf3Position = m_pSelectedObject->GetPosition();
+			m_pLights->m_pLights[3].m_xmf3Position.y = 30.0f;
+		}
+		else if (computer.select_Stone)
+		{
+			m_pLights->m_pLights[3].m_bEnable = true;
+			m_pLights->m_pLights[3].m_xmf3Position = computer.select_Stone->GetPosition();
 			m_pLights->m_pLights[3].m_xmf3Position.y = 30.0f;
 		}
 		else
@@ -812,9 +831,15 @@ void CScene::Scene_Update(float fTimeElapsed)
 		ui_com_power_endline->Active = false;
 
 		power_degree = ui_player_power->Update(fTimeElapsed, power_charge);
+		
+		if (power_charge && m_pSelectedObject != NULL)
+		{
+			Charge_Effect->active = true;
+			Charge_Effect->Set_Center_Position(m_pSelectedObject->GetPosition());
+		}
 
 	}
-	else if (Com_Turn) // 컴퓨터 턴
+	else if (Com_Turn && Com_Shot == false) // 컴퓨터 턴
 	{
 		ui_player_power->Active = false;
 		ui_player_power_endline->Active = false;
@@ -822,28 +847,53 @@ void CScene::Scene_Update(float fTimeElapsed)
 		ui_com_power->Active = true;
 		ui_com_power_endline->Active = true;
 
-		if (!Com_Shot)
+		if (Game_Over == false) // 컴퓨터 차례라면
 		{
-			if (0.0f > random_time)
-				random_time = 3;// uid(dre) / 1000;
-
-			if (random_time < sum_time)
+			if (computer.select_Stone == NULL) // 돌을 선택 안했다면
 			{
-				if (Game_Over == false)  // 필요한 조건인가
-				{
-					random_time = -1;
-					Shoot_Stone_Com(power_degree);
-					sum_time = 0;
-				}
+				//std::pair<StoneObject*, StoneObject*> hard_version = Find_Nearest_Enemy_Stone();
+
+				std::pair<StoneObject*, StoneObject*> normal_version = Select_Stone_Com();
+				if (normal_version.first == NULL || normal_version.second == NULL)
+					return;
+
+				computer.select_Stone = normal_version.first;
+				computer.select_Stone->SetMaterial(UINT(4));
+
+				computer.target_Stone = normal_version.second;
+
+				// 차징 시간 결정
+				power_charge = true;
+				computer.random_time = 1.0f + (uid(dre) / 1000);
 			}
 			else
 			{
-				power_degree = ui_com_power->Update(fTimeElapsed, true);
-				sum_time += fTimeElapsed;
+				if (computer.random_time < computer.sum_time) // 정해진 시간이 됬다면 동작
+				{
+					computer.random_time = -1;
+					computer.sum_time = 0;
+
+					Shoot_Stone_Com(power_degree);
+					Com_Shot = true;
+
+					power_charge = false;
+				}
+				else // 시간이 될때까지 충전 애니메이션 및 UI 업데이트
+				{
+					power_degree = ui_com_power->Update(fTimeElapsed, power_charge);
+
+					if (power_charge && computer.select_Stone != NULL)
+					{
+						Charge_Effect->active = true;
+						Charge_Effect->Set_Center_Position(computer.select_Stone->GetPosition());
+					}
+
+					computer.sum_time += fTimeElapsed;
+				}
+
 			}
 		}
 	}
-
 }
 
 void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
@@ -879,6 +929,9 @@ void CScene::Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
 	pCamera->Update_Shader_Resource(pd3dCommandList);
+
+	if(power_charge)
+		Charge_Effect->Particle_Render(pd3dCommandList, pCamera);
 
 	for (Particle* particle : m_particle)
 		particle->Particle_Render(pd3dCommandList, pCamera);
@@ -951,10 +1004,10 @@ void CScene::Shoot_Stone_Com(float power)
 	StoneObject* c_stone;
 	StoneObject* p_stone;
 
-	std::pair<StoneObject*, StoneObject*> stones = Find_Nearest_Enemy_Stone();
 
-	c_stone = stones.first;
-	p_stone = stones.second;
+	c_stone = computer.select_Stone;
+	p_stone = computer.target_Stone;
+
 	XMFLOAT3 c_position = c_stone->GetPosition();
 	XMFLOAT3 p_position = p_stone->GetPosition();
 
@@ -991,7 +1044,66 @@ void CScene::Shoot_Stone_Com(float power)
 		power = 500;
 
 	c_stone->SetMovingSpeed(power);
-	Com_Shot = true;
+
+}
+
+std::pair<StoneObject*, StoneObject*> CScene::Select_Stone_Com()
+{
+	// 1. Find_Nearest_Enemy_Stone를 반복하여 쌍을 찾기 위한 벡터
+	std::vector<std::pair<StoneObject*, StoneObject*>> pairs;
+	std::vector<StoneObject*> Living_C_Stone;
+	std::vector<StoneObject*> Living_Player_Stone;
+
+	for (CGameObject* obj_ptr : m_pShaders[0].GetObjects())
+	{
+		if ((obj_ptr->active == true) && (obj_ptr->player_team == false))
+		{
+			StoneObject* com_stone = (StoneObject*)obj_ptr;
+			Living_C_Stone.push_back(com_stone);
+		}
+		else if ((obj_ptr->active == true) && (obj_ptr->player_team == true))
+		{
+			StoneObject* player_stone = (StoneObject*)obj_ptr;
+			Living_Player_Stone.push_back(player_stone);
+		}
+	}
+
+	for (auto com_stone : Living_C_Stone)
+	{
+		for (auto player_stone : Living_Player_Stone)
+		{
+			pairs.push_back(std::make_pair(com_stone, player_stone));
+		}
+	}
+
+	if (pairs.empty())
+	{
+		DebugOutput("No Pair to Shoot Target");
+		::PostQuitMessage(0);
+		return std::pair<StoneObject*, StoneObject*>{NULL, NULL};
+	}
+
+	// 3. 거리 순으로 정렬
+	std::sort(pairs.begin(), pairs.end(), [](const auto& lhs, const auto& rhs) {
+		float lhs_D = XMVectorGetX(XMVector3Length(XMLoadFloat3(&lhs.first->GetPosition()) - XMLoadFloat3(&lhs.second->GetPosition())));
+		float rhs_D = XMVectorGetX(XMVector3Length(XMLoadFloat3(&rhs.first->GetPosition()) - XMLoadFloat3(&rhs.second->GetPosition())));
+		return lhs_D < rhs_D;
+		});
+
+	// 4. 배열의 크기가 0~3이 가능한지 파악
+	int maxIndex = std::min<int>(3, static_cast<int>(pairs.size()) - 1);
+
+	if (maxIndex < 0)
+	{
+		DebugOutput("No Pair to Shoot Target");
+		::PostQuitMessage(0);
+		return std::pair<StoneObject*, StoneObject*>{NULL, NULL};
+	}
+
+	// 5. 0부터 maxIndex 사이의 랜덤 인덱스를 구하여 쌍을 선택
+	int randomIndex = rand() % (maxIndex + 1);
+	auto selected_pair = pairs[randomIndex];
+	return selected_pair;
 
 }
 
@@ -1042,6 +1154,20 @@ std::pair<StoneObject*, StoneObject*> CScene::Find_Nearest_Enemy_Stone()
 
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	for (CGameObject* obj_ptr : m_pShaders[0].GetObjects())
+	{
+		if ((obj_ptr->active == true) && (obj_ptr->player_team == true))
+		{
+			StoneObject* player_stone = (StoneObject*)obj_ptr;
+			if (player_stone == m_pSelectedObject)
+				m_pSelectedObject->SetMaterial(UINT(3));
+			else
+				player_stone->SetMaterial(UINT(0));
+		}
+	}
+
+
+
 	return(false);
 }
 

@@ -103,8 +103,8 @@ int BAR_UI::Update(float fTimeElapsed, bool power_charge)
 	if (power_charge)
 	{
 		if (Degree_increase) {
-			if (Degree < 400) 
-				Degree += 3;			
+			if (Degree < 600) 
+				Degree += 1;			
 			else {
 				// 400에 도달하면 증가 상태를 false로 설정
 				Degree_increase = false;  
@@ -112,11 +112,11 @@ int BAR_UI::Update(float fTimeElapsed, bool power_charge)
 		}
 		else {
 			if (Degree > 300)
-				Degree -= 3;
+				Degree -= 1;
 			else if (Degree > 200)
 				Degree -= 2;
 			else if (Degree > 100)
-				Degree -= 1;
+				Degree -= 3;
 			else
 				Degree = 100;  // Degree 100 이하 방지
 		}
@@ -128,15 +128,15 @@ int BAR_UI::Update(float fTimeElapsed, bool power_charge)
 	else
 		SetScissorRect(Monitor_Area.left, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
 
-	if( 380 <= Degree && Degree <= 400)
-		return 500;
+	if( 400 <= Degree && Degree <= 600)
+		return 600;
 
 	if (Degree_increase == false && Degree == 100)
 	{
 		return 100;
 	}
 
-	return Degree;
+	return Degree * 1.5;
 }
 
 void BAR_UI::Reset()
