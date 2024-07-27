@@ -15,10 +15,10 @@ public:
 	float						m_fElapsedTimes = 0.0f;
 	float						m_fDuration = 2.0f;
 	float						Particle_Rotation = 720.0f;
-
+	
 public:
 	UINT8* particles_info = NULL;
-
+	ID3D12Resource* m_pConstant_Buffer;
 	Particle(ParticleType p_type = ParticleType::None);
 	virtual ~Particle();
 

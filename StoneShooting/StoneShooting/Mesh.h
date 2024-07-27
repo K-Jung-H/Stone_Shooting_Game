@@ -108,7 +108,6 @@ public:
 	void ReleaseUploadBuffers();
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, bool picked);
 
 	BoundingOrientedBox GetBoundingBox() { return(m_xmBoundingBox); }
 
@@ -120,10 +119,6 @@ public:
 	BoundingSphere m_xmBoundingSphere;
 	bool picked = false;
 
-	// 피킹됬을 경우 사용할 메쉬 리소스 버퍼
-	ID3D12Resource* picked_m_pd3dVertexBuffer = NULL;
-	D3D12_VERTEX_BUFFER_VIEW picked_m_d3dVertexBufferView;
-	ID3D12Resource* picked_m_pd3dVertexUploadBuffer;
 };
 //////////////////////////////////////////////////////////////////////////////////////
 

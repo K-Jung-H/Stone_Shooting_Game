@@ -308,7 +308,7 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamer
 	//카메라 모드가 3인칭이면 플레이어 객체를 렌더링한다.
 	if (nCameraMode == THIRD_PERSON_CAMERA)
 	{
-		CGameObject::Render(pd3dCommandList, pCamera);
+		CGameObject::Render(pd3dCommandList, pCamera, NULL);
 	}
 
 
@@ -332,7 +332,7 @@ CAirplanePlayer::CAirplanePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	//플레이어(비행기) 메쉬를 렌더링할 때 사용할 셰이더를 생성한다.
 	CPlayerShader* pShader = new CPlayerShader();
 	pShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature);
-	SetShader(pShader);
+	//SetShader(pShader);
 
 	m_pCamera = ChangeCamera(TOP_VIEW_CAMERA, 0.0f);
 

@@ -4,6 +4,14 @@
 #include <vector>
 
 //=========================================================================================
+CMaterialColors* CScene::material_color_white_stone = NULL;
+CMaterialColors* CScene::material_color_black_stone = NULL;
+
+CMaterialColors* CScene::material_color_white_particle = NULL;
+CMaterialColors* CScene::material_color_black_particle = NULL;
+
+CMaterialColors* CScene::material_color_board = NULL;
+
 
 CScene::CScene()
 {
@@ -61,29 +69,78 @@ void CScene::Build_Lights_and_Materials()
 	m_pLights->m_pLights[3].m_fPhi = (float)cos(XMConvertToRadians(90.0f));
 	m_pLights->m_pLights[3].m_fTheta = (float)cos(XMConvertToRadians(30.0f));
 
-	m_pMaterials = new MATERIALS;
-	::ZeroMemory(m_pMaterials, sizeof(MATERIALS));
-	m_pMaterials->m_pReflections[0] = { XMFLOAT4(0.5f, 0.5, 0.5f, 1.0f), XMFLOAT4(1.0f, 1.0, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0, 1.0f, 20.0f), XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f) };
-	m_pMaterials->m_pReflections[1] = { XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f) };
-	m_pMaterials->m_pReflections[2] = { XMFLOAT4(2.0f, 1.5f, 0.2f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f) };
-	m_pMaterials->m_pReflections[3] = { XMFLOAT4(0.0f, 0.5f, 0.0f, 1.0f), XMFLOAT4(0.1f, 0.3f, 0.1f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 100.0f), XMFLOAT4(0.0f, 0.2f, 0.0f, 1.0f) };
-	m_pMaterials->m_pReflections[4] = { XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f), XMFLOAT4(0.3f, 0.1f, 0.1f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 100.0f), XMFLOAT4(0.2f, 0.0f, 0.0f, 1.0f) };
-	m_pMaterials->m_pReflections[5] = { XMFLOAT4(0.0f, 0.5f, 0.5f, 1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) };
-	m_pMaterials->m_pReflections[6] = { XMFLOAT4(0.5f, 0.5f, 1.0f, 1.0f), XMFLOAT4(0.5f, 0.5f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 35.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) };
-	m_pMaterials->m_pReflections[7] = { XMFLOAT4(1.0f, 0.5f, 1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 40.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) };
+	//=====================================================
+
+	material_color_white_stone = new CMaterialColors
+	{
+		XMFLOAT4(0.5f, 0.5, 0.5f, 1.0f),
+		XMFLOAT4(1.0f, 1.0, 1.0f, 1.0f),
+		XMFLOAT4(1.0f, 1.0, 1.0f, 20.0f),
+		XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f)
+	};
+
+	material_color_black_stone = new CMaterialColors
+	{
+		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), 
+		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), 
+		XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f), 
+		XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f)
+	};
+
+	material_color_white_particle = new CMaterialColors
+	{
+		XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),  
+		XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),  
+		XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),  
+		XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f)
+	};
+
+	material_color_black_particle = new CMaterialColors
+	{
+		XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+		XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f),
+		XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f)
+	};
+
+	material_color_board = new CMaterialColors
+	{
+		XMFLOAT4(2.0f, 1.5f, 0.2f, 1.0f),
+		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f),
+		XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f),
+		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f)
+	};
+
+	//=====================================================
+
+
+	//m_pMaterials = new MATERIALS;
+	//::ZeroMemory(m_pMaterials, sizeof(MATERIALS));
+	//m_pMaterials->m_pReflections[0] = { XMFLOAT4(0.5f, 0.5, 0.5f, 1.0f),  XMFLOAT4(1.0f, 1.0, 1.0f, 1.0f),  XMFLOAT4(1.0f, 1.0, 1.0f, 20.0f),  XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f) }; // 백돌
+	//m_pMaterials->m_pReflections[1] = { XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f) }; // 흑돌
+	//m_pMaterials->m_pReflections[2] = { XMFLOAT4(2.0f, 1.5f, 0.2f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f) }; // 게임 판
+	//m_pMaterials->m_pReflections[3] = { XMFLOAT4(0.0f, 0.5f, 0.0f, 1.0f), XMFLOAT4(0.1f, 0.3f, 0.1f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 100.0f), XMFLOAT4(0.0f, 0.2f, 0.0f, 1.0f) }; // 플레이어 선택 표시
+	//m_pMaterials->m_pReflections[4] = { XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f), XMFLOAT4(0.3f, 0.1f, 0.1f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 100.0f), XMFLOAT4(0.2f, 0.0f, 0.0f, 1.0f) }; // 컴퓨터 선택 표시
+	//m_pMaterials->m_pReflections[5] = { XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),  XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),  XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),  XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f) }; // 백돌 파티클
+	//m_pMaterials->m_pReflections[6] = { XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f), XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f) };
+	//m_pMaterials->m_pReflections[7] = { XMFLOAT4(1.0f, 0.5f, 1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 40.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) };
 }
 
-void CScene::Update_Lights_and_Materials(ID3D12GraphicsCommandList* pd3dCommandList)
+
+void CScene::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	// 매핑한 주소에 재질 정보 전달(복사)
-	::memcpy(m_pcbMappedMaterials, m_pMaterials, sizeof(MATERIALS));
+	UINT ncbElementBytes = ((sizeof(LIGHTS) + 255) & ~255); //256의 배수
+	m_pd3dcbLights = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+	m_pd3dcbLights->Map(0, NULL, (void**)&m_pcbMappedLights);
+}
 
-	// 재질 리소스에 대한 상수 버퍼 뷰를 쉐이더 변수에 연결(바인딩)
-	D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialsGpuVirtualAddress = m_pd3dcbMaterials->GetGPUVirtualAddress();
-	pd3dCommandList->SetGraphicsRootConstantBufferView(3, d3dcbMaterialsGpuVirtualAddress);
+void CScene::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	Update_Lights(pd3dCommandList);
+}
 
-	//==================================================================================
-
+void CScene::Update_Lights(ID3D12GraphicsCommandList* pd3dCommandList)
+{
 	// 매핑한 주소에 조명 정보 전달(복사)
 	::memcpy(m_pcbMappedLights, m_pLights, sizeof(LIGHTS));
 
@@ -92,34 +149,12 @@ void CScene::Update_Lights_and_Materials(ID3D12GraphicsCommandList* pd3dCommandL
 	pd3dCommandList->SetGraphicsRootConstantBufferView(4, d3dcbLightsGpuVirtualAddress);
 }
 
-void CScene::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-{
-	UINT ncbElementBytes = ((sizeof(LIGHTS) + 255) & ~255); //256의 배수
-	m_pd3dcbLights = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
-	m_pd3dcbLights->Map(0, NULL, (void**)&m_pcbMappedLights);
-
-
-	UINT ncbMaterialBytes = ((sizeof(MATERIALS) + 255) & ~255); //256의 배수
-	m_pd3dcbMaterials = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbMaterialBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
-	m_pd3dcbMaterials->Map(0, NULL, (void**)&m_pcbMappedMaterials);
-}
-
-void CScene::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
-{
-	Update_Lights_and_Materials(pd3dCommandList);
-}
-
 void CScene::Release_Shader_Resource()
 {
 	if (m_pd3dcbLights)
 	{
 		m_pd3dcbLights->Unmap(0, NULL);
 		m_pd3dcbLights->Release();
-	}
-	if (m_pd3dcbMaterials)
-	{
-		m_pd3dcbMaterials->Unmap(0, NULL);
-		m_pd3dcbMaterials->Release();
 	}
 }
 
@@ -140,13 +175,11 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 void CScene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team)
 {
 	StoneObject* pStoneObject = NULL;
+	CMaterial* material = new CMaterial;
 
 	pStoneObject = new StoneObject(pd3dDevice, pd3dCommandList);
 	pStoneObject->SetMesh(mesh);
 	//~~~~~~~~~~~~~~
-
-	pStoneObject->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-
 	pStoneObject->SetPosition(pos.x, pos.y, pos.z);
 	pStoneObject->SetFriction(2);										// Default
 
@@ -155,39 +188,47 @@ void CScene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 
 	if (player_team)
 	{
-		pStoneObject->SetMaterial(UINT(0));
+		material->SetMaterialColors(material_color_white_stone);
+
+		pStoneObject->SetMaterial(material);
 		pStoneObject->SetMovingDirection(XMFLOAT3(0.0f, 0.0f, -1.0f));	// Default
 	}
 	else
 	{
-		pStoneObject->SetMaterial(UINT(1));
+		material->SetMaterialColors(material_color_black_stone);
+
+		pStoneObject->SetMaterial(material);
 		pStoneObject->SetMovingDirection(XMFLOAT3(0.0f, 0.0f, 1.0f));	// Default
 	}
 	pStoneObject->SetMovingSpeed(0.0f);									// Default
 
 	pStoneObject->player_team = player_team;
-	m_pShaders[0].AddObjects(pStoneObject);
+
+	Scene_GameObjects.push_back(pStoneObject);
+	// Object_Shader[0].AddObjects(pStoneObject);
 }
 
 void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	//===========================================================
 	// 게임 객체
-	m_pShaders = new CObjectsShader[m_nShaders];
-	m_pShaders[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
-
+	Object_Shader = new CObjectsShader[N_Object_Shader];
+	Object_Shader[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
+	Object_Shader[0].Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 	//===========================================================
 
 	float Board_Half_Width = 100.0f;
 	float Board_Half_Depth = 300.0f;
 	CPlaneMeshIlluminated* pboard = new CPlaneMeshIlluminated(pd3dDevice, pd3dCommandList, Board_Half_Width * 2.0f, Board_Half_Depth * 2.0f);
+	CMaterial* material = new CMaterial;
 
-	m_pBoards = new CBoardObject();
+	m_pBoards = new CBoardObject(pd3dDevice, pd3dCommandList);
 	m_pBoards->SetPosition(0.0f, 0.0f, 0.0f);
 	m_pBoards->SetMesh(pboard);
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~
-	m_pBoards->SetMaterial(UINT(2));
-	m_pBoards->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
+	material->SetMaterialColors(material_color_board);
+	//material->SetShader(&Object_Shader[0]);
+	m_pBoards->SetMaterial(material);
 
 	m_pBoards->m_xmOOBB = m_pBoards->m_pMesh->m_xmBoundingBox; // 시작할 때 한번만 하면 됨
 
@@ -224,73 +265,73 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	// UI 객체 // UIShader 
-
-	// UI Area
-	D3D12_RECT power_ui_area_1 = { 600, 0, 800, 90 };
-	D3D12_RECT power_endline_ui_area_1 = { 595, 0, 600, 90 };
-
-	D3D12_RECT power_ui_area_2 = { 0, 0, 200, 90 };
-	D3D12_RECT power_endline_ui_area_2 = { 200, 0, 205, 90 };
-
-	//-----------------------------------
-
-	// UI Mesh
-	CMesh* ui_power_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 200.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.5f, 0.0f, 1.0f));
-	
-	CMesh* ui_endline_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 5.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f), false);
-
-	//-----------------------------------
-
-	// UI's Object
-	CGameObject* ui_power_bar = NULL;
-	ui_power_bar = new CGameObject();
-	ui_power_bar->SetMesh(ui_power_mesh);
-	ui_power_bar->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-	ui_power_bar->SetMaterial(UINT(1));
-
-	CGameObject* ui_endline = NULL;
-	ui_endline = new CGameObject();
-	ui_endline->SetMesh(ui_endline_mesh);
-	ui_endline->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-	ui_endline->SetMaterial(UINT(1));
-
-	//=======================================================================
-
-	// UI Object
-	UI* Power_UI_player = new BAR_UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_ui_area_1);
-	ui_player_power = Power_UI_player;
-	
-	Power_UI_player->m_uiShaders[0].AddObjects(ui_power_bar);
-	pUI_list.push_back(Power_UI_player);
-
-	//-----------------------------------
-
-	UI* Power_endline_player = new UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_endline_ui_area_1);
-	ui_player_power_endline = Power_endline_player;
-
-	Power_endline_player->m_uiShaders[0].AddObjects(ui_endline);
-	pUI_list.push_back(Power_endline_player);
-
-	//=======================================================================
-
-	UI* Power_UI_com = new BAR_UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_ui_area_2, false);
-	ui_com_power = Power_UI_com;
-
-	Power_UI_com->m_uiShaders[0].AddObjects(ui_power_bar);
-	pUI_list.push_back(Power_UI_com);
-
-	//-----------------------------------
-
-	UI* Power_endline_com = new UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_endline_ui_area_2);
-	ui_com_power_endline = Power_endline_com;
-
-	Power_endline_com->m_uiShaders[0].AddObjects(ui_endline);
-	pUI_list.push_back(Power_endline_com);
-
-	ui_num = pUI_list.size();
-
-	//=======================================================================
+//	// UI 객체 // UIShader 
+//
+//	// UI Area
+//	D3D12_RECT power_ui_area_1 = { 600, 0, 800, 90 };
+//	D3D12_RECT power_endline_ui_area_1 = { 595, 0, 600, 90 };
+//
+//	D3D12_RECT power_ui_area_2 = { 0, 0, 200, 90 };
+//	D3D12_RECT power_endline_ui_area_2 = { 200, 0, 205, 90 };
+//
+//	//-----------------------------------
+//
+//	// UI Mesh
+//	CMesh* ui_power_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 200.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.5f, 0.0f, 1.0f));
+//	
+//	CMesh* ui_endline_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 5.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f), false);
+//
+//	//-----------------------------------
+//
+//	// UI's Object
+//	CGameObject* ui_power_bar = NULL;
+//	ui_power_bar = new CGameObject();
+//	ui_power_bar->SetMesh(ui_power_mesh);
+//	ui_power_bar->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
+//	ui_power_bar->SetMaterial(UINT(1));
+//
+//	CGameObject* ui_endline = NULL;
+//	ui_endline = new CGameObject();
+//	ui_endline->SetMesh(ui_endline_mesh);
+//	ui_endline->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
+//	ui_endline->SetMaterial(UINT(1));
+//
+//	//=======================================================================
+//
+//	// UI Object
+//	UI* Power_UI_player = new BAR_UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_ui_area_1);
+//	ui_player_power = Power_UI_player;
+//	
+//	Power_UI_player->m_uiShaders[0].AddObjects(ui_power_bar);
+//	pUI_list.push_back(Power_UI_player);
+//
+//	//-----------------------------------
+//
+//	UI* Power_endline_player = new UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_endline_ui_area_1);
+//	ui_player_power_endline = Power_endline_player;
+//
+//	Power_endline_player->m_uiShaders[0].AddObjects(ui_endline);
+//	pUI_list.push_back(Power_endline_player);
+//
+//	//=======================================================================
+//
+//	UI* Power_UI_com = new BAR_UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_ui_area_2, false);
+//	ui_com_power = Power_UI_com;
+//
+//	Power_UI_com->m_uiShaders[0].AddObjects(ui_power_bar);
+//	pUI_list.push_back(Power_UI_com);
+//
+//	//-----------------------------------
+//
+//	UI* Power_endline_com = new UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_endline_ui_area_2);
+//	ui_com_power_endline = Power_endline_com;
+//
+//	Power_endline_com->m_uiShaders[0].AddObjects(ui_endline);
+//	pUI_list.push_back(Power_endline_com);
+//
+//	ui_num = pUI_list.size();
+//
+//	//=======================================================================
 }
 
 void CScene::ReleaseObjects()
@@ -300,22 +341,22 @@ void CScene::ReleaseObjects()
 	if (m_pLights)
 		delete m_pLights;
 
-	if (m_pMaterials)
-		delete m_pMaterials;
+	//if (m_pMaterials)
+	//	delete m_pMaterials;
 
 
 	if (m_pd3dGraphicsRootSignature) 
 		m_pd3dGraphicsRootSignature->Release();
 
 
-	for (int j = 0; j < m_nShaders; ++j)
+	for (int j = 0; j < N_Object_Shader; ++j)
 	{
-		m_pShaders[j].Release_Shader_Resource();
-		m_pShaders[j].ReleaseObjects();
+		Object_Shader[j].Release_Shader_Resource();
+		Object_Shader[j].ReleaseObjects();
 	}
 
-	if (m_pShaders)
-		delete[] m_pShaders;
+	if (Object_Shader)
+		delete[] Object_Shader;
 
 	/*for (int j = 0; j < m_n_uiShaders; ++j)
 	{
@@ -331,8 +372,8 @@ void CScene::ReleaseObjects()
 
 void CScene::ReleaseUploadBuffers()
 {
-	for (int j = 0; j < m_nShaders; ++j)
-		m_pShaders[j].ReleaseUploadBuffers();
+	for (int j = 0; j < N_Object_Shader; ++j)
+		Object_Shader[j].ReleaseUploadBuffers();
 }
 
 
@@ -473,7 +514,7 @@ void CScene::CreateGraphicsPipelineState(ID3D12Device* pd3dDevice)
 void CScene::CheckObjectByObjectCollisions()
 {
 	// CShader 벡터의 참조를 임시 변수에 저장
-	auto& objshader_ptrs = m_pShaders[0].GetObjects();
+	auto& objshader_ptrs = Object_Shader[0].GetObjects();
 	int objs_N = objshader_ptrs.size();
 
 	// 충돌 객체 초기화
@@ -559,7 +600,7 @@ void CScene::CheckObjectByObjectCollisions()
 
 void CScene::Defend_Overlap()
 {
-	auto& objshader_ptrs = m_pShaders[0].GetObjects();
+	auto& objshader_ptrs = Object_Shader[0].GetObjects();
 	int objs_N = objshader_ptrs.size();
 
 	// 충돌 체크 및 overlaped 상태 설정
@@ -630,7 +671,7 @@ void CScene::Defend_Overlap()
 void CScene::CheckObject_Out_Board_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	// 충돌 객체 초기화
-	for (CGameObject* obj_ptr : m_pShaders[0].GetObjects())
+	for (CGameObject* obj_ptr : Object_Shader[0].GetObjects())
 	{
 		if (!obj_ptr->active)
 			continue;
@@ -645,9 +686,9 @@ void CScene::CheckObject_Out_Board_Collisions(ID3D12Device* pd3dDevice, ID3D12Gr
 			if (obj_ptr->active == true)
 			{
 				if (obj_ptr->player_team)
-					Setting_Particle(pd3dDevice, pd3dCommandList, obj_ptr->GetPosition(), UINT(0), ParticleType::Explosion);
+					Setting_Particle(pd3dDevice, pd3dCommandList, obj_ptr->GetPosition(), UINT(5), ParticleType::Explosion);
 				else if (!obj_ptr->player_team)
-					Setting_Particle(pd3dDevice, pd3dCommandList, obj_ptr->GetPosition(), UINT(1), ParticleType::Explosion);
+					Setting_Particle(pd3dDevice, pd3dCommandList, obj_ptr->GetPosition(), UINT(6), ParticleType::Explosion);
 			}
 			obj_ptr->active = false;
 		}
@@ -668,11 +709,11 @@ void CScene::Change_Turn()
 		Com_Turn = true;
 		Com_Shot = false;
 
-		if (m_pSelectedObject->active)
-			m_pSelectedObject->SetMaterial(UINT(0));
+		//if (m_pSelectedObject->active)
+		//	m_pSelectedObject->Set_Material_and_Shader(material_white_stone, &Object_Shader[0]);
 
-		m_pSelectedObject = NULL;
-		Charge_Effect->SetMaterial(UINT(1));
+		//m_pSelectedObject = NULL;
+		//Charge_Effect->Set_Material_and_Shader(material_white_stone, &Object_Shader[0]);
 	}
 	else if (Com_Turn)
 	{
@@ -680,14 +721,14 @@ void CScene::Change_Turn()
 		Player_Shot = false;
 		Com_Turn = false;
 		
-		if (computer.select_Stone->active)
-		{
-			computer.select_Stone->SetMaterial(UINT(1));
-			computer.select_Stone = NULL;
-			computer.target_Stone = NULL;
-		
-		}
-		Charge_Effect->SetMaterial(UINT(0));
+		//if (computer.select_Stone->active)
+		//{
+		//	computer.select_Stone->Set_Material_and_Shader(material_black_stone, &Object_Shader[0]);
+		//	computer.select_Stone = NULL;
+		//	computer.target_Stone = NULL;
+		//
+		//}
+		//Charge_Effect->Set_Material_and_Shader(material_black_stone, &Object_Shader[0]);
 	}
 
 	Charge_Effect->Reset();
@@ -703,7 +744,7 @@ bool CScene::Check_Turn()
 
 	int stop_stone_n = 0;
 
-	for (const CGameObject* obj_ptr : m_pShaders[0].GetObjects())
+	for (const CGameObject* obj_ptr : Object_Shader[0].GetObjects())
 	{
 		const StoneObject* stone_ptr = static_cast<const StoneObject*>(obj_ptr);
 		if (0.1f >= stone_ptr->m_fMovingSpeed || !stone_ptr->active)
@@ -712,7 +753,7 @@ bool CScene::Check_Turn()
 			stone_ptr = stone_ptr;
 	}
 
-	if (stop_stone_n == m_pShaders[0].GetObjects().size())
+	if (stop_stone_n == Object_Shader[0].GetObjects().size())
 		return true;
 	else
 		return false;
@@ -723,7 +764,7 @@ bool CScene::Check_GameOver()
 {
 	int dead_White_Stone = 0;
 	int dead_Black_Stone = 0;
-	for (CGameObject* obj_ptr : m_pShaders[0].GetObjects())
+	for (CGameObject* obj_ptr : Object_Shader[0].GetObjects())
 	{
 		if (obj_ptr->active == false)
 		{
@@ -742,52 +783,53 @@ bool CScene::Check_GameOver()
 
 void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, UINT material, ParticleType type)
 {
-	bool Done = false;
-	for (Particle* particle : m_particle)
-	{
-		if (particle->type == type && particle->active == false)
-		{
-			particle->SetPosition(pos);
-			particle->SetActive(true);
-			particle->SetMaterial(material);
-			Done = true;
-			break;
-		}
-	}
-
-	if (Done == false)
-	{
-		Particle* particle = NULL;
-		switch (type)
-		{
-
-		case ParticleType::Explosion:
-		{
-			particle = new Explosion_Particle(pd3dDevice, pd3dCommandList, UINT(material), ParticleType::Explosion);
-			particle->SetActive(true);
-			particle->SetPosition(pos);
-			m_particle.push_back(particle);
-		}
-		break;
-
-		case ParticleType::Charge:
-		{
-			particle = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, UINT(material), ParticleType::Charge);
-			particle->SetActive(true);
-			particle->SetPosition(pos);
-			m_particle.push_back(particle);
-		}
-		case ParticleType::None:
-		default:
-			break;
-		}
-	}
-
+//	bool Done = false;
+//	for (Particle* particle : m_particle)
+//	{
+//		if (particle->type == type && particle->active == false)
+//		{
+//			particle->SetPosition(pos);
+//			particle->SetActive(true);
+//			particle->SetMaterial(material);
+//			Done = true;
+//			break;
+//		}
+//	}
+//
+//	if (Done == false)
+//	{
+//		Particle* particle = NULL;
+//		switch (type)
+//		{
+//
+//		case ParticleType::Explosion:
+//		{
+//			particle = new Explosion_Particle(pd3dDevice, pd3dCommandList, UINT(material), ParticleType::Explosion);
+//			particle->SetActive(true);
+//			particle->SetPosition(pos);
+//			m_particle.push_back(particle);
+//		}
+//		break;
+//
+//		case ParticleType::Charge:
+//		{
+//			particle = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, UINT(material), ParticleType::Charge);
+//			particle->SetActive(true);
+//			particle->SetPosition(pos);
+//			((Charge_Particle*)particle)->Set_Center_Position(pos);
+//			m_particle.push_back(particle);
+//		}
+//		case ParticleType::None:
+//		default:
+//			break;
+//		}
+//	}
+//
 }
 
 void CScene::AnimateObjects(float fTimeElapsed)
 {
-	m_pShaders[0].AnimateObjects(fTimeElapsed);
+	Object_Shader[0].AnimateObjects(fTimeElapsed);
 
 	for (UI* ui_ptr : pUI_list)
 		ui_ptr->AnimateObjects(fTimeElapsed);
@@ -858,7 +900,7 @@ void CScene::Scene_Update(float fTimeElapsed)
 					return;
 
 				computer.select_Stone = normal_version.first;
-				computer.select_Stone->SetMaterial(UINT(4));
+				//computer.select_Stone->Set_Material_and_Shader(material_black_stone, &Object_Shader[0]);
 
 				computer.target_Stone = normal_version.second;
 
@@ -902,21 +944,29 @@ void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCom
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
 	pCamera->Update_Shader_Resource(pd3dCommandList);
 
+	Object_Shader[0].Setting_PSO(pd3dCommandList);
+
 	// 조명 업데이트
 	Update_Shader_Resource(pd3dCommandList);
+	
+//	Scene_GameObjects[0]->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
 
-	for (int i = 0; i < m_nShaders; ++i)
-	{
-		m_pShaders[i].Render(pd3dCommandList, pCamera);
-	}
+	m_pBoards->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
+
+	for (CGameObject* gameobject : Scene_GameObjects)
+		gameobject->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
+
+	//for (int i = 0; i < N_Object_Shader; ++i)
+	//{
+	//	Object_Shader[i].Render(pd3dCommandList, pCamera);
+	//}
 
 	// 보드는 Scene에서 관리 중
 	// 아직은 움직임이 없을꺼니까
-	m_pBoards->Render(pd3dCommandList, pCamera);
 
-	Particle_Render(pd3dDevice, pd3dCommandList, pCamera);
+	//Particle_Render(pd3dDevice, pd3dCommandList, pCamera);
 
-	UI_Render(pd3dDevice, pd3dCommandList);
+	//UI_Render(pd3dDevice, pd3dCommandList);
 
 	//=======================플레이어 렌더링 =======================
 	//CAirplanePlayer* pPlayer = (CAirplanePlayer*)m_pPlayer;
@@ -962,7 +1012,7 @@ CGameObject* CScene::PickObjectPointedByCursor(int xClient, int yClient, CCamera
 	float fHitDistance = FLT_MAX, fNearestHitDistance = FLT_MAX;
 	CGameObject* pIntersectedObject = NULL, * pNearestObject = NULL;
 
-	pIntersectedObject = m_pShaders[0].PickObjectByRayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
+	pIntersectedObject = Object_Shader[0].PickObjectByRayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
 	if (pIntersectedObject && (fHitDistance < fNearestHitDistance))
 	{
 		fNearestHitDistance = fHitDistance;
@@ -1054,7 +1104,7 @@ std::pair<StoneObject*, StoneObject*> CScene::Select_Stone_Com()
 	std::vector<StoneObject*> Living_C_Stone;
 	std::vector<StoneObject*> Living_Player_Stone;
 
-	for (CGameObject* obj_ptr : m_pShaders[0].GetObjects())
+	for (CGameObject* obj_ptr : Object_Shader[0].GetObjects())
 	{
 		if ((obj_ptr->active == true) && (obj_ptr->player_team == false))
 		{
@@ -1113,7 +1163,7 @@ std::pair<StoneObject*, StoneObject*> CScene::Find_Nearest_Enemy_Stone()
 
 	std::vector<StoneObject*>Living_C_Stone;
 	std::vector< StoneObject*>Living_Player_Stone;
-	for (CGameObject* obj_ptr : m_pShaders[0].GetObjects())
+	for (CGameObject* obj_ptr : Object_Shader[0].GetObjects())
 	{
 		if ((obj_ptr->active == true) && (obj_ptr->player_team == false))
 		{
@@ -1154,15 +1204,15 @@ std::pair<StoneObject*, StoneObject*> CScene::Find_Nearest_Enemy_Stone()
 
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	for (CGameObject* obj_ptr : m_pShaders[0].GetObjects())
+	for (CGameObject* obj_ptr : Object_Shader[0].GetObjects())
 	{
 		if ((obj_ptr->active == true) && (obj_ptr->player_team == true))
 		{
 			StoneObject* player_stone = (StoneObject*)obj_ptr;
-			if (player_stone == m_pSelectedObject)
-				m_pSelectedObject->SetMaterial(UINT(3));
+			/*if (player_stone == m_pSelectedObject)
+				m_pSelectedObject->Set_Material_and_Shader(material_black_stone, &Object_Shader[0]);
 			else
-				player_stone->SetMaterial(UINT(0));
+				player_stone->Set_Material_and_Shader(material_black_stone, &Object_Shader[0]);*/
 		}
 	}
 

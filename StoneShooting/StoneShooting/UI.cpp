@@ -60,14 +60,14 @@ void UI::AnimateObjects(float fTimeElapsed)
 
 void UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
 {
-	SetViewportsAndScissorRects(pd3dCommandList);
-	pd3dCommandList->SetGraphicsRootSignature(pd3dGraphicsRootSignature);
-	Update_Shader_Resource(pd3dCommandList);
+	//SetViewportsAndScissorRects(pd3dCommandList);
+	//pd3dCommandList->SetGraphicsRootSignature(pd3dGraphicsRootSignature);
+	//Update_Shader_Resource(pd3dCommandList);
 
-	for (int i = 0; i < m_n_uiShaders; ++i)
-	{
-		m_uiShaders[i].Render(pd3dCommandList, this);
-	}
+	//for (int i = 0; i < m_n_uiShaders; ++i)
+	//{
+	//	m_uiShaders[i].Render(pd3dCommandList, this);
+	//}
 }
 
 int UI::Update(float fTimeElapsed, bool sign)

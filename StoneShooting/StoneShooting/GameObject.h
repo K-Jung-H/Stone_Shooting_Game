@@ -2,6 +2,13 @@
 #include "Camera.h"
 #include "Mesh.h"
 
+enum class Resource_Buffer_Type
+{
+	GameObject_info,
+	Material_info,
+};
+
+
 class CShader;
 
 // 객체를 렌더링할 때 적용하는 상수 버퍼 데이터
@@ -9,40 +16,66 @@ struct CB_GAMEOBJECT_INFO
 {
 	XMFLOAT4X4 m_xmf4x4World;
 
-	// 객체에 적용될 재질 번호
-	UINT m_nMaterial;
 };
 
-struct MATERIAL
+struct CB_MATERIAL_INFO
 {
-	XMFLOAT4 m_xmf4Ambient;
-	XMFLOAT4 m_xmf4Diffuse;
-	XMFLOAT4 m_xmf4Specular; //(r,g,b,a=power)
-	XMFLOAT4 m_xmf4Emissive;
+	XMFLOAT4				m_cAmbient;
+	XMFLOAT4				m_cDiffuse;
+	XMFLOAT4				m_cSpecular; //a = power
+	XMFLOAT4				m_cEmissive;
 };
 
-class CMaterial
+class CMaterialColors
 {
-public:
-	CMaterial();
-	virtual ~CMaterial();
 private:
-	int m_nReferences = 0;
+	int								m_nReferences = 0;
+
 public:
+	XMFLOAT4						m_xmf4Ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	XMFLOAT4						m_xmf4Diffuse = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4						m_xmf4Specular = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f); //(r,g,b,a=power)
+	XMFLOAT4						m_xmf4Emissive = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+
+
+	CMaterialColors() { }
+	CMaterialColors(XMFLOAT4 a, XMFLOAT4 d, XMFLOAT4 s, XMFLOAT4 e) 
+	{
+		m_xmf4Ambient = a;
+		m_xmf4Diffuse = d;
+		m_xmf4Specular = s;
+		m_xmf4Emissive = e;
+	}
+	virtual ~CMaterialColors() { }
+
 	void AddRef() { m_nReferences++; }
 	void Release() { if (--m_nReferences <= 0) delete this; }
 
-	//재질의 기본 색상
-	XMFLOAT4 m_xmf4Albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+};
 
-	//재질의 번호
-	UINT m_nReflection = 0;
 
-	// 별도로 재질을 적용하여 렌더링을 하기 위한 쉐이더
-	CShader* m_pShader = NULL;
-	void SetAlbedo(XMFLOAT4& xmf4Albedo) { m_xmf4Albedo = xmf4Albedo; }
-	void SetReflection(UINT nReflection) { m_nReflection = nReflection; }
+
+class CMaterial
+{
+private:
+	int m_nReferences = 0;
+
+public:
+	CShader* material_shader = NULL; 	// 재질에 적용할 추가적인 셰이더
+	CMaterialColors* Material_Colors = NULL;
+
+	bool Active { false };
+
+	CMaterial();
+	virtual ~CMaterial();
+
+	void AddRef() { m_nReferences++; }
+	void Release() { if (--m_nReferences <= 0) delete this; }
+
+
+	void SetMaterialColors(CMaterialColors* pMaterialColors);
 	void SetShader(CShader* pShader);
+
 };
 
 
@@ -52,57 +85,90 @@ private:
 	int m_nReferences = 0;
 
 public:
+	// 게임 객체가 쉐이더를 가지지 않고 재질을 가짐
+	// 재질마다 사용할 셰이더가 다를 수 있음
+	std::vector<CMaterial*> m_ppMaterials;
+
+
 	CMesh* m_pMesh = NULL;
-	CMaterial* m_pMaterial = NULL; // 게임 객체가 쉐이더를 가지지 않고 재질을 가짐
 	
-	// 객체에 대한 리소스 포인터
-	CB_GAMEOBJECT_INFO* m_pMapped_object_info = NULL;
+//=========================================
 
-	// 쉐이더 객체에 포함되어 있는 모든 게임 객체들에 대한 리소스
-	ID3D12Resource* m_pConstant_Buffer = NULL;
+	XMFLOAT4X4						m_xmf4x4Transform = Matrix4x4::Identity();
+	XMFLOAT4X4						m_xmf4x4World = Matrix4x4::Identity();
 
+	CGameObject* m_pParent = NULL;
+	CGameObject* m_pChild = NULL;
+	CGameObject* m_pSibling = NULL;
+
+//=========================================
+	// GPU에 있는 객체 정보 컨테이너에 대한 리소스 포인터
+	// 해당 포인터를 통해, GPU에 있는 정보 접근 가능
+	CB_GAMEOBJECT_INFO* Mapped_Object_info = NULL;
+
+	// GPU에 있는 객체 재질에 대한 리소스 포인터
+	CB_MATERIAL_INFO* Mapped_Material_info = NULL;
+
+	// 쉐이더 객체에 연결된 게임 객체 버퍼
+	ID3D12Resource* Object_Constant_Buffer = NULL;
+
+	// 쉐이더 객체에 연결된 재질 버퍼
+	ID3D12Resource* Material_Constant_Buffer = NULL;
+
+//=========================================
+	char						FrameName[64] = {};
 
 	bool						active = true;
-	bool						picked = false;
 	bool						player_team = false;
-	XMFLOAT4X4					m_xmf4x4World = Matrix4x4::Identity();
+
 
 	BoundingOrientedBox			m_xmOOBB = BoundingOrientedBox();
 	BoundingSphere				m_xmOOSP = BoundingSphere();
 	CGameObject*				m_pObjectCollided = NULL;
-	DWORD						m_dwDefaultColor = RGB(255, 0, 0);
-	DWORD						m_dwColor = RGB(255, 0, 0);
+
 
 	XMFLOAT3					m_xmf3MovingDirection = XMFLOAT3(0.0f, 0.0f, 1.0f);
 	float						m_fMovingSpeed = 0.0f;
 	float						m_fMovingRange = 0.0f;
-
-	float m_fFriction;
+	float						m_fFriction = 2.0f;
 
 	CGameObject();
 	virtual ~CGameObject();
 
-	void AddRef() { m_nReferences++; }
-	void Release() { if (--m_nReferences <= 0) delete this; }
+	void AddRef();
+	void Release();
 
 	void SetActive(bool bActive) { active = bActive; }
 
 
-	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
-	virtual void Release_Shader_Resource();
 
 	void ReleaseUploadBuffers();
 	
-	virtual void SetMesh(CMesh* pMesh);
-	virtual void SetShader(CShader* pShader);
-
+	void SetMesh(CMesh* pMesh);
+	void Set_MaterialShader(CShader* pShader, int nMaterial = 0);
 	void SetMaterial(CMaterial* pMaterial);
-	void SetMaterial(UINT nReflection);
+	void AddMaterial(CMaterial* pMaterial);
+
+	void SetChild(CGameObject* pChild, bool bReferenceUpdate = false);
+
+
+	CGameObject* FindFrame(char* pstrFrameName);
+	CGameObject* GetParent() { return(m_pParent); }
+	void UpdateTransform(XMFLOAT4X4* pxmf4x4Parent = NULL);
+	
+	virtual void Create_Object_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Create_Material_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+
+
+	virtual void Update_Object_Buffer();
+	virtual void Update_Material_Buffer();
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList, Resource_Buffer_Type type);
+
+	virtual void Release_Shader_Resource();
 
 	virtual void Animate(float fTimeElapsed);
-	virtual void OnPrepareRender();
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
 
 	// FLOAT3에 행렬을 적용시켜서 반환
 	XMFLOAT3 ApplyTransform(XMFLOAT3 xmfloat3, XMFLOAT4X4 xmfloat4x4);
@@ -180,17 +246,16 @@ public:
 	bool						m_bBlowingUp = false;
 
 	virtual void Animate(float fElapsedTime);
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
 };
 
 class CBoardObject : public CGameObject
 {
 public:
-	CBoardObject();
+	CBoardObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~CBoardObject();
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
 
-public:
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 };
 
 
@@ -202,13 +267,8 @@ public:
 	StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~StoneObject();
 
-	float Fire_Period{ 1 };
-	float cool_down{ 0 };
-
-	float						m_fBulletEffectiveRange = 150.0f;
-
 	virtual void Animate(float fElapsedTime);
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
 };
 
 inline float RandF(float fMin, float fMax);

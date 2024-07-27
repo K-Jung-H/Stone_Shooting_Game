@@ -513,10 +513,10 @@ void CGameFramework::AnimateObjects()
 		Limit_time += Elapsed_Time;
 	}
 
-	m_pScene->Scene_Update(Elapsed_Time);
+	// m_pScene->Scene_Update(Elapsed_Time);
 	
-	m_pScene->CheckObject_Out_Board_Collisions(m_pd3dDevice, m_pd3dCommandList);
-	m_pScene->CheckObjectByObjectCollisions();
+	// m_pScene->CheckObject_Out_Board_Collisions(m_pd3dDevice, m_pd3dCommandList);
+	// m_pScene->CheckObjectByObjectCollisions();
 	m_pScene->Defend_Overlap();
 
 

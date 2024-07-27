@@ -48,31 +48,6 @@ void CMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 	}
 }
 
-void CMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList, bool picked)
-{
-	pd3dCommandList->IASetPrimitiveTopology(m_d3dPrimitiveTopology);
-
-	if (picked)
-	{
-		pd3dCommandList->IASetVertexBuffers(m_nSlot, 1, &picked_m_d3dVertexBufferView);
-
-	}
-	else
-	{
-		pd3dCommandList->IASetVertexBuffers(m_nSlot, 1, &m_d3dVertexBufferView);
-	}
-
-	//인덱스 버퍼가 있으면 인덱스 버퍼를 파이프라인(IA: 입력 조립기)에 연결하고 인덱스를 사용하여 렌더링한다. 
-	if (m_pd3dIndexBuffer)
-	{
-		pd3dCommandList->IASetIndexBuffer(&m_d3dIndexBufferView);
-		pd3dCommandList->DrawIndexedInstanced(m_nIndices, 1, 0, 0, 0);
-	}
-	else
-	{
-		pd3dCommandList->DrawInstanced(m_nVertices, 1, m_nOffset, 0);
-	}
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -161,16 +136,6 @@ CCubeMeshDiffused::CCubeMeshDiffused(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 	m_d3dIndexBufferView.BufferLocation = m_pd3dIndexBuffer->GetGPUVirtualAddress();
 	m_d3dIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
 	m_d3dIndexBufferView.SizeInBytes = sizeof(UINT) * m_nIndices;
-
-
-	picked_m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices,
-		m_nStride * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
-		&picked_m_pd3dVertexUploadBuffer);
-
-	picked_m_d3dVertexBufferView.BufferLocation = picked_m_pd3dVertexBuffer->GetGPUVirtualAddress();
-	picked_m_d3dVertexBufferView.StrideInBytes = m_nStride;
-	picked_m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
-
 
 	//메쉬의 바운딩 박스(모델 좌표계)를 생성한다.
 	m_xmBoundingBox = BoundingOrientedBox(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(fx, fy, fz), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
@@ -574,14 +539,6 @@ UIMesh::UIMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandL
 	m_d3dIndexBufferView.BufferLocation = m_pd3dIndexBuffer->GetGPUVirtualAddress();
 	m_d3dIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
 	m_d3dIndexBufferView.SizeInBytes = sizeof(UINT) * m_nIndices;
-
-
-	picked_m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices, m_nStride * m_nVertices, 
-		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,&picked_m_pd3dVertexUploadBuffer);
-
-	picked_m_d3dVertexBufferView.BufferLocation = picked_m_pd3dVertexBuffer->GetGPUVirtualAddress();
-	picked_m_d3dVertexBufferView.StrideInBytes = m_nStride;
-	picked_m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
 
 }
 UIMesh::~UIMesh()

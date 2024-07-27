@@ -27,10 +27,10 @@ struct LIGHTS
 	XMFLOAT4 m_xmf4GlobalAmbient;
 };
 
-struct MATERIALS
-{
-	MATERIAL m_pReflections[MAX_MATERIALS];
-};
+//struct MATERIALS
+//{
+//	MATERIAL m_pReflections[MAX_MATERIALS];
+//};
 
 
 class CScene
@@ -80,7 +80,7 @@ public:
 	virtual void Release_Shader_Resource();
 
 
-	void Update_Lights_and_Materials(ID3D12GraphicsCommandList* pd3dCommandList);
+	void Update_Lights(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	
 	//=============================================
@@ -114,8 +114,14 @@ private:
 
 
 protected:
-	CObjectsShader* m_pShaders = NULL;
-	int m_nShaders = 1;
+	CShader* Object_Shader = NULL;
+	int N_Object_Shader = 1;
+
+	// 그려질 모든 게임 객체들
+	std::vector<CGameObject*> Scene_GameObjects;
+	int Scene_GameObjects_N = 0;
+
+//==========================================
 
 	LIGHTS* m_pLights = NULL; // 씬의 조명
 
@@ -123,12 +129,21 @@ protected:
 	LIGHTS* m_pcbMappedLights = NULL; // 조명 리소스에 대한 포인터
 
 
-	MATERIALS* m_pMaterials = NULL; //씬의 객체들에 적용되는 재질
+	//MATERIALS* m_pMaterials = NULL; //씬의 객체들에 적용되는 재질
 
 
-	ID3D12Resource* m_pd3dcbMaterials = NULL; // 재질을 나타내는 리소스
-	MATERIAL* m_pcbMappedMaterials = NULL; // 재질 리소스에 대한 포인터
+	//ID3D12Resource* m_pd3dcbMaterials = NULL; // 재질을 나타내는 리소스
+	//MATERIAL* m_pcbMappedMaterials = NULL; // 재질 리소스에 대한 포인터
+
+//==========================================
 	
+	static CMaterialColors* material_color_white_stone;
+	static CMaterialColors* material_color_black_stone;
+
+	static CMaterialColors* material_color_white_particle;
+	static CMaterialColors* material_color_black_particle;
+
+	static CMaterialColors* material_color_board;
 
 public:
 	//UIShader* m_uiShaders = NULL;

@@ -64,13 +64,14 @@ XMFLOAT3 Explosion_Particle::Explosion_Sphere_Vectors[EXPLOSION_DEBRISES];
 CMesh* Explosion_Particle::m_ExplosionMesh = NULL;
 bool Explosion_Particle::Setting = false;
 
+
 Explosion_Particle::Explosion_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT material, ParticleType p_type) : Particle(p_type)
 {
 	m_fDuration = 1.0f;
 	m_fExplosionSpeed = 100.0f;
 
 	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-	SetMaterial(material);
+	//SetMaterial(material);
 }
 
 Explosion_Particle::~Explosion_Particle()
@@ -108,7 +109,7 @@ void Explosion_Particle::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dC
 
 		CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)(particles_info + (i * ncbGameObjectBytes));
 		::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
-		pbMappedcbGameObject->m_nMaterial = m_pMaterial->m_nReflection;
+
 	}
 }
 
@@ -193,11 +194,8 @@ Charge_Particle::Charge_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 		Particle_Speed[i] = (rand() % 10 + 1) * 0.5f; // 0.5f ~ 5.0f
 	}
 
-
-
-
 	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-	SetMaterial(material);
+	//SetMaterial(material);
 }
 
 Charge_Particle::~Charge_Particle()
@@ -235,7 +233,7 @@ void Charge_Particle::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dComm
 
 		CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)(particles_info + (i * ncbGameObjectBytes));
 		::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
-		pbMappedcbGameObject->m_nMaterial = m_pMaterial->m_nReflection;
+
 	}
 }
 
@@ -256,9 +254,6 @@ void Charge_Particle::Set_Center_Position(XMFLOAT3 pos)
 		Particle_Start_Position[i].y = pos.y + Charge_Sphere_Vectors[i].y * Max_Range;
 		Particle_Start_Position[i].z = pos.z + Charge_Sphere_Vectors[i].z * Max_Range;
 
-		//m_pxmf4x4Transforms[i]._41 = Particle_Start_Position[i].x;
-		//m_pxmf4x4Transforms[i]._42 = Particle_Start_Position[i].y;
-		//m_pxmf4x4Transforms[i]._43 = Particle_Start_Position[i].z;
 	}
 	SetPosition(pos);
 }

@@ -23,23 +23,43 @@ XMVECTOR RandomUnitVectorOnSphere()
 
 CMaterial::CMaterial()
 {
-	m_xmf4Albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	Material_Colors = new CMaterialColors{
+		XMFLOAT4(0.0f,0.0f,0.0f,0.0f),
+		XMFLOAT4(0.0f,0.0f,0.0f,0.0f),
+		XMFLOAT4(0.0f,0.0f,0.0f,0.0f),
+		XMFLOAT4(0.0f,0.0f,0.0f,0.0f)
+	};
 }
 
 CMaterial::~CMaterial()
 {
-	if (m_pShader)
-	{
-		m_pShader->Release_Shader_Resource();
-		m_pShader->Release();
-	}
+	if (material_shader)
+		material_shader->Release();
+
+	if (Material_Colors)
+		Material_Colors->Release();
 }
 
 void CMaterial::SetShader(CShader* pShader)
 {
-	if (m_pShader) m_pShader->Release();
-	m_pShader = pShader;
-	if (m_pShader) m_pShader->AddRef();
+	if (material_shader)
+		material_shader->Release();
+
+	material_shader = pShader;
+
+	if (material_shader)
+		material_shader->AddRef();
+}
+
+void CMaterial::SetMaterialColors(CMaterialColors* pMaterialColors)
+{
+	if (Material_Colors)
+		Material_Colors->Release();
+
+	Material_Colors = pMaterialColors;
+
+	if (Material_Colors)
+		Material_Colors->AddRef();
 }
 
 //=================================================================================
@@ -47,66 +67,109 @@ void CMaterial::SetShader(CShader* pShader)
 
 CGameObject::CGameObject()
 {
-	XMStoreFloat4x4(&m_xmf4x4World, XMMatrixIdentity());
+	m_xmf4x4Transform = Matrix4x4::Identity();
+	m_xmf4x4World = Matrix4x4::Identity();
+
+
 }
 
 CGameObject::~CGameObject()
 {
-	if (m_pMesh) m_pMesh->Release();
+	if (m_pMesh)
+		m_pMesh->Release();
 
-	// 재질에서 처리
-	// 게임 객체는 셰이더가 아니라 재질을 가짐
-	/*if (m_pShader) 
+
+	for (int i = 0; i < m_ppMaterials.size(); ++i)
 	{
-		m_pShader->ReleaseShaderVariables();
-		m_pShader->Release();
-	}*/
-
-	if (m_pMaterial)
-		m_pMaterial->Release();
-}
-
-void CGameObject::SetShader(CShader* pShader)
-{
-	// 재질에서 처리
-	// 게임 객체는 셰이더가 아니라 재질을 가짐
-	//if (m_pShader) m_pShader->Release();
-	//m_pShader = pShader;
-	//if (m_pShader) m_pShader->AddRef();
-
-	if (!m_pMaterial)
-	{
-		m_pMaterial = new CMaterial();
-		m_pMaterial->AddRef();
+		if (m_ppMaterials[i])
+			m_ppMaterials[i]->Release();
 	}
-
-	if (m_pMaterial)
-		m_pMaterial->SetShader(pShader);
+	if (m_ppMaterials.size())
+		m_ppMaterials.clear();
 }
+
+void CGameObject::AddRef()
+{
+	m_nReferences++;
+
+	if (m_pSibling) 
+		m_pSibling->AddRef();
+	if (m_pChild) 
+		m_pChild->AddRef();
+}
+
+void CGameObject::Release()
+{
+	if (m_pChild)
+		m_pChild->Release();
+	if (m_pSibling) 
+		m_pSibling->Release();
+
+	if (--m_nReferences <= 0) 
+		delete this;
+}
+
+void CGameObject::SetChild(CGameObject* pChild, bool bReferenceUpdate)
+{
+	if (pChild)
+	{
+		pChild->m_pParent = this;
+		if (bReferenceUpdate) pChild->AddRef();
+	}
+	if (m_pChild)
+	{
+		if (pChild) pChild->m_pSibling = m_pChild->m_pSibling;
+		m_pChild->m_pSibling = pChild;
+	}
+	else
+	{
+		m_pChild = pChild;
+	}
+}
+
 void CGameObject::SetMesh(CMesh* pMesh)
 {
-	if (m_pMesh) m_pMesh->Release();
+	if (m_pMesh)
+		m_pMesh->Release();
+
 	m_pMesh = pMesh;
-	if (m_pMesh) m_pMesh->AddRef();
+
+	if (m_pMesh)
+		m_pMesh->AddRef();
 }
+
+
+void CGameObject::Set_MaterialShader(CShader* pShader, int nMaterial)
+{
+	if (0 <= nMaterial && nMaterial < m_ppMaterials.size())
+	{
+		if (m_ppMaterials[nMaterial])
+			m_ppMaterials[nMaterial]->SetShader(pShader);
+	}
+	else
+		DebugOutput("SetShader :: Wrong Index for Material");
+}
+
 
 void CGameObject::SetMaterial(CMaterial* pMaterial)
 {
-	if (m_pMaterial)
-		m_pMaterial->Release();
+	// material->Release() 재질에 해줘야 하나? 
+	// 나중에 사용 안한다면 하는게 맞긴 한데
+	for (CMaterial* material : m_ppMaterials)
+		material->Active = false; 
 
-	m_pMaterial = pMaterial;
+	pMaterial->AddRef();
+	pMaterial->Active = true;
 
-	if (m_pMaterial)
-		m_pMaterial->AddRef();
+	m_ppMaterials.push_back(pMaterial);
 }
 
-void CGameObject::SetMaterial(UINT nReflection)
+void CGameObject::AddMaterial(CMaterial* pMaterial)
 {
-	if (!m_pMaterial)
-		m_pMaterial = new CMaterial();
+	m_ppMaterials.push_back(pMaterial);
 
-	m_pMaterial->m_nReflection = nReflection;
+	if (m_ppMaterials.back())
+		m_ppMaterials.back()->AddRef();
 }
 
 void CGameObject::ReleaseUploadBuffers()
@@ -119,38 +182,100 @@ void CGameObject::ReleaseUploadBuffers()
 //객체의 정보를 저장하기 위한 리소스를 생성하고 리소스에 대한 포인터를 가져온다. 
 void CGameObject::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
+	Create_Object_Buffer(pd3dDevice, pd3dCommandList);
+	Create_Material_Buffer(pd3dDevice, pd3dCommandList);
+}
+void CGameObject::Create_Object_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	// 게임 객체 버퍼 생성 및 매핑
 	UINT ncbElementBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
-	m_pConstant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes,
+	Object_Constant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes,
 		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 
-	m_pConstant_Buffer->Map(0, NULL, (void**)&m_pMapped_object_info);
+	Object_Constant_Buffer->Map(0, NULL, (void**)&Mapped_Object_info);
+}
+void CGameObject::Create_Material_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	// 게임 재질 버퍼 생성 및 매핑
+	UINT ncbElementBytes = ((sizeof(CB_MATERIAL_INFO) + 255) & ~255); //256의 배수
+	Material_Constant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+
+	Material_Constant_Buffer->Map(0, NULL, (void**)&Mapped_Material_info);
 }
 
-//객체의 월드변환 행렬과 재질 번호를 상수 버퍼에 쓴다. 
-void CGameObject::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
+
+//상수 버퍼에 쓰여진 내용을 셰이더에 전달
+void CGameObject::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList, Resource_Buffer_Type type)
+{
+	// 현재 게임 객체 정보 상수 버퍼를 바인딩
+	switch (type)
+	{
+	case Resource_Buffer_Type::GameObject_info:
+	{
+		Update_Object_Buffer();
+		// 사실 커멘드 리스트마다 한번만 바인딩 하면 됨 == 사실 프레임마다 버퍼는 바인딩 한번만 하면 됨
+		D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = Object_Constant_Buffer->GetGPUVirtualAddress();
+		pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress);
+	}
+	break;
+
+	case Resource_Buffer_Type::Material_info:
+	{
+		Update_Material_Buffer();
+
+		// 현재 게임 재질 정보 상수 버퍼를 바인딩
+		D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialGpuVirtualAddress = Material_Constant_Buffer->GetGPUVirtualAddress();
+		pd3dCommandList->SetGraphicsRootConstantBufferView(3, d3dcbMaterialGpuVirtualAddress);
+	}
+	break;
+
+	default:
+		DebugOutput("Update_Shader_Resource :: Accessing Wrond Buffer Type");
+		break;
+	}
+}
+
+void CGameObject::Update_Object_Buffer()
 {
 	XMFLOAT4X4 xmf4x4World;
 	XMStoreFloat4x4(&xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4World)));
 
-	CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)m_pMapped_object_info;
+	CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)Mapped_Object_info;
 	::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
-	pbMappedcbGameObject->m_nMaterial = m_pMaterial->m_nReflection;
+}
 
-	D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
+void CGameObject::Update_Material_Buffer()
+{
+	if (m_ppMaterials.size() == 0) {
+		DebugOutput("Update_Material_Buffer :: Object has no material");
+		return;
+	}
 
-	pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress);
+	CMaterialColors* colors = m_ppMaterials.front()->Material_Colors;
+
+	CB_MATERIAL_INFO* pbMappedMaterial = (CB_MATERIAL_INFO*)Mapped_Material_info;
+	::memcpy(&pbMappedMaterial->m_cAmbient, &colors->m_xmf4Ambient, sizeof(XMFLOAT4));
+	::memcpy(&pbMappedMaterial->m_cDiffuse, &colors->m_xmf4Diffuse, sizeof(XMFLOAT4));
+	::memcpy(&pbMappedMaterial->m_cSpecular, &colors->m_xmf4Specular, sizeof(XMFLOAT4));
+	::memcpy(&pbMappedMaterial->m_cEmissive, &colors->m_xmf4Emissive, sizeof(XMFLOAT4));
+
 }
 
 void CGameObject::Release_Shader_Resource()
 {
-	if (m_pConstant_Buffer)
+	if (Object_Constant_Buffer)
 	{
-		m_pConstant_Buffer->Unmap(0, NULL);
-		m_pConstant_Buffer->Release();
+		Object_Constant_Buffer->Unmap(0, NULL);
+		Object_Constant_Buffer->Release();
+	}
+
+	if (Material_Constant_Buffer)
+	{
+		Material_Constant_Buffer->Unmap(0, NULL);
+		Material_Constant_Buffer->Release();
 	}
 }
-
-
 
 void CGameObject::Animate(float fTimeElapsed)
 {
@@ -160,26 +285,7 @@ void CGameObject::Animate(float fTimeElapsed)
 	UpdateBoundingBox();
 }
 
-void CGameObject::UpdateBoundingBox()
-{
-	if (m_pMesh)
-	{
-		m_pMesh->m_xmBoundingBox.Transform(m_xmOOBB, XMLoadFloat4x4(&m_xmf4x4World));
-		XMStoreFloat4(&m_xmOOBB.Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_xmOOBB.Orientation)));
-	}
-}
-
-void CGameObject::UpdateFriction(float fTimeElapsed)
-{ 
-	if (m_fMovingSpeed > 0.0f)
-	{
-		m_fMovingSpeed -= m_fFriction * m_fMovingSpeed * fTimeElapsed;
-
-		if (m_fMovingSpeed < 0.1f)
-			m_fMovingSpeed = 0.0f;
-	}
-}
-
+// FLOAT3 백터를 XMFLOAT4X4 행렬에 적용한 값을 반환
 XMFLOAT3 CGameObject::ApplyTransform(XMFLOAT3 xmfloat3, XMFLOAT4X4 xmfloat4x4)
 {
 	XMVECTOR temp_pos = XMVectorSet(xmfloat3.x, xmfloat3.y, xmfloat3.z, 1.0f);
@@ -193,18 +299,63 @@ XMFLOAT3 CGameObject::ApplyTransform(XMFLOAT3 xmfloat3, XMFLOAT4X4 xmfloat4x4)
 	return now_pos;
 }
 
-void CGameObject::OnPrepareRender()
+void CGameObject::UpdateTransform(XMFLOAT4X4* pxmf4x4Parent)
 {
+	if (pxmf4x4Parent) 
+		m_xmf4x4World = Matrix4x4::Multiply(m_xmf4x4Transform, *pxmf4x4Parent);
+	else 
+		m_xmf4x4World = m_xmf4x4Transform;
+
+	if (m_pSibling)
+		m_pSibling->UpdateTransform(pxmf4x4Parent);
+
+	if (m_pChild)
+		m_pChild->UpdateTransform(&m_xmf4x4World);
 }
 
-void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+CGameObject* CGameObject::FindFrame(char* pstrFrameName)
 {
+	CGameObject* pFrameObject = NULL;
+	if (!strncmp(FrameName, pstrFrameName, strlen(pstrFrameName))) 
+		return(this);
 
-	Update_Shader_Resource(pd3dCommandList);
-	if (m_pMesh)
-		m_pMesh->Render(pd3dCommandList);
+	if (m_pSibling) 
+		if (pFrameObject = m_pSibling->FindFrame(pstrFrameName)) 
+			return(pFrameObject);
+
+	if (m_pChild) 
+		if (pFrameObject = m_pChild->FindFrame(pstrFrameName)) 
+			return(pFrameObject);
+
+	return(NULL);
 }
 
+void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
+{	
+	for (int i = 0; i < m_ppMaterials.size(); ++i)
+	{
+		if (m_ppMaterials[i])
+		{
+			if (m_ppMaterials[i]->material_shader)			
+				m_ppMaterials[i]->material_shader->Setting_Render(pd3dCommandList);
+			
+			// 재질 정보 컨테이너 업데이트 :: Mapped_Material_info
+			Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info);
+		}
+		// 객체 정보 컨테이너 업데이트 :: Mapped_Object_info
+		Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::GameObject_info);
+
+		if (m_pMesh)
+			m_pMesh->Render(pd3dCommandList);
+	}
+	
+	if (m_pSibling) 
+		m_pSibling->Render(pd3dCommandList, pCamera, pShader);
+
+	if (m_pChild)
+		m_pChild->Render(pd3dCommandList, pCamera, pShader);
+
+}
 
 void CGameObject::SetPosition(float x, float y, float z)
 {
@@ -230,8 +381,7 @@ XMFLOAT3 CGameObject::GetLook()
 //게임 객체의 로컬 y-축 벡터를 반환한다.
 XMFLOAT3 CGameObject::GetUp()
 {
-	return(Vector3::Normalize(XMFLOAT3(m_xmf4x4World._21, m_xmf4x4World._22,
-		m_xmf4x4World._23)));
+	return(Vector3::Normalize(XMFLOAT3(m_xmf4x4World._21, m_xmf4x4World._22, m_xmf4x4World._23)));
 }
 //게임 객체의 로컬 x-축 벡터를 반환한다.
 XMFLOAT3 CGameObject::GetRight()
@@ -269,6 +419,26 @@ void CGameObject::MoveForward(float fDistance)
 void CGameObject::Move(XMFLOAT3& vDirection, float fSpeed)
 {
 	SetPosition(m_xmf4x4World._41 + vDirection.x * fSpeed, m_xmf4x4World._42 + vDirection.y * fSpeed, m_xmf4x4World._43 + vDirection.z * fSpeed);
+}
+
+void CGameObject::UpdateBoundingBox()
+{
+	if (m_pMesh)
+	{
+		m_pMesh->m_xmBoundingBox.Transform(m_xmOOBB, XMLoadFloat4x4(&m_xmf4x4World));
+		XMStoreFloat4(&m_xmOOBB.Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_xmOOBB.Orientation)));
+	}
+}
+
+void CGameObject::UpdateFriction(float fTimeElapsed)
+{
+	if (m_fMovingSpeed > 0.0f)
+	{
+		m_fMovingSpeed -= m_fFriction * m_fMovingSpeed * fTimeElapsed;
+
+		if (m_fMovingSpeed < 0.1f)
+			m_fMovingSpeed = 0.0f;
+	}
 }
 
 
@@ -409,7 +579,7 @@ void CExplosiveObject::Animate(float fElapsedTime)
 	}
 }
 
-void CExplosiveObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+void CExplosiveObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
 	if (m_bBlowingUp)
 	{
@@ -417,24 +587,24 @@ void CExplosiveObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamer
 	}
 	else
 	{	
-		CGameObject::Render(pd3dCommandList, pCamera);
+		CGameObject::Render(pd3dCommandList, pCamera, pShader);
 	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CBoardObject::CBoardObject()
+CBoardObject::CBoardObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	
+	CGameObject::Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 }
 
 CBoardObject::~CBoardObject()
 {
 }
 
-void CBoardObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+void CBoardObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
-	CGameObject::Render(pd3dCommandList, pCamera);
+	CGameObject::Render(pd3dCommandList, pCamera, pShader);
 
 }
 
@@ -442,15 +612,16 @@ void CBoardObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* p
 
 StoneObject::StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {	
+	CGameObject::Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 }
 
 StoneObject::~StoneObject()
 {
 }
 
-void StoneObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+void StoneObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
-	CExplosiveObject::Render(pd3dCommandList, pCamera);
+	CExplosiveObject::Render(pd3dCommandList, pCamera, pShader);
 }
 
 void StoneObject::Animate(float fElapsedTime)
