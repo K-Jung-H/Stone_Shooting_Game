@@ -2,11 +2,7 @@
 #include "Camera.h"
 #include "Mesh.h"
 
-enum class Resource_Buffer_Type
-{
-	GameObject_info,
-	Material_info,
-};
+
 
 
 class CShader;
@@ -67,6 +63,8 @@ public:
 	bool Active { false };
 
 	CMaterial();
+	CMaterial(CMaterialColors* M_C);
+
 	virtual ~CMaterial();
 
 	void AddRef() { m_nReferences++; }
@@ -120,7 +118,7 @@ public:
 
 	bool						active = true;
 	bool						player_team = false;
-
+	Object_Type					type = Object_Type::None;
 
 	BoundingOrientedBox			m_xmOOBB = BoundingOrientedBox();
 	BoundingSphere				m_xmOOSP = BoundingSphere();
@@ -148,6 +146,7 @@ public:
 	void Set_MaterialShader(CShader* pShader, int nMaterial = 0);
 	void SetMaterial(CMaterial* pMaterial);
 	void AddMaterial(CMaterial* pMaterial);
+	void ChangeMaterial(UINT n);
 
 	void SetChild(CGameObject* pChild, bool bReferenceUpdate = false);
 
@@ -162,8 +161,8 @@ public:
 
 
 	virtual void Update_Object_Buffer();
-	virtual void Update_Material_Buffer();
-	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList, Resource_Buffer_Type type);
+	virtual void Update_Material_Buffer(int N);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList, Resource_Buffer_Type type, int N = 0);
 
 	virtual void Release_Shader_Resource();
 

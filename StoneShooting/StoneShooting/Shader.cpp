@@ -223,64 +223,14 @@ void CShader::Setting_PSO(ID3D12GraphicsCommandList* pd3dCommandList, int N)
 	//}
 }
 
-void CShader::AddObjects(CGameObject* gameobject)
-{
-	m_ppObjects.push_back(gameobject);
-	m_nObjects += 1;
-}
-
-
-
-void CShader::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-{
-}
-
-void CShader::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
-{
-}
-void CShader::Release_Shader_Resource()
-{
-}
 
 void CShader::ReleaseUploadBuffers()
 {
-	if (0 < m_ppObjects.size())
-	{
-		for (CGameObject* obj_ptr : m_ppObjects)
-			obj_ptr->ReleaseUploadBuffers();
-	}
 }
 
 void CShader::ReleaseObjects()
 {
-	if (0 < m_ppObjects.size())
-	{
-		for (CGameObject* obj_ptr : m_ppObjects)
-			delete obj_ptr;
-		m_ppObjects.clear();
-	}
 }
-
-
-
-CGameObject* CShader::PickObjectByRayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance)
-{
-	int nIntersected = 0;
-	*pfNearHitDistance = FLT_MAX;
-	float fHitDistance = FLT_MAX;
-	CGameObject* pSelectedObject = NULL;
-	for(CGameObject* obj_ptr : m_ppObjects)
-	{
-		nIntersected = obj_ptr->PickObjectByRayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
-		if ((nIntersected > 0) && (fHitDistance < *pfNearHitDistance))
-		{
-			*pfNearHitDistance = fHitDistance;
-			pSelectedObject = obj_ptr;
-		}
-	}
-	return(pSelectedObject);
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -372,95 +322,9 @@ void CObjectsShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature*
 	CShader::CreateShader(pd3dDevice, pd3dGraphicsRootSignature);
 }
 
-//객체의 정보를 저장하기 위한 리소스를 생성하고 리소스에 대한 포인터를 가져온다. 
-void CObjectsShader::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-{
-	Create_Shader_Buffer(pd3dDevice, pd3dCommandList);
-
-}
-
-void CObjectsShader::Create_Shader_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-{
-	// 게임 객체 버퍼 생성 및 매핑
-	UINT ncbElementBytes1 = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
-	Object_Constant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes1,
-		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
-
-	Object_Constant_Buffer->Map(0, NULL, (void**)&Mapped_Object_info);
-
-	//===============================================================================
-
-	// 게임 재질 버퍼 생성 및 매핑
-	UINT ncbElementBytes2 = ((sizeof(CB_MATERIAL_INFO) + 255) & ~255); //256의 배수
-	Material_Constant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes2,
-		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
-
-	Material_Constant_Buffer->Map(0, NULL, (void**)&Mapped_Material_info);
-}
-
-
-//상수 버퍼에 쓰여진 내용을 셰이더에 전달
-void CObjectsShader::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
-{
-	// 현재 게임 객체 정보 상수 버퍼를 바인딩
-	// 사실 커멘드 리스트마다 한번만 바인딩 하면 됨 == 사실 프레임마다 버퍼는 바인딩 한번만 하면 됨
-	D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = Object_Constant_Buffer->GetGPUVirtualAddress();
-	pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress);
-
-	//===============================================================================
-
-	// 현재 게임 재질 정보 상수 버퍼를 바인딩
-	D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialGpuVirtualAddress = Material_Constant_Buffer->GetGPUVirtualAddress();
-	pd3dCommandList->SetGraphicsRootConstantBufferView(3, d3dcbMaterialGpuVirtualAddress);
-}
-
-void CObjectsShader::Update_Object_Buffer(ID3D12GraphicsCommandList* pd3dCommandList, CB_GAMEOBJECT_INFO* Object_info)
-{
-	XMFLOAT4X4 xmf4x4World;
-	XMStoreFloat4x4(&xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&Object_info->m_xmf4x4World)));
-	
-	CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)Mapped_Object_info;
-	::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
-}
-
-void CObjectsShader::Update_Material_Buffer(ID3D12GraphicsCommandList* pd3dCommandList, CB_MATERIAL_INFO* Material_info)
-{
-	XMFLOAT4 Ambient = Material_info->m_cAmbient;
-	XMFLOAT4 Diffuse = Material_info->m_cDiffuse;
-	XMFLOAT4 Specular = Material_info->m_cSpecular; 
-	XMFLOAT4 Emissive = Material_info->m_cEmissive;
-
-
-	CB_MATERIAL_INFO* pbMappedMaterial = (CB_MATERIAL_INFO*)Mapped_Material_info;
-	::memcpy(&pbMappedMaterial->m_cAmbient, &Ambient, sizeof(XMFLOAT4));
-	::memcpy(&pbMappedMaterial->m_cDiffuse, &Diffuse, sizeof(XMFLOAT4));
-	::memcpy(&pbMappedMaterial->m_cSpecular, &Specular, sizeof(XMFLOAT4));
-	::memcpy(&pbMappedMaterial->m_cEmissive, &Emissive, sizeof(XMFLOAT4));
-
-}
-
-void CObjectsShader::Release_Shader_Resource()
-{
-	if (Object_Constant_Buffer)
-	{
-		Object_Constant_Buffer->Unmap(0, NULL);
-		Object_Constant_Buffer->Release();
-	}
-
-	if (Material_Constant_Buffer)
-	{
-		Material_Constant_Buffer->Unmap(0, NULL);
-		Material_Constant_Buffer->Release();
-	}
-}
 
 void CObjectsShader::AnimateObjects(float fTimeElapsed) 
 {
-	//for (CGameObject* obj_ptr : m_ppObjects)
-	//{
-	//	obj_ptr->Animate(fTimeElapsed);
-	//	obj_ptr->UpdateFriction(fTimeElapsed);		
-	//}
 }
 
 void CObjectsShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -511,10 +375,6 @@ void UIShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dG
 
 void UIShader::AnimateObjects(float fTimeElapsed) 
 {
-	for (CGameObject* obj_ptr : m_ppObjects)
-	{
-		obj_ptr->Animate(fTimeElapsed);
-	}
 }
 
 void UIShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList)

@@ -1,11 +1,7 @@
 #pragma once
 #include "GameObject.h"
 
-enum class ParticleType {
-	Explosion,
-	Charge,
-	None,
-};
+
 
 class Particle : public CRotatingObject
 {
@@ -18,7 +14,8 @@ public:
 	
 public:
 	UINT8* particles_info = NULL;
-	ID3D12Resource* m_pConstant_Buffer;
+	ID3D12Resource* m_pConstant_Buffer; // 한번에 여러 정보를 담기 때문에 일반 GameObject의 버퍼와 크기가 달라야 함
+
 	Particle(ParticleType p_type = ParticleType::None);
 	virtual ~Particle();
 
@@ -51,7 +48,7 @@ public:
 
 	
 	Explosion_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
-		UINT material = UINT(0), ParticleType p_type = ParticleType::Explosion);
+		CMaterial* material, ParticleType p_type = ParticleType::Explosion);
 	virtual ~Explosion_Particle();
 
 
@@ -86,7 +83,7 @@ public:
 	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	Charge_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
-		float Range, float cycle_time, UINT material = UINT(0), ParticleType p_type = ParticleType::Charge);
+		float Range, float cycle_time, CMaterial* material, ParticleType p_type = ParticleType::Charge);
 
 	virtual ~Charge_Particle();
 

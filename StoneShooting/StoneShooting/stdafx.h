@@ -77,6 +77,26 @@ using namespace DirectX::PackedVector;
 
 using Microsoft::WRL::ComPtr;
 
+enum class ParticleType {
+	Explosion,
+	Charge,
+	None,
+};
+
+enum class Resource_Buffer_Type
+{
+	GameObject_info,
+	Material_info,
+};
+
+enum class Object_Type
+{
+	Stone,
+	ETC,
+	None,
+};
+
+
 extern std::default_random_engine dre;
 extern std::uniform_int_distribution<int> uid;
 

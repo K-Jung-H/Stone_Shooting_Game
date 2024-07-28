@@ -4,6 +4,8 @@
 #include "Shader.h"
 #include "Particle.h"
 #include "UI.h"
+
+
 struct LIGHT
 {
 	XMFLOAT4 m_xmf4Ambient;
@@ -26,12 +28,6 @@ struct LIGHTS
 	LIGHT m_pLights[MAX_LIGHTS];
 	XMFLOAT4 m_xmf4GlobalAmbient;
 };
-
-//struct MATERIALS
-//{
-//	MATERIAL m_pReflections[MAX_MATERIALS];
-//};
-
 
 class CScene
 {
@@ -68,6 +64,7 @@ public:
 
 	//씬의 모든 게임 객체들에 대한 마우스 픽킹을 수행한다. 
 	CGameObject *PickObjectPointedByCursor(int xClient, int yClient, CCamera *pCamera);
+	CGameObject* PickObjectByRayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance);
 	bool is_Object_Selectable(CGameObject* gameobject);
 	//=============================================
 	
@@ -84,6 +81,9 @@ public:
 
 	
 	//=============================================
+	void Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float Board_Width, float Board_Depth);
+
+
 
 	void Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team);
 
@@ -106,7 +106,7 @@ public:
 
 	void Defend_Overlap();
 
-	void Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, UINT material, ParticleType type);
+	void Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, CMaterial* material, ParticleType type);
 	//=============================================
 private:
 	CCamera* pMainCamera = NULL;
@@ -117,10 +117,6 @@ protected:
 	CShader* Object_Shader = NULL;
 	int N_Object_Shader = 1;
 
-	// 그려질 모든 게임 객체들
-	std::vector<CGameObject*> Scene_GameObjects;
-	int Scene_GameObjects_N = 0;
-
 //==========================================
 
 	LIGHTS* m_pLights = NULL; // 씬의 조명
@@ -128,22 +124,18 @@ protected:
 	ID3D12Resource* m_pd3dcbLights = NULL; // 조명을 나타내는 리소스
 	LIGHTS* m_pcbMappedLights = NULL; // 조명 리소스에 대한 포인터
 
-
-	//MATERIALS* m_pMaterials = NULL; //씬의 객체들에 적용되는 재질
-
-
-	//ID3D12Resource* m_pd3dcbMaterials = NULL; // 재질을 나타내는 리소스
-	//MATERIAL* m_pcbMappedMaterials = NULL; // 재질 리소스에 대한 포인터
-
 //==========================================
 	
-	static CMaterialColors* material_color_white_stone;
-	static CMaterialColors* material_color_black_stone;
+	static CMaterial* material_color_white_stone;
+	static CMaterial* material_color_black_stone;
 
-	static CMaterialColors* material_color_white_particle;
-	static CMaterialColors* material_color_black_particle;
+	static CMaterial* material_color_player_selected;
+	static CMaterial* material_color_com_selected;
 
-	static CMaterialColors* material_color_board;
+	static CMaterial* material_color_white_particle;
+	static CMaterial* material_color_black_particle;
+
+	static CMaterial* material_color_board;
 
 public:
 	//UIShader* m_uiShaders = NULL;
@@ -159,9 +151,11 @@ public:
 public:
 	CPlayer* m_pPlayer = NULL;
 
-	CGameObject** m_ppGameObjects = NULL;
-
 	CBoardObject* m_pBoards = NULL;
+
+	// 그려질 모든 게임 객체들
+	std::vector<CGameObject*> GameObject_Stone;
+	int Scene_GameObjects_N = 0;
 
 	std::vector<Particle*>m_particle;
 	std::vector<UI*> pUI_list;

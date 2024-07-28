@@ -31,6 +31,15 @@ CMaterial::CMaterial()
 	};
 }
 
+CMaterial::CMaterial(CMaterialColors* M_C)
+{
+	Material_Colors = new CMaterialColors;
+	Material_Colors->m_xmf4Ambient = M_C->m_xmf4Ambient;
+	Material_Colors->m_xmf4Diffuse = M_C->m_xmf4Diffuse;
+	Material_Colors->m_xmf4Specular = M_C->m_xmf4Specular;
+	Material_Colors->m_xmf4Emissive = M_C->m_xmf4Emissive;
+}
+
 CMaterial::~CMaterial()
 {
 	if (material_shader)
@@ -153,15 +162,23 @@ void CGameObject::Set_MaterialShader(CShader* pShader, int nMaterial)
 
 void CGameObject::SetMaterial(CMaterial* pMaterial)
 {
+	bool is_exist = false;
 	// material->Release() 재질에 해줘야 하나? 
 	// 나중에 사용 안한다면 하는게 맞긴 한데
 	for (CMaterial* material : m_ppMaterials)
-		material->Active = false; 
-
-	pMaterial->AddRef();
+	{
+		material->Active = false;
+		if (material == pMaterial)
+			is_exist = true;
+	}
+	
 	pMaterial->Active = true;
 
-	m_ppMaterials.push_back(pMaterial);
+	if (!is_exist)
+	{
+		m_ppMaterials.push_back(pMaterial);
+		pMaterial->AddRef();
+	}
 }
 
 void CGameObject::AddMaterial(CMaterial* pMaterial)
@@ -170,6 +187,18 @@ void CGameObject::AddMaterial(CMaterial* pMaterial)
 
 	if (m_ppMaterials.back())
 		m_ppMaterials.back()->AddRef();
+}
+
+void CGameObject::ChangeMaterial(UINT n)
+{
+	if (n >= m_ppMaterials.size())
+		return;
+
+	for (CMaterial* material : m_ppMaterials)
+		material->Active = false;
+
+	m_ppMaterials[n]->Active = true;
+
 }
 
 void CGameObject::ReleaseUploadBuffers()
@@ -206,7 +235,7 @@ void CGameObject::Create_Material_Buffer(ID3D12Device* pd3dDevice, ID3D12Graphic
 
 
 //상수 버퍼에 쓰여진 내용을 셰이더에 전달
-void CGameObject::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList, Resource_Buffer_Type type)
+void CGameObject::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList, Resource_Buffer_Type type, int N)
 {
 	// 현재 게임 객체 정보 상수 버퍼를 바인딩
 	switch (type)
@@ -222,7 +251,7 @@ void CGameObject::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandL
 
 	case Resource_Buffer_Type::Material_info:
 	{
-		Update_Material_Buffer();
+		Update_Material_Buffer(N);
 
 		// 현재 게임 재질 정보 상수 버퍼를 바인딩
 		D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialGpuVirtualAddress = Material_Constant_Buffer->GetGPUVirtualAddress();
@@ -245,14 +274,19 @@ void CGameObject::Update_Object_Buffer()
 	::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
 }
 
-void CGameObject::Update_Material_Buffer()
+void CGameObject::Update_Material_Buffer(int N)
 {
 	if (m_ppMaterials.size() == 0) {
 		DebugOutput("Update_Material_Buffer :: Object has no material");
 		return;
 	}
+	else if (N >= m_ppMaterials.size())
+	{
+		DebugOutput("Update_Material_Buffer :: Wrong Index");
+		return;
+	}
 
-	CMaterialColors* colors = m_ppMaterials.front()->Material_Colors;
+	CMaterialColors* colors = m_ppMaterials[N]->Material_Colors;
 
 	CB_MATERIAL_INFO* pbMappedMaterial = (CB_MATERIAL_INFO*)Mapped_Material_info;
 	::memcpy(&pbMappedMaterial->m_cAmbient, &colors->m_xmf4Ambient, sizeof(XMFLOAT4));
@@ -331,23 +365,30 @@ CGameObject* CGameObject::FindFrame(char* pstrFrameName)
 }
 
 void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
-{	
+{
+	bool shader_changed = false;
+
+	// 객체 정보 컨테이너 업데이트 :: Mapped_Object_info
+	Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::GameObject_info);
 	for (int i = 0; i < m_ppMaterials.size(); ++i)
 	{
-		if (m_ppMaterials[i])
+		if (m_ppMaterials[i]->Active)
 		{
-			if (m_ppMaterials[i]->material_shader)			
+			if (m_ppMaterials[i]->material_shader)
+			{
 				m_ppMaterials[i]->material_shader->Setting_Render(pd3dCommandList);
-			
+				shader_changed = true;
+			}
 			// 재질 정보 컨테이너 업데이트 :: Mapped_Material_info
-			Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info);
+			Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info, i);
+			
+			if (m_pMesh)
+				m_pMesh->Render(pd3dCommandList);
 		}
-		// 객체 정보 컨테이너 업데이트 :: Mapped_Object_info
-		Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::GameObject_info);
-
-		if (m_pMesh)
-			m_pMesh->Render(pd3dCommandList);
+		if(shader_changed)
+			pShader->Setting_Render(pd3dCommandList);
 	}
+
 	
 	if (m_pSibling) 
 		m_pSibling->Render(pd3dCommandList, pCamera, pShader);

@@ -65,13 +65,14 @@ CMesh* Explosion_Particle::m_ExplosionMesh = NULL;
 bool Explosion_Particle::Setting = false;
 
 
-Explosion_Particle::Explosion_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT material, ParticleType p_type) : Particle(p_type)
+Explosion_Particle::Explosion_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMaterial* material, ParticleType p_type) : Particle(p_type)
 {
 	m_fDuration = 1.0f;
 	m_fExplosionSpeed = 100.0f;
 
 	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-	//SetMaterial(material);
+	Create_Material_Buffer(pd3dDevice, pd3dCommandList);
+	SetMaterial(material);
 }
 
 Explosion_Particle::~Explosion_Particle()
@@ -109,7 +110,6 @@ void Explosion_Particle::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dC
 
 		CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)(particles_info + (i * ncbGameObjectBytes));
 		::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
-
 	}
 }
 
@@ -150,9 +150,14 @@ void Explosion_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandL
 	if (true && active)
 	{
 		Update_Shader_Resource(pd3dCommandList);
+		CGameObject::Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info);
 
 		UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255);
 		D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
+
+		D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialGpuVirtualAddress = Material_Constant_Buffer->GetGPUVirtualAddress();
+		pd3dCommandList->SetGraphicsRootConstantBufferView(3, d3dcbMaterialGpuVirtualAddress);
+		 
 
 		if (m_ExplosionMesh)
 		{
@@ -174,7 +179,7 @@ CMesh* Charge_Particle::m_ChargeMesh = NULL;
 bool Charge_Particle::Setting = false;
 
 Charge_Particle::Charge_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
-	float Range, float cycle_time,  UINT material, ParticleType p_type) : Particle(p_type)
+	float Range, float cycle_time, CMaterial* material, ParticleType p_type) : Particle(p_type)
 {
 	m_fDuration = cycle_time;
 	Max_Range = Range;
@@ -195,7 +200,9 @@ Charge_Particle::Charge_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	}
 
 	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-	//SetMaterial(material);
+	Create_Material_Buffer(pd3dDevice, pd3dCommandList);
+
+	SetMaterial(material);
 }
 
 Charge_Particle::~Charge_Particle()
@@ -233,7 +240,6 @@ void Charge_Particle::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dComm
 
 		CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)(particles_info + (i * ncbGameObjectBytes));
 		::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
-
 	}
 }
 
@@ -302,9 +308,13 @@ void Charge_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList
 	if (true && active)
 	{
 		Update_Shader_Resource(pd3dCommandList);
+		CGameObject::Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info);
 
 		UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255);
 		D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
+
+		D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialGpuVirtualAddress = Material_Constant_Buffer->GetGPUVirtualAddress();
+		pd3dCommandList->SetGraphicsRootConstantBufferView(3, d3dcbMaterialGpuVirtualAddress);
 
 		if (m_ChargeMesh)
 		{

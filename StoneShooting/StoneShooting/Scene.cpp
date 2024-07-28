@@ -4,13 +4,16 @@
 #include <vector>
 
 //=========================================================================================
-CMaterialColors* CScene::material_color_white_stone = NULL;
-CMaterialColors* CScene::material_color_black_stone = NULL;
+CMaterial* CScene::material_color_white_stone = NULL;
+CMaterial* CScene::material_color_black_stone = NULL;
 
-CMaterialColors* CScene::material_color_white_particle = NULL;
-CMaterialColors* CScene::material_color_black_particle = NULL;
+CMaterial* CScene::material_color_player_selected = NULL;
+CMaterial* CScene::material_color_com_selected = NULL;
 
-CMaterialColors* CScene::material_color_board = NULL;
+CMaterial* CScene::material_color_white_particle = NULL;
+CMaterial* CScene::material_color_black_particle = NULL;
+
+CMaterial* CScene::material_color_board = NULL;
 
 
 CScene::CScene()
@@ -70,60 +73,68 @@ void CScene::Build_Lights_and_Materials()
 	m_pLights->m_pLights[3].m_fTheta = (float)cos(XMConvertToRadians(30.0f));
 
 	//=====================================================
-
-	material_color_white_stone = new CMaterialColors
-	{
+	CMaterialColors white_stone_color = {
 		XMFLOAT4(0.5f, 0.5, 0.5f, 1.0f),
 		XMFLOAT4(1.0f, 1.0, 1.0f, 1.0f),
 		XMFLOAT4(1.0f, 1.0, 1.0f, 20.0f),
-		XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f)
+		XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f) 
 	};
 
-	material_color_black_stone = new CMaterialColors
-	{
-		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), 
-		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), 
-		XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f), 
+	CMaterialColors black_stone_color = {
+		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f),
+		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f),
+		XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f),
 		XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f)
 	};
 
-	material_color_white_particle = new CMaterialColors
-	{
-		XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),  
-		XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),  
-		XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),  
+
+	CMaterialColors white_particle_color = {
+		XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),
+		XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),
+		XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),
 		XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f)
 	};
 
-	material_color_black_particle = new CMaterialColors
-	{
+	CMaterialColors black_particle_color = {
 		XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
 		XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
 		XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f),
 		XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f)
 	};
 
-	material_color_board = new CMaterialColors
-	{
+	CMaterialColors player_selected_color = {
+		 XMFLOAT4(0.0f, 0.5f, 0.0f, 1.0f),
+		 XMFLOAT4(0.1f, 0.3f, 0.1f, 1.0f),
+		 XMFLOAT4(1.0f, 1.0f, 1.0f, 100.0f),
+		 XMFLOAT4(0.0f, 0.2f, 0.0f, 1.0f)
+	};
+
+	CMaterialColors com_selected_color = {
+		XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f),
+		XMFLOAT4(0.3f, 0.1f, 0.1f, 1.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 100.0f),
+		XMFLOAT4(0.2f, 0.0f, 0.0f, 1.0f)
+	};
+
+	CMaterialColors board_color = {
 		XMFLOAT4(2.0f, 1.5f, 0.2f, 1.0f),
 		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f),
 		XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f),
 		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f)
 	};
 
-	//=====================================================
 
 
-	//m_pMaterials = new MATERIALS;
-	//::ZeroMemory(m_pMaterials, sizeof(MATERIALS));
-	//m_pMaterials->m_pReflections[0] = { XMFLOAT4(0.5f, 0.5, 0.5f, 1.0f),  XMFLOAT4(1.0f, 1.0, 1.0f, 1.0f),  XMFLOAT4(1.0f, 1.0, 1.0f, 20.0f),  XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f) }; // 백돌
-	//m_pMaterials->m_pReflections[1] = { XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f) }; // 흑돌
-	//m_pMaterials->m_pReflections[2] = { XMFLOAT4(2.0f, 1.5f, 0.2f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f) }; // 게임 판
-	//m_pMaterials->m_pReflections[3] = { XMFLOAT4(0.0f, 0.5f, 0.0f, 1.0f), XMFLOAT4(0.1f, 0.3f, 0.1f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 100.0f), XMFLOAT4(0.0f, 0.2f, 0.0f, 1.0f) }; // 플레이어 선택 표시
-	//m_pMaterials->m_pReflections[4] = { XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f), XMFLOAT4(0.3f, 0.1f, 0.1f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 100.0f), XMFLOAT4(0.2f, 0.0f, 0.0f, 1.0f) }; // 컴퓨터 선택 표시
-	//m_pMaterials->m_pReflections[5] = { XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),  XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),  XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),  XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f) }; // 백돌 파티클
-	//m_pMaterials->m_pReflections[6] = { XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f), XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f) };
-	//m_pMaterials->m_pReflections[7] = { XMFLOAT4(1.0f, 0.5f, 1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 40.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) };
+	material_color_white_stone = new CMaterial(&white_stone_color);
+	material_color_black_stone = new CMaterial(&black_stone_color);
+
+	material_color_white_particle = new CMaterial(&white_particle_color);
+	material_color_black_particle = new CMaterial(&black_particle_color);
+
+	material_color_player_selected = new CMaterial(&player_selected_color);
+	material_color_com_selected = new CMaterial(&com_selected_color);
+	material_color_board = new CMaterial(&board_color);
+	
 }
 
 
@@ -172,13 +183,30 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 	BuildUIs(pd3dDevice, pd3dCommandList);
 }
 
+void CScene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float Board_Width, float Board_Depth)
+{
+	float Board_Half_Width = Board_Width / 2;
+	float Board_Half_Depth = Board_Depth / 2;
+
+	CPlaneMeshIlluminated* pboard = new CPlaneMeshIlluminated(pd3dDevice, pd3dCommandList, Board_Half_Width * 2.0f, Board_Half_Depth * 2.0f);
+
+	m_pBoards = new CBoardObject(pd3dDevice, pd3dCommandList);
+	m_pBoards->SetPosition(0.0f, 0.0f, 0.0f);
+	m_pBoards->SetMesh(pboard);
+	m_pBoards->type = Object_Type::ETC;
+
+	m_pBoards->SetMaterial(material_color_board);
+	m_pBoards->m_ppMaterials[0]->SetShader(&Object_Shader[0]);
+	m_pBoards->m_xmOOBB = m_pBoards->m_pMesh->m_xmBoundingBox; // 시작할 때 한번만 하면 됨
+}
+
 void CScene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team)
 {
 	StoneObject* pStoneObject = NULL;
-	CMaterial* material = new CMaterial;
 
 	pStoneObject = new StoneObject(pd3dDevice, pd3dCommandList);
 	pStoneObject->SetMesh(mesh);
+	pStoneObject->type = Object_Type::Stone;
 	//~~~~~~~~~~~~~~
 	pStoneObject->SetPosition(pos.x, pos.y, pos.z);
 	pStoneObject->SetFriction(2);										// Default
@@ -188,23 +216,21 @@ void CScene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 
 	if (player_team)
 	{
-		material->SetMaterialColors(material_color_white_stone);
-
-		pStoneObject->SetMaterial(material);
+		pStoneObject->SetMaterial(material_color_white_stone);
+		pStoneObject->AddMaterial(material_color_player_selected);
 		pStoneObject->SetMovingDirection(XMFLOAT3(0.0f, 0.0f, -1.0f));	// Default
 	}
 	else
 	{
-		material->SetMaterialColors(material_color_black_stone);
-
-		pStoneObject->SetMaterial(material);
+		pStoneObject->SetMaterial(material_color_black_stone);
+		pStoneObject->AddMaterial(material_color_com_selected);
 		pStoneObject->SetMovingDirection(XMFLOAT3(0.0f, 0.0f, 1.0f));	// Default
 	}
 	pStoneObject->SetMovingSpeed(0.0f);									// Default
 
 	pStoneObject->player_team = player_team;
 
-	Scene_GameObjects.push_back(pStoneObject);
+	GameObject_Stone.push_back(pStoneObject);
 	// Object_Shader[0].AddObjects(pStoneObject);
 }
 
@@ -214,25 +240,11 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// 게임 객체
 	Object_Shader = new CObjectsShader[N_Object_Shader];
 	Object_Shader[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
-	Object_Shader[0].Create_Shader_Resource(pd3dDevice, pd3dCommandList);
+	//===========================================================
+	Create_Board(pd3dDevice, pd3dCommandList, 200, 600);
 	//===========================================================
 
-	float Board_Half_Width = 100.0f;
-	float Board_Half_Depth = 300.0f;
-	CPlaneMeshIlluminated* pboard = new CPlaneMeshIlluminated(pd3dDevice, pd3dCommandList, Board_Half_Width * 2.0f, Board_Half_Depth * 2.0f);
-	CMaterial* material = new CMaterial;
 
-	m_pBoards = new CBoardObject(pd3dDevice, pd3dCommandList);
-	m_pBoards->SetPosition(0.0f, 0.0f, 0.0f);
-	m_pBoards->SetMesh(pboard);
-	//~~~~~~~~~~~~~~~~~~~~~~~~~~
-	material->SetMaterialColors(material_color_board);
-	//material->SetShader(&Object_Shader[0]);
-	m_pBoards->SetMaterial(material);
-
-	m_pBoards->m_xmOOBB = m_pBoards->m_pMesh->m_xmBoundingBox; // 시작할 때 한번만 하면 됨
-
-	//===========================================================
 	CSphereMeshIlluminated* StoneMesh = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 6.0f, 20, 20);
 	std::vector<XMFLOAT3> w_stone_pos_list;
 	
@@ -247,6 +259,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		Setting_Stone(pd3dDevice, pd3dCommandList, StoneMesh, w_stone_pos, true);
 
 	//-------------------------------------------------------------------
+
 	std::vector<XMFLOAT3> b_stone_pos_list;
 
 	b_stone_pos_list.push_back({ -50, 5, -100 });
@@ -260,8 +273,13 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		Setting_Stone(pd3dDevice, pd3dCommandList, StoneMesh, b_stone_pos, false);
 
 	//===========================================================
-	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, UINT(0), ParticleType::Charge);
+	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material_color_white_stone, ParticleType::Charge);
+	Charge_Effect->active = true;
+	power_charge = true;
+	Setting_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 0.0f, 0.0f), material_color_white_particle, ParticleType::Explosion);
 }
+
+
 
 void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
@@ -348,12 +366,8 @@ void CScene::ReleaseObjects()
 	if (m_pd3dGraphicsRootSignature) 
 		m_pd3dGraphicsRootSignature->Release();
 
-
-	for (int j = 0; j < N_Object_Shader; ++j)
-	{
-		Object_Shader[j].Release_Shader_Resource();
-		Object_Shader[j].ReleaseObjects();
-	}
+	if (GameObject_Stone.size())
+		GameObject_Stone.clear();
 
 	if (Object_Shader)
 		delete[] Object_Shader;
@@ -514,26 +528,25 @@ void CScene::CreateGraphicsPipelineState(ID3D12Device* pd3dDevice)
 void CScene::CheckObjectByObjectCollisions()
 {
 	// CShader 벡터의 참조를 임시 변수에 저장
-	auto& objshader_ptrs = Object_Shader[0].GetObjects();
-	int objs_N = objshader_ptrs.size();
+	int objs_N = GameObject_Stone.size();
 
 	// 충돌 객체 초기화
-	for (CGameObject* obj_ptr : objshader_ptrs)
-		obj_ptr->m_pObjectCollided = NULL;
+	for (CGameObject* stone_ptr : GameObject_Stone)
+		stone_ptr->m_pObjectCollided = NULL;
 
 	// 충돌 체크 및 충돌 객체 설정
 	for (int i = 0; i < objs_N; ++i)
 	{
-		if (objshader_ptrs[i]->active)
+		if (GameObject_Stone[i]->active)
 		{
 			for (int j = (i + 1); j < objs_N; ++j)
 			{
-				if (objshader_ptrs[j]->active)
+				if (GameObject_Stone[j]->active)
 				{
-					if (objshader_ptrs[i]->m_xmOOSP.Intersects(objshader_ptrs[j]->m_xmOOSP))
+					if (GameObject_Stone[i]->m_xmOOSP.Intersects(GameObject_Stone[j]->m_xmOOSP))
 					{
-						objshader_ptrs[i]->m_pObjectCollided = objshader_ptrs[j];
-						objshader_ptrs[j]->m_pObjectCollided = objshader_ptrs[i];
+						GameObject_Stone[i]->m_pObjectCollided = GameObject_Stone[j];
+						GameObject_Stone[j]->m_pObjectCollided = GameObject_Stone[i];
 					}
 				}
 			}
@@ -543,9 +556,9 @@ void CScene::CheckObjectByObjectCollisions()
 	// 충돌 처리
 	for (int i = 0; i < objs_N; i++)
 	{
-		if (objshader_ptrs[i]->m_pObjectCollided)
+		if (GameObject_Stone[i]->m_pObjectCollided)
 		{
-			auto* bumped_stone1 = objshader_ptrs[i];
+			auto* bumped_stone1 = GameObject_Stone[i];
 			auto* bumped_stone2 = bumped_stone1->m_pObjectCollided;
 
 			XMFLOAT3 pos1 = bumped_stone1->GetPosition();
@@ -600,19 +613,18 @@ void CScene::CheckObjectByObjectCollisions()
 
 void CScene::Defend_Overlap()
 {
-	auto& objshader_ptrs = Object_Shader[0].GetObjects();
-	int objs_N = objshader_ptrs.size();
+	int objs_N = GameObject_Stone.size();
 
 	// 충돌 체크 및 overlaped 상태 설정
 	for (int i = 0; i < objs_N; ++i)
 	{
-		auto* stone_1 = static_cast<StoneObject*>(objshader_ptrs[i]);
+		auto* stone_1 = static_cast<StoneObject*>(GameObject_Stone[i]);
 		if (!stone_1->active || stone_1->m_fMovingSpeed > 1.0f)
 			continue;
 
 		for (int j = i + 1; j < objs_N; ++j)
 		{
-			auto* stone_2 = static_cast<StoneObject*>(objshader_ptrs[j]);
+			auto* stone_2 = static_cast<StoneObject*>(GameObject_Stone[j]);
 			if (!stone_2->active || stone_2->m_fMovingSpeed > 1.0f)
 				continue;
 
@@ -631,7 +643,7 @@ void CScene::Defend_Overlap()
 	// 충돌 처리
 	for (int i = 0; i < objs_N; ++i)
 	{
-		auto* stone_1 = static_cast<StoneObject*>(objshader_ptrs[i]);
+		auto* stone_1 = static_cast<StoneObject*>(GameObject_Stone[i]);
 		if (stone_1->Overlaped)
 		{
 			auto* stone_2 = stone_1->Overlaped;
@@ -659,7 +671,7 @@ void CScene::Defend_Overlap()
 	// overlaped 상태 정리
 	for (int i = 0; i < objs_N; ++i)
 	{
-		auto* stone_1 = static_cast<StoneObject*>(objshader_ptrs[i]);
+		auto* stone_1 = static_cast<StoneObject*>(GameObject_Stone[i]);
 		if (stone_1->Overlaped && stone_1->m_xmOOSP.Intersects(stone_1->Overlaped->m_xmOOSP) == DISJOINT)
 		{
 			stone_1->Overlaped->Overlaped = NULL;
@@ -671,26 +683,26 @@ void CScene::Defend_Overlap()
 void CScene::CheckObject_Out_Board_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	// 충돌 객체 초기화
-	for (CGameObject* obj_ptr : Object_Shader[0].GetObjects())
+	for (CGameObject* stone_ptr : GameObject_Stone)
 	{
-		if (!obj_ptr->active)
+		if (!stone_ptr->active)
 			continue;
-		ContainmentType containType = m_pBoards->m_xmOOBB.Contains(obj_ptr->m_xmOOSP);
+		ContainmentType containType = m_pBoards->m_xmOOBB.Contains(stone_ptr->m_xmOOSP);
 		switch (containType)
 		{
 		case DISJOINT:
 		{
-			obj_ptr->SetMovingSpeed(0.0f);
-			obj_ptr->GetPosition();
+			stone_ptr->SetMovingSpeed(0.0f);
+			stone_ptr->GetPosition();
 
-			if (obj_ptr->active == true)
+			if (stone_ptr->active == true)
 			{
-				if (obj_ptr->player_team)
-					Setting_Particle(pd3dDevice, pd3dCommandList, obj_ptr->GetPosition(), UINT(5), ParticleType::Explosion);
-				else if (!obj_ptr->player_team)
-					Setting_Particle(pd3dDevice, pd3dCommandList, obj_ptr->GetPosition(), UINT(6), ParticleType::Explosion);
+				if (stone_ptr->player_team)
+					Setting_Particle(pd3dDevice, pd3dCommandList, stone_ptr->GetPosition(), material_color_white_particle, ParticleType::Explosion);
+				else if (!stone_ptr->player_team)
+					Setting_Particle(pd3dDevice, pd3dCommandList, stone_ptr->GetPosition(), material_color_black_particle, ParticleType::Explosion);
 			}
-			obj_ptr->active = false;
+			stone_ptr->active = false;
 		}
 		break;
 
@@ -744,7 +756,7 @@ bool CScene::Check_Turn()
 
 	int stop_stone_n = 0;
 
-	for (const CGameObject* obj_ptr : Object_Shader[0].GetObjects())
+	for (const CGameObject* obj_ptr : GameObject_Stone)
 	{
 		const StoneObject* stone_ptr = static_cast<const StoneObject*>(obj_ptr);
 		if (0.1f >= stone_ptr->m_fMovingSpeed || !stone_ptr->active)
@@ -753,7 +765,7 @@ bool CScene::Check_Turn()
 			stone_ptr = stone_ptr;
 	}
 
-	if (stop_stone_n == Object_Shader[0].GetObjects().size())
+	if (stop_stone_n == GameObject_Stone.size())
 		return true;
 	else
 		return false;
@@ -764,7 +776,7 @@ bool CScene::Check_GameOver()
 {
 	int dead_White_Stone = 0;
 	int dead_Black_Stone = 0;
-	for (CGameObject* obj_ptr : Object_Shader[0].GetObjects())
+	for (CGameObject* obj_ptr : GameObject_Stone)
 	{
 		if (obj_ptr->active == false)
 		{
@@ -781,50 +793,52 @@ bool CScene::Check_GameOver()
 		return false;
 }
 
-void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, UINT material, ParticleType type)
+void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, CMaterial* material, ParticleType type)
 {
-//	bool Done = false;
-//	for (Particle* particle : m_particle)
-//	{
-//		if (particle->type == type && particle->active == false)
-//		{
-//			particle->SetPosition(pos);
-//			particle->SetActive(true);
-//			particle->SetMaterial(material);
-//			Done = true;
-//			break;
-//		}
-//	}
-//
-//	if (Done == false)
-//	{
-//		Particle* particle = NULL;
-//		switch (type)
-//		{
-//
-//		case ParticleType::Explosion:
-//		{
-//			particle = new Explosion_Particle(pd3dDevice, pd3dCommandList, UINT(material), ParticleType::Explosion);
-//			particle->SetActive(true);
-//			particle->SetPosition(pos);
-//			m_particle.push_back(particle);
-//		}
-//		break;
-//
-//		case ParticleType::Charge:
-//		{
-//			particle = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, UINT(material), ParticleType::Charge);
-//			particle->SetActive(true);
-//			particle->SetPosition(pos);
-//			((Charge_Particle*)particle)->Set_Center_Position(pos);
-//			m_particle.push_back(particle);
-//		}
-//		case ParticleType::None:
-//		default:
-//			break;
-//		}
-//	}
-//
+	bool Done = false;
+	for (Particle* particle : m_particle)
+	{
+		if (particle->type == type && particle->active == false)
+		{
+			particle->SetPosition(pos);
+			particle->SetActive(true);
+			particle->SetMaterial(material);
+			Done = true;
+			break;
+		}
+	}
+
+	if (Done == false)
+	{
+		Particle* particle = NULL;
+		switch (type)
+		{
+
+		case ParticleType::Explosion:
+		{
+			particle = new Explosion_Particle(pd3dDevice, pd3dCommandList, material, ParticleType::Explosion);
+			particle->SetActive(true);
+			particle->SetPosition(pos);
+			m_particle.push_back(particle);
+		}
+		break;
+
+		case ParticleType::Charge:
+		{
+			particle = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material, ParticleType::Charge);
+			particle->SetActive(true);
+			particle->SetPosition(pos);
+			((Charge_Particle*)particle)->Set_Center_Position(pos);
+			m_particle.push_back(particle);
+		}
+		break;
+
+		case ParticleType::None:
+		default:
+			break;
+		}
+	}
+
 }
 
 void CScene::AnimateObjects(float fTimeElapsed)
@@ -944,27 +958,17 @@ void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCom
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
 	pCamera->Update_Shader_Resource(pd3dCommandList);
 
-	Object_Shader[0].Setting_PSO(pd3dCommandList);
+	//Object_Shader[0].Setting_PSO(pd3dCommandList); // 일단 시작용 셰이더
 
 	// 조명 업데이트
 	Update_Shader_Resource(pd3dCommandList);
 	
-//	Scene_GameObjects[0]->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
-
 	m_pBoards->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
 
-	for (CGameObject* gameobject : Scene_GameObjects)
+	for (CGameObject* gameobject : GameObject_Stone)
 		gameobject->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
 
-	//for (int i = 0; i < N_Object_Shader; ++i)
-	//{
-	//	Object_Shader[i].Render(pd3dCommandList, pCamera);
-	//}
-
-	// 보드는 Scene에서 관리 중
-	// 아직은 움직임이 없을꺼니까
-
-	//Particle_Render(pd3dDevice, pd3dCommandList, pCamera);
+	Particle_Render(pd3dDevice, pd3dCommandList, pCamera);
 
 	//UI_Render(pd3dDevice, pd3dCommandList);
 
@@ -982,7 +986,7 @@ void CScene::Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 
 	if(power_charge)
 		Charge_Effect->Particle_Render(pd3dCommandList, pCamera);
-
+	
 	for (Particle* particle : m_particle)
 		particle->Particle_Render(pd3dCommandList, pCamera);
 }
@@ -1011,8 +1015,8 @@ CGameObject* CScene::PickObjectPointedByCursor(int xClient, int yClient, CCamera
 	int nIntersected = 0;
 	float fHitDistance = FLT_MAX, fNearestHitDistance = FLT_MAX;
 	CGameObject* pIntersectedObject = NULL, * pNearestObject = NULL;
-
-	pIntersectedObject = Object_Shader[0].PickObjectByRayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
+	
+	pIntersectedObject = PickObjectByRayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
 	if (pIntersectedObject && (fHitDistance < fNearestHitDistance))
 	{
 		fNearestHitDistance = fHitDistance;
@@ -1021,6 +1025,28 @@ CGameObject* CScene::PickObjectPointedByCursor(int xClient, int yClient, CCamera
 
 	return(pNearestObject);
 }
+
+CGameObject* CScene::PickObjectByRayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance)
+{
+	int nIntersected = 0;
+	*pfNearHitDistance = FLT_MAX;
+	float fHitDistance = FLT_MAX;
+	CGameObject* pSelectedObject = NULL;
+	for (CGameObject* obj_stone : GameObject_Stone) 
+	{
+		if (m_pSelectedObject == obj_stone)
+			continue;
+
+		nIntersected = obj_stone->PickObjectByRayIntersection(xmf3PickPosition,xmf4x4View, &fHitDistance);
+		if ((nIntersected > 0) && (fHitDistance < *pfNearHitDistance))
+		{
+			*pfNearHitDistance = fHitDistance;
+			pSelectedObject = obj_stone;
+		}
+	}
+	return(pSelectedObject);
+}
+
 bool CScene::is_Object_Selectable(CGameObject* now_picked)
 {
 	if (now_picked == m_pSelectedObject || now_picked == NULL)
@@ -1104,7 +1130,7 @@ std::pair<StoneObject*, StoneObject*> CScene::Select_Stone_Com()
 	std::vector<StoneObject*> Living_C_Stone;
 	std::vector<StoneObject*> Living_Player_Stone;
 
-	for (CGameObject* obj_ptr : Object_Shader[0].GetObjects())
+	for (CGameObject* obj_ptr : GameObject_Stone)
 	{
 		if ((obj_ptr->active == true) && (obj_ptr->player_team == false))
 		{
@@ -1163,7 +1189,7 @@ std::pair<StoneObject*, StoneObject*> CScene::Find_Nearest_Enemy_Stone()
 
 	std::vector<StoneObject*>Living_C_Stone;
 	std::vector< StoneObject*>Living_Player_Stone;
-	for (CGameObject* obj_ptr : Object_Shader[0].GetObjects())
+	for (CGameObject* obj_ptr : GameObject_Stone)
 	{
 		if ((obj_ptr->active == true) && (obj_ptr->player_team == false))
 		{
@@ -1204,22 +1230,31 @@ std::pair<StoneObject*, StoneObject*> CScene::Find_Nearest_Enemy_Stone()
 
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	for (CGameObject* obj_ptr : Object_Shader[0].GetObjects())
+	switch (nMessageID)
 	{
-		if ((obj_ptr->active == true) && (obj_ptr->player_team == true))
+	case WM_LBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+	case WM_LBUTTONUP:
+	case WM_RBUTTONUP:
+		for (CGameObject* obj_ptr : GameObject_Stone)
 		{
-			StoneObject* player_stone = (StoneObject*)obj_ptr;
-			/*if (player_stone == m_pSelectedObject)
-				m_pSelectedObject->Set_Material_and_Shader(material_black_stone, &Object_Shader[0]);
-			else
-				player_stone->Set_Material_and_Shader(material_black_stone, &Object_Shader[0]);*/
+			if ((obj_ptr->active == true) && (obj_ptr->player_team == true))
+			{
+				StoneObject* player_stone = (StoneObject*)obj_ptr;
+				if (player_stone == m_pSelectedObject)
+					m_pSelectedObject->ChangeMaterial(UINT(1));
+				else
+					player_stone->ChangeMaterial(0);
+			}
 		}
+		break;
+
+	default:
+		break;
 	}
-
-
-
 	return(false);
 }
+
 
 bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
