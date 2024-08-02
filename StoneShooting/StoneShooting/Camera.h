@@ -23,7 +23,7 @@ class CCamera
 {
 protected:
 	// 카메라에 대한 리소스
-	ID3D12Resource* m_pConstant_Buffer = NULL;
+	ID3D12Resource* Camera_Constant_Buffer = NULL;
 
 	// 카메라에 대한 리소스 포인터
 	CB_CAMERA_INFO* m_pMapped_camera_info = NULL;

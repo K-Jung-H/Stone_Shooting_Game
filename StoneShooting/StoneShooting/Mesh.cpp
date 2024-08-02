@@ -501,6 +501,7 @@ UIMesh::UIMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandL
 	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	
 	float fx = fWidth * 0.5f, fy = fHeight * 0.5f, fz = layer_z * 0.5f;
+
 	XMFLOAT4 another_color;
 	if (Color_Mix)
 		another_color = { 1.0f - xmf4Color.x, 1.0f - xmf4Color.y , 1.0f - xmf4Color.z , 1.0f };

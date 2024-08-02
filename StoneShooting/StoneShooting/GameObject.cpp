@@ -90,8 +90,8 @@ CGameObject::~CGameObject()
 
 	for (int i = 0; i < m_ppMaterials.size(); ++i)
 	{
-		if (m_ppMaterials[i])
-			m_ppMaterials[i]->Release();
+		if (m_ppMaterials[i].first)
+			m_ppMaterials[i].first->Release();
 	}
 	if (m_ppMaterials.size())
 		m_ppMaterials.clear();
@@ -152,8 +152,8 @@ void CGameObject::Set_MaterialShader(CShader* pShader, int nMaterial)
 {
 	if (0 <= nMaterial && nMaterial < m_ppMaterials.size())
 	{
-		if (m_ppMaterials[nMaterial])
-			m_ppMaterials[nMaterial]->SetShader(pShader);
+		if (m_ppMaterials[nMaterial].first)
+			m_ppMaterials[nMaterial].first->SetShader(pShader);
 	}
 	else
 		DebugOutput("SetShader :: Wrong Index for Material");
@@ -163,30 +163,29 @@ void CGameObject::Set_MaterialShader(CShader* pShader, int nMaterial)
 void CGameObject::SetMaterial(CMaterial* pMaterial)
 {
 	bool is_exist = false;
-	// material->Release() 재질에 해줘야 하나? 
-	// 나중에 사용 안한다면 하는게 맞긴 한데
-	for (CMaterial* material : m_ppMaterials)
-	{
-		material->Active = false;
-		if (material == pMaterial)
+	for (std::pair<CMaterial*, bool>& material : m_ppMaterials)
+	{	
+		if (material.first == pMaterial)
+		{
+			material.second = true;
 			is_exist = true;
+		}
+		else
+			material.second = false;
 	}
 	
-	pMaterial->Active = true;
-
 	if (!is_exist)
 	{
-		m_ppMaterials.push_back(pMaterial);
+		m_ppMaterials.push_back(std::make_pair(pMaterial, true));
 		pMaterial->AddRef();
 	}
 }
 
-void CGameObject::AddMaterial(CMaterial* pMaterial)
+void CGameObject::AddMaterial(CMaterial* pMaterial) // 객체에 연결할 새 재질의 포인터를 사용 안함 상태로 저장하고, 참조 카운트 증가시킴
 {
-	m_ppMaterials.push_back(pMaterial);
+	m_ppMaterials.push_back(std::make_pair(pMaterial, false));
+	m_ppMaterials.back().first->AddRef();
 
-	if (m_ppMaterials.back())
-		m_ppMaterials.back()->AddRef();
 }
 
 void CGameObject::ChangeMaterial(UINT n)
@@ -194,10 +193,10 @@ void CGameObject::ChangeMaterial(UINT n)
 	if (n >= m_ppMaterials.size())
 		return;
 
-	for (CMaterial* material : m_ppMaterials)
-		material->Active = false;
+	for (std::pair<CMaterial*, bool>& material : m_ppMaterials)
+		material.second = false;
 
-	m_ppMaterials[n]->Active = true;
+	m_ppMaterials[n].second = true;
 
 }
 
@@ -286,7 +285,7 @@ void CGameObject::Update_Material_Buffer(int N)
 		return;
 	}
 
-	CMaterialColors* colors = m_ppMaterials[N]->Material_Colors;
+	CMaterialColors* colors = m_ppMaterials[N].first->Material_Colors;
 
 	CB_MATERIAL_INFO* pbMappedMaterial = (CB_MATERIAL_INFO*)Mapped_Material_info;
 	::memcpy(&pbMappedMaterial->m_cAmbient, &colors->m_xmf4Ambient, sizeof(XMFLOAT4));
@@ -316,6 +315,7 @@ void CGameObject::Animate(float fTimeElapsed)
 	if (m_fMovingSpeed != 0.0f)
 		Move(m_xmf3MovingDirection, m_fMovingSpeed * fTimeElapsed);
 
+	UpdateFriction(fTimeElapsed);
 	UpdateBoundingBox();
 }
 
@@ -366,17 +366,20 @@ CGameObject* CGameObject::FindFrame(char* pstrFrameName)
 
 void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
-	bool shader_changed = false;
+	if (!active)
+		return;
 
+	bool shader_changed = false;
+	
 	// 객체 정보 컨테이너 업데이트 :: Mapped_Object_info
 	Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::GameObject_info);
 	for (int i = 0; i < m_ppMaterials.size(); ++i)
 	{
-		if (m_ppMaterials[i]->Active)
+		if (m_ppMaterials[i].second)
 		{
-			if (m_ppMaterials[i]->material_shader)
+			if (m_ppMaterials[i].first->material_shader)
 			{
-				m_ppMaterials[i]->material_shader->Setting_Render(pd3dCommandList);
+				m_ppMaterials[i].first->material_shader->Setting_Render(pd3dCommandList);
 				shader_changed = true;
 			}
 			// 재질 정보 컨테이너 업데이트 :: Mapped_Material_info

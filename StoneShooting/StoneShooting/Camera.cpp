@@ -119,10 +119,10 @@ void CCamera::RegenerateViewMatrix()
 void CCamera::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	UINT ncbElementBytes = ((sizeof(CB_CAMERA_INFO) + 255) & ~255); //256의 배수
-	m_pConstant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes,
+	Camera_Constant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes,
 		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 
-	m_pConstant_Buffer->Map(0, NULL, (void**)&m_pMapped_camera_info);
+	Camera_Constant_Buffer->Map(0, NULL, (void**)&m_pMapped_camera_info);
 }
 
 void CCamera::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -143,17 +143,17 @@ void CCamera::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
 
 	//================================= 버퍼의 내용을 파이프라인에 연결
 
-	D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
+	D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = Camera_Constant_Buffer->GetGPUVirtualAddress();
 
 	pd3dCommandList->SetGraphicsRootConstantBufferView(1, d3dGpuVirtualAddress);
 
 }
 void CCamera::Release_Shader_Resource()
 {
-	if (m_pConstant_Buffer)
+	if (Camera_Constant_Buffer)
 	{
-		m_pConstant_Buffer->Unmap(0, NULL);
-		m_pConstant_Buffer->Release();
+		Camera_Constant_Buffer->Unmap(0, NULL);
+		Camera_Constant_Buffer->Release();
 	}
 }
 

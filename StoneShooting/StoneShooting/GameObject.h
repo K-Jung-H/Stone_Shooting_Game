@@ -11,7 +11,6 @@ class CShader;
 struct CB_GAMEOBJECT_INFO
 {
 	XMFLOAT4X4 m_xmf4x4World;
-
 };
 
 struct CB_MATERIAL_INFO
@@ -60,7 +59,6 @@ public:
 	CShader* material_shader = NULL; 	// 재질에 적용할 추가적인 셰이더
 	CMaterialColors* Material_Colors = NULL;
 
-	bool Active { false };
 
 	CMaterial();
 	CMaterial(CMaterialColors* M_C);
@@ -85,7 +83,7 @@ private:
 public:
 	// 게임 객체가 쉐이더를 가지지 않고 재질을 가짐
 	// 재질마다 사용할 셰이더가 다를 수 있음
-	std::vector<CMaterial*> m_ppMaterials;
+	std::vector<std::pair<CMaterial*, bool>> m_ppMaterials;
 
 
 	CMesh* m_pMesh = NULL;

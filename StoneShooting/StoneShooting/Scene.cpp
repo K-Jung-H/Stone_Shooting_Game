@@ -14,6 +14,7 @@ CMaterial* CScene::material_color_white_particle = NULL;
 CMaterial* CScene::material_color_black_particle = NULL;
 
 CMaterial* CScene::material_color_board = NULL;
+CMaterial* CScene::material_color_none = NULL; 
 
 
 CScene::CScene()
@@ -105,7 +106,7 @@ void CScene::Build_Lights_and_Materials()
 	CMaterialColors player_selected_color = {
 		 XMFLOAT4(0.0f, 0.5f, 0.0f, 1.0f),
 		 XMFLOAT4(0.1f, 0.3f, 0.1f, 1.0f),
-		 XMFLOAT4(1.0f, 1.0f, 1.0f, 100.0f),
+		 XMFLOAT4(0.1f, 0.1f, 0.1f, 100.0f),
 		 XMFLOAT4(0.0f, 0.2f, 0.0f, 1.0f)
 	};
 
@@ -123,7 +124,12 @@ void CScene::Build_Lights_and_Materials()
 		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f)
 	};
 
-
+	CMaterialColors none_color = {
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f)
+	};
 
 	material_color_white_stone = new CMaterial(&white_stone_color);
 	material_color_black_stone = new CMaterial(&black_stone_color);
@@ -135,6 +141,7 @@ void CScene::Build_Lights_and_Materials()
 	material_color_com_selected = new CMaterial(&com_selected_color);
 	material_color_board = new CMaterial(&board_color);
 	
+	material_color_none = new CMaterial(&none_color);
 }
 
 
@@ -174,7 +181,9 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 	Explosion_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
 	Charge_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
 	Build_Lights_and_Materials();
+
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
+	UI_GraphicsRootSignature = Create_UI_GraphicsRootSignature(pd3dDevice);
 
 	// 조명 및 재질 리소스 생성
 	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
@@ -196,7 +205,7 @@ void CScene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pBoards->type = Object_Type::ETC;
 
 	m_pBoards->SetMaterial(material_color_board);
-	m_pBoards->m_ppMaterials[0]->SetShader(&Object_Shader[0]);
+	//m_pBoards->m_ppMaterials[0].first->SetShader(&Object_Shader[0]);
 	m_pBoards->m_xmOOBB = m_pBoards->m_pMesh->m_xmBoundingBox; // 시작할 때 한번만 하면 됨
 }
 
@@ -231,7 +240,6 @@ void CScene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 	pStoneObject->player_team = player_team;
 
 	GameObject_Stone.push_back(pStoneObject);
-	// Object_Shader[0].AddObjects(pStoneObject);
 }
 
 void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -274,82 +282,88 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	//===========================================================
 	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material_color_white_stone, ParticleType::Charge);
+	Charge_Effect->AddMaterial(material_color_black_stone);
 	Charge_Effect->active = true;
-	power_charge = true;
+
 	Setting_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 0.0f, 0.0f), material_color_white_particle, ParticleType::Explosion);
 }
 
-
-
 void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-//	// UI 객체 // UIShader 
-//
-//	// UI Area
-//	D3D12_RECT power_ui_area_1 = { 600, 0, 800, 90 };
-//	D3D12_RECT power_endline_ui_area_1 = { 595, 0, 600, 90 };
-//
-//	D3D12_RECT power_ui_area_2 = { 0, 0, 200, 90 };
-//	D3D12_RECT power_endline_ui_area_2 = { 200, 0, 205, 90 };
-//
-//	//-----------------------------------
-//
-//	// UI Mesh
-//	CMesh* ui_power_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 200.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.5f, 0.0f, 1.0f));
-//	
-//	CMesh* ui_endline_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 5.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f), false);
-//
-//	//-----------------------------------
-//
-//	// UI's Object
-//	CGameObject* ui_power_bar = NULL;
-//	ui_power_bar = new CGameObject();
-//	ui_power_bar->SetMesh(ui_power_mesh);
-//	ui_power_bar->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-//	ui_power_bar->SetMaterial(UINT(1));
-//
-//	CGameObject* ui_endline = NULL;
-//	ui_endline = new CGameObject();
-//	ui_endline->SetMesh(ui_endline_mesh);
-//	ui_endline->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-//	ui_endline->SetMaterial(UINT(1));
-//
-//	//=======================================================================
-//
-//	// UI Object
-//	UI* Power_UI_player = new BAR_UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_ui_area_1);
-//	ui_player_power = Power_UI_player;
-//	
-//	Power_UI_player->m_uiShaders[0].AddObjects(ui_power_bar);
-//	pUI_list.push_back(Power_UI_player);
-//
-//	//-----------------------------------
-//
-//	UI* Power_endline_player = new UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_endline_ui_area_1);
-//	ui_player_power_endline = Power_endline_player;
-//
-//	Power_endline_player->m_uiShaders[0].AddObjects(ui_endline);
-//	pUI_list.push_back(Power_endline_player);
-//
-//	//=======================================================================
-//
-//	UI* Power_UI_com = new BAR_UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_ui_area_2, false);
-//	ui_com_power = Power_UI_com;
-//
-//	Power_UI_com->m_uiShaders[0].AddObjects(ui_power_bar);
-//	pUI_list.push_back(Power_UI_com);
-//
-//	//-----------------------------------
-//
-//	UI* Power_endline_com = new UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_endline_ui_area_2);
-//	ui_com_power_endline = Power_endline_com;
-//
-//	Power_endline_com->m_uiShaders[0].AddObjects(ui_endline);
-//	pUI_list.push_back(Power_endline_com);
-//
-//	ui_num = pUI_list.size();
-//
-//	//=======================================================================
+	// UI 객체 // UIShader 
+	UI_Shader = new UIShader[N_UI_Shader];
+	UI_Shader[0].CreateShader(pd3dDevice, UI_GraphicsRootSignature);
+
+	// UI Area
+	D3D12_RECT power_ui_area_1 = { 600, 0, 800, 90 };
+	D3D12_RECT power_endline_ui_area_1 = { 595, 0, 600, 90 };
+
+	D3D12_RECT power_ui_area_2 = { 0, 0, 200, 90 };
+	D3D12_RECT power_endline_ui_area_2 = { 200, 0, 205, 90 };
+
+	//-----------------------------------
+
+	// UI Mesh
+	CMesh* ui_power_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 200.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.5f, 0.0f, 1.0f));
+	
+	CMesh* ui_endline_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 5.0f, 90.0f, 0.5f, XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f), false);
+
+	//-----------------------------------
+
+	// UI's Object
+	CGameObject* ui_power_bar = NULL;
+	ui_power_bar = new CGameObject();
+	ui_power_bar->SetMesh(ui_power_mesh);
+	ui_power_bar->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
+//	ui_power_bar->SetMaterial(material_color_none);
+
+	CGameObject* ui_endline = NULL;
+	ui_endline = new CGameObject();
+	ui_endline->SetMesh(ui_endline_mesh);
+	ui_endline->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
+//	ui_endline->SetMaterial(material_color_none);
+
+	//=======================================================================
+
+	// UI Object
+	UI* Power_UI_player = new BAR_UI(pd3dDevice, pd3dCommandList, power_ui_area_1, 3);
+	ui_player_power = Power_UI_player;
+	
+	Power_UI_player->ui_object.push_back(ui_power_bar);
+	Power_UI_player->ui_object.push_back(ui_endline);
+	Power_UI_player->Active = true;
+	UI_list.push_back(Power_UI_player);
+	//-----------------------------------
+
+	//UI* Power_endline_player = new UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_endline_ui_area_1);
+	//ui_player_power_endline = Power_endline_player;
+
+	//Power_endline_player->ui_object.push_back(ui_endline);
+	//UI_list.push_back(Power_endline_player);
+
+	//=======================================================================
+
+	UI* Power_UI_com = new BAR_UI(pd3dDevice, pd3dCommandList, power_ui_area_2, 3);
+	ui_com_power = Power_UI_com;
+
+	
+	Power_UI_com->ui_object.push_back(ui_power_bar);
+	Power_UI_com->ui_object.push_back(ui_endline);
+	Power_UI_com->Active = true;
+
+	UI_list.push_back(Power_UI_com);
+
+
+	//-----------------------------------
+
+	//UI* Power_endline_com = new UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_endline_ui_area_2);
+	//ui_com_power_endline = Power_endline_com;
+
+	//Power_endline_com->m_uiShaders[0].AddObjects(ui_endline);
+	//UI_list.push_back(Power_endline_com);
+
+	ui_num = UI_list.size();
+
 }
 
 void CScene::ReleaseObjects()
@@ -457,6 +471,59 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	
 	return(pd3dGraphicsRootSignature);
 }
+
+ID3D12RootSignature* CScene::Create_UI_GraphicsRootSignature(ID3D12Device* pd3dDevice)
+{
+	ID3D12RootSignature* pd3dGraphicsRootSignature = NULL;
+	D3D12_ROOT_PARAMETER pd3dRootParameters[3];
+
+	pd3dRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	pd3dRootParameters[0].Descriptor.ShaderRegister = 0; // GameObject_pos
+	pd3dRootParameters[0].Descriptor.RegisterSpace = 0;
+	pd3dRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+
+	pd3dRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	pd3dRootParameters[1].Descriptor.ShaderRegister = 1; //Camera
+	pd3dRootParameters[1].Descriptor.RegisterSpace = 0;
+	pd3dRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	pd3dRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	pd3dRootParameters[2].Descriptor.ShaderRegister = 2; // UI_INFO
+	pd3dRootParameters[2].Descriptor.RegisterSpace = 0;
+	pd3dRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	D3D12_ROOT_SIGNATURE_FLAGS d3dRootSignatureFlags =
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+
+	D3D12_ROOT_SIGNATURE_DESC d3dRootSignatureDesc;
+	::ZeroMemory(&d3dRootSignatureDesc, sizeof(D3D12_ROOT_SIGNATURE_DESC));
+	d3dRootSignatureDesc.NumParameters = _countof(pd3dRootParameters);
+	d3dRootSignatureDesc.pParameters = pd3dRootParameters;
+	d3dRootSignatureDesc.NumStaticSamplers = 0;
+	d3dRootSignatureDesc.pStaticSamplers = NULL;
+	d3dRootSignatureDesc.Flags = d3dRootSignatureFlags;
+
+	ID3DBlob* pd3dSignatureBlob = NULL;
+	ID3DBlob* pd3dErrorBlob = NULL;
+
+	::D3D12SerializeRootSignature(&d3dRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &pd3dSignatureBlob, &pd3dErrorBlob);
+
+	pd3dDevice->CreateRootSignature(0, pd3dSignatureBlob->GetBufferPointer(), pd3dSignatureBlob->GetBufferSize(),
+		__uuidof(ID3D12RootSignature), (void**)&pd3dGraphicsRootSignature);
+
+	if (pd3dSignatureBlob)
+		pd3dSignatureBlob->Release();
+
+	if (pd3dErrorBlob)
+		pd3dErrorBlob->Release();
+
+	return(pd3dGraphicsRootSignature);
+}
+
 
 void CScene::CreateGraphicsPipelineState(ID3D12Device* pd3dDevice)
 {
@@ -680,6 +747,18 @@ void CScene::Defend_Overlap()
 	}
 }
 
+void CScene::Remove_Unnecessary_Objects()
+{
+	auto unactive_stone_range = std::remove_if(GameObject_Stone.begin(), GameObject_Stone.end(), [](CGameObject* stone) {
+		if (!stone->active)
+		{
+			delete stone;
+			return true;
+		}
+		return false; });
+	GameObject_Stone.erase(unactive_stone_range, GameObject_Stone.end());
+}
+
 void CScene::CheckObject_Out_Board_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	// 충돌 객체 초기화
@@ -721,11 +800,10 @@ void CScene::Change_Turn()
 		Com_Turn = true;
 		Com_Shot = false;
 
-		//if (m_pSelectedObject->active)
-		//	m_pSelectedObject->Set_Material_and_Shader(material_white_stone, &Object_Shader[0]);
-
-		//m_pSelectedObject = NULL;
-		//Charge_Effect->Set_Material_and_Shader(material_white_stone, &Object_Shader[0]);
+		if (m_pSelectedObject->active)
+			m_pSelectedObject->ChangeMaterial(0);
+		m_pSelectedObject = NULL;
+		Charge_Effect->ChangeMaterial(1);
 	}
 	else if (Com_Turn)
 	{
@@ -733,14 +811,14 @@ void CScene::Change_Turn()
 		Player_Shot = false;
 		Com_Turn = false;
 		
-		//if (computer.select_Stone->active)
-		//{
-		//	computer.select_Stone->Set_Material_and_Shader(material_black_stone, &Object_Shader[0]);
-		//	computer.select_Stone = NULL;
-		//	computer.target_Stone = NULL;
-		//
-		//}
-		//Charge_Effect->Set_Material_and_Shader(material_black_stone, &Object_Shader[0]);
+		if (computer.select_Stone->active)
+		{
+			computer.select_Stone->ChangeMaterial(0);
+			computer.select_Stone = NULL;
+			computer.target_Stone = NULL;
+		
+		}
+		Charge_Effect->ChangeMaterial(0);
 	}
 
 	Charge_Effect->Reset();
@@ -843,33 +921,27 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 void CScene::AnimateObjects(float fTimeElapsed)
 {
-	Object_Shader[0].AnimateObjects(fTimeElapsed);
+	for (CGameObject* stone_obj : GameObject_Stone)
+		stone_obj->Animate(fTimeElapsed);
 
-	for (UI* ui_ptr : pUI_list)
+	for (UI* ui_ptr : UI_list)
 		ui_ptr->AnimateObjects(fTimeElapsed);
 
 	for (Particle* particle : m_particle)
 		particle->Animate(fTimeElapsed);
 
 	if (Charge_Effect)
-	{
 		Charge_Effect->Animate(fTimeElapsed);
-	}
 
 	if (m_pLights)
 	{
+		m_pLights->m_pLights[3].m_bEnable = true;
+		m_pLights->m_pLights[3].m_xmf3Position.y = 30.0f;
+
 		if (m_pSelectedObject)
-		{
-			m_pLights->m_pLights[3].m_bEnable = true;
 			m_pLights->m_pLights[3].m_xmf3Position = m_pSelectedObject->GetPosition();
-			m_pLights->m_pLights[3].m_xmf3Position.y = 30.0f;
-		}
 		else if (computer.select_Stone)
-		{
-			m_pLights->m_pLights[3].m_bEnable = true;
 			m_pLights->m_pLights[3].m_xmf3Position = computer.select_Stone->GetPosition();
-			m_pLights->m_pLights[3].m_xmf3Position.y = 30.0f;
-		}
 		else
 			m_pLights->m_pLights[3].m_bEnable = false;
 	}
@@ -881,10 +953,7 @@ void CScene::Scene_Update(float fTimeElapsed)
 	if (Player_Turn) // 플레이어 턴
 	{
 		ui_player_power->Active = true;
-		ui_player_power_endline->Active = true;
-
 		ui_com_power->Active = false;
-		ui_com_power_endline->Active = false;
 
 		power_degree = ui_player_power->Update(fTimeElapsed, power_charge);
 		
@@ -898,10 +967,10 @@ void CScene::Scene_Update(float fTimeElapsed)
 	else if (Com_Turn && Com_Shot == false) // 컴퓨터 턴
 	{
 		ui_player_power->Active = false;
-		ui_player_power_endline->Active = false;
+//		ui_player_power_endline->Active = false;
 
 		ui_com_power->Active = true;
-		ui_com_power_endline->Active = true;
+//		ui_com_power_endline->Active = true;
 
 		if (Game_Over == false) // 컴퓨터 차례라면
 		{
@@ -914,7 +983,7 @@ void CScene::Scene_Update(float fTimeElapsed)
 					return;
 
 				computer.select_Stone = normal_version.first;
-				//computer.select_Stone->Set_Material_and_Shader(material_black_stone, &Object_Shader[0]);
+				computer.select_Stone->ChangeMaterial(1);
 
 				computer.target_Stone = normal_version.second;
 
@@ -950,15 +1019,19 @@ void CScene::Scene_Update(float fTimeElapsed)
 			}
 		}
 	}
+
+	Remove_Unnecessary_Objects();
 }
 
 void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
-	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
+	Object_Shader[0].Setting_PSO(pd3dCommandList); // 일단 시작용 셰이더
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
+
+	// 카메라 영역 및 정보 업데이트
+	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
 	pCamera->Update_Shader_Resource(pd3dCommandList);
 
-	//Object_Shader[0].Setting_PSO(pd3dCommandList); // 일단 시작용 셰이더
 
 	// 조명 업데이트
 	Update_Shader_Resource(pd3dCommandList);
@@ -970,7 +1043,7 @@ void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCom
 
 	Particle_Render(pd3dDevice, pd3dCommandList, pCamera);
 
-	//UI_Render(pd3dDevice, pd3dCommandList);
+	UI_Render(pd3dDevice, pd3dCommandList);
 
 	//=======================플레이어 렌더링 =======================
 	//CAirplanePlayer* pPlayer = (CAirplanePlayer*)m_pPlayer;
@@ -993,10 +1066,13 @@ void CScene::Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 
 void CScene::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	for (UI* ui_ptr : pUI_list)
+	UI_Shader[0].Setting_Render(pd3dCommandList);
+	pd3dCommandList->SetGraphicsRootSignature(UI_GraphicsRootSignature);
+
+	for (UI* ui_ptr : UI_list)
 		if (ui_ptr->Active)
 		{
-			ui_ptr->UI_Render(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
+			ui_ptr->UI_Render(pd3dDevice, pd3dCommandList, UI_GraphicsRootSignature, UI_Shader);
 		}
 }
 
@@ -1242,7 +1318,7 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 			{
 				StoneObject* player_stone = (StoneObject*)obj_ptr;
 				if (player_stone == m_pSelectedObject)
-					m_pSelectedObject->ChangeMaterial(UINT(1));
+					player_stone->ChangeMaterial(1);
 				else
 					player_stone->ChangeMaterial(0);
 			}
@@ -1281,6 +1357,8 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		{
 		case VK_SPACE:
 			power_charge = false;
+			Shoot_Stone(power_degree);
+
 			ui_player_power->Reset();
 			ui_com_power->Reset();
 			break;

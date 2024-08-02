@@ -112,5 +112,6 @@
   <ItemGroup>
     <FxCompile Include="Shaders.hlsl" />
     <FxCompile Include="Light.hlsl" />
+    <FxCompile Include="UI.hlsl" />
   </ItemGroup>
 </Project>

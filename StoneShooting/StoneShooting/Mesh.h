@@ -150,7 +150,6 @@ public:
 
 	virtual ~CAirplaneMeshDiffused();
 
-	void Make_Another_Color_Mesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	
 	CDiffusedVertex* picked_m_pVertices = NULL;
 	UINT picked_m_nVertices = 0;

@@ -513,10 +513,10 @@ void CGameFramework::AnimateObjects()
 		Limit_time += Elapsed_Time;
 	}
 
-	// m_pScene->Scene_Update(Elapsed_Time);
+	m_pScene->Scene_Update(Elapsed_Time);
 	
-	// m_pScene->CheckObject_Out_Board_Collisions(m_pd3dDevice, m_pd3dCommandList);
-	// m_pScene->CheckObjectByObjectCollisions();
+	m_pScene->CheckObject_Out_Board_Collisions(m_pd3dDevice, m_pd3dCommandList);
+	m_pScene->CheckObjectByObjectCollisions();
 	m_pScene->Defend_Overlap();
 
 
@@ -790,8 +790,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			{
 				if (m_pScene->m_pSelectedObject != NULL)
 				{
-					m_pScene->Shoot_Stone(m_pScene->power_degree);
-
+					
 					pMainCamera = m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, m_GameTimer.GetTimeElapsed());
 				}
 			}

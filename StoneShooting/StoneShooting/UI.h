@@ -3,6 +3,12 @@
 #include "Shader.h"
 #include "GameObject.h"
 
+struct CB_BAR_UI_INFO
+{
+	float scale; // 1~100 사이의 값
+	int fixType; // 고정되는 면 : 1~4 == 상,하,좌,우
+};
+
 class UICamera : public CCamera
 {
 public:
@@ -20,17 +26,17 @@ public:
 class UI : public UICamera
 {
 public:
-	UIShader* m_uiShaders = NULL;
-	int m_n_uiShaders = 1;
+	std::vector<CGameObject*>ui_object;
 
-	UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, RECT& monitor_area);
+	UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area);
 	virtual ~UI() {}
 
 	virtual int Update(float fTimeElapsed, bool sign);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	virtual void AnimateObjects(float fTimeElapsed);
 
-	virtual void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+	virtual void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CShader* pShader);
 
 	virtual void Reset();
 
@@ -38,17 +44,24 @@ public:
 
 class BAR_UI : public UI
 {
+private:
+	ID3D12Resource* Bar_Constant_Buffer = NULL;
+	CB_BAR_UI_INFO* Mapped_Bar_info = NULL;
+
 public:
-	BAR_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, RECT& monitor_area, bool Right_Left = true);
+	BAR_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area, int stick_side = 3);
 	~BAR_UI();
 	virtual int Update(float fTimeElapsed, bool power_charge);
+	void Create_BarInfo_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CShader* pShader);
 	void Reset();
 protected:
 	int Max_Width;
 	int Max_Height;
 
-	bool Right_Start = true;
+	int sticked_side = 1;
 
-	int Degree = 0;
+	float Degree = 0;
 	bool Degree_increase = true;
 };

@@ -57,7 +57,9 @@ public:
 
 	//그래픽 루트 시그너쳐를 생성한다. 
 	ID3D12RootSignature* CreateGraphicsRootSignature(ID3D12Device* pd3dDevice);
-	
+	ID3D12RootSignature* Create_UI_GraphicsRootSignature(ID3D12Device* pd3dDevice);
+
+
 	void CreateGraphicsPipelineState(ID3D12Device* pd3dDevice);
 
 	ID3D12RootSignature* GetGraphicsRootSignature();
@@ -105,6 +107,7 @@ public:
 	bool Check_GameOver();
 
 	void Defend_Overlap();
+	void Remove_Unnecessary_Objects();
 
 	void Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, CMaterial* material, ParticleType type);
 	//=============================================
@@ -116,6 +119,12 @@ private:
 protected:
 	CShader* Object_Shader = NULL;
 	int N_Object_Shader = 1;
+
+	CShader* UI_Shader = NULL;
+	int N_UI_Shader = 1;
+
+	std::vector<UI*> UI_list;
+	int ui_num = 0;
 
 //==========================================
 
@@ -136,13 +145,16 @@ protected:
 	static CMaterial* material_color_black_particle;
 
 	static CMaterial* material_color_board;
-
+	static CMaterial* material_color_none;
 public:
 	//UIShader* m_uiShaders = NULL;
 	//int m_n_uiShaders = 1;
 
 	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
 	//루트 시그너쳐를 나타내는 인터페이스 포인터이다.
+
+	ID3D12RootSignature* UI_GraphicsRootSignature = NULL;
+
 
 	ID3D12PipelineState* m_pd3dPipelineState = NULL;
 	//파이프라인 상태를 나타내는 인터페이스 포인터이다.
@@ -158,8 +170,7 @@ public:
 	int Scene_GameObjects_N = 0;
 
 	std::vector<Particle*>m_particle;
-	std::vector<UI*> pUI_list;
-	int ui_num = 0;
+
 
 	UI* ui_player_power;
 	UI* ui_player_power_endline;

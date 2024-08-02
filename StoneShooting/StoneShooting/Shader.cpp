@@ -187,13 +187,13 @@ void CShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGr
 	D3D12_RASTERIZER_DESC rasterizerDescSolid = CreateRasterizerState();
 	rasterizerDescSolid.FillMode = D3D12_FILL_MODE_SOLID;
 	d3dPipelineStateDesc.RasterizerState = rasterizerDescSolid;
-	pd3dDevice->CreateGraphicsPipelineState(&d3dPipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)&m_ppd3dPipelineStates[0]);
+	HRESULT hResult = pd3dDevice->CreateGraphicsPipelineState(&d3dPipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)&m_ppd3dPipelineStates[0]);
 
 	//// Wireframe 
 	D3D12_RASTERIZER_DESC rasterizerDescWireframe = CreateRasterizerState();
 	rasterizerDescWireframe.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	d3dPipelineStateDesc.RasterizerState = rasterizerDescWireframe;
-	pd3dDevice->CreateGraphicsPipelineState(&d3dPipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)&m_ppd3dPipelineStates[1]);
+	hResult = pd3dDevice->CreateGraphicsPipelineState(&d3dPipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)&m_ppd3dPipelineStates[1]);
 
 	if (pd3dVertexShaderBlob) pd3dVertexShaderBlob->Release();
 	if (pd3dPixelShaderBlob) pd3dPixelShaderBlob->Release();
@@ -212,15 +212,6 @@ void CShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList)
 void CShader::Setting_PSO(ID3D12GraphicsCommandList* pd3dCommandList, int N)
 {
 	pd3dCommandList->SetPipelineState(m_ppd3dPipelineStates[0]);
-
-	// 지금 연결된 PSO와 다르다면
-	//if (Connected_PSO != m_ppd3dPipelineStates[0])
-	//{
-	//	//파이프라인에 그래픽스 상태 객체를 설정 == 셰이더 변경
-	//	
-
-	//	Connected_PSO = m_ppd3dPipelineStates[0];
-	//}
 }
 
 
@@ -358,11 +349,11 @@ D3D12_INPUT_LAYOUT_DESC UIShader::CreateInputLayout()
 
 D3D12_SHADER_BYTECODE UIShader::CreateVertexShader(ID3DBlob** ppd3dShaderBlob)
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSUI", "vs_5_1", ppd3dShaderBlob));
+	return(CShader::CompileShaderFromFile(L"UI.hlsl", "BAR_UI_VS", "vs_5_1", ppd3dShaderBlob));
 }
 D3D12_SHADER_BYTECODE UIShader::CreatePixelShader(ID3DBlob** ppd3dShaderBlob)
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSUI", "ps_5_1", ppd3dShaderBlob));
+	return(CShader::CompileShaderFromFile(L"UI.hlsl", "BAR_UI_PS", "ps_5_1", ppd3dShaderBlob));
 }
 
 void UIShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature)
@@ -380,12 +371,4 @@ void UIShader::AnimateObjects(float fTimeElapsed)
 void UIShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	CShader::Setting_PSO(pd3dCommandList, 0);
-
-	//for (CGameObject* obj_ptr : m_ppObjects)
-	//{
-	//	if (obj_ptr != NULL)
-	//	{
-	//		obj_ptr->Render(pd3dCommandList, pCamera);
-	//	}
-	//}
 }
