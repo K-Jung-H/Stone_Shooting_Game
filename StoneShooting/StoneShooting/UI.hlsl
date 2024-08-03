@@ -42,39 +42,38 @@ VS_OUTPUT BAR_UI_VS(VS_INPUT input)
     float3 scaledPosition = input.position;
 
     // fixType에 따라 고정되는 면 변경
-    if (fixType == 1)
+    if (fixType == 1)  // 상단 고정
     {
-        // 상단 고정
         if (scaledPosition.y < 0.0f)
         {
-            scaledPosition.y *= scaledValue;
+            scaledPosition.y = scaledPosition.y - 2 * (scaledPosition.y * (1.0f - scaledValue));
         }
     }
-    else if (fixType == 2)
+    else if (fixType == 2)  // 하단 고정
     {
-        // 하단 고정
         if (scaledPosition.y > 0.0f)
         {
-            scaledPosition.y *= scaledValue;
+            scaledPosition.y = scaledPosition.y - 2 * (scaledPosition.y * (1.0f - scaledValue));
         }
     }
-    else if (fixType == 3)
+    else if (fixType == 3)  // 좌측 고정
     {
-        // 좌측 고정
         if (scaledPosition.x > 0.0f)
         {
-            scaledPosition.x *= scaledValue;
+            scaledPosition.x = scaledPosition.x - 2 * (scaledPosition.x * (1.0f - scaledValue));
         }
     }
-    else if (fixType == 4)
+    else if (fixType == 4)  // 우측 고정
     {
-        // 우측 고정
         if (scaledPosition.x < 0.0f)
         {
-            scaledPosition.x *= scaledValue;
+            scaledPosition.x = scaledPosition.x - 2 * (scaledPosition.x * (1.0f - scaledValue));
         }
     }
-
+    else // fixType == 0
+    {
+        // None
+    }
 
     // 클립 공간으로 변환
     output.position = mul(mul(float4(scaledPosition, 1.0f), gmtxGameObject), gmtxProjection);

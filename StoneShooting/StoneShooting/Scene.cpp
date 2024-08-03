@@ -2,7 +2,19 @@
 #include "Scene.h"
 #include "Player.h"
 #include <vector>
+/*
+수정 할  내용:
 
+Bar_UI에서 관리하는 객체들의 타입마다 전달하는 버퍼의 값들이 다를 거임 // 어떤건 업데이트가 불필요하고, 어떤건 상시 업데이트 해야 하고...
+개별적으로 나눠질 필요 있음. 
+모든 UI의 정보를 한 컨테이너에서 다루도록 하고, 
+CGameObject에서 사용하는 방식처럼, enum 타입을 분류하여, UI의 타입을 render의 인자로 전달 하고 해당 타입에 따라,
+필요한 부분만 업데이트하거나 해당 값을 고정하도록 처리하자
+
+
+완료하면, 기존 Degree 값 업데이트 및, 값 전달하는 방식 재정리 필요함
+
+*/
 //=========================================================================================
 CMaterial* CScene::material_color_white_stone = NULL;
 CMaterial* CScene::material_color_black_stone = NULL;
@@ -306,33 +318,32 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 	// UI Mesh
 	CMesh* ui_power_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 200.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.5f, 0.0f, 1.0f));
 	
-	CMesh* ui_endline_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 5.0f, 90.0f, 0.5f, XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f), false);
+	CMesh* ui_endline_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 5.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f), false);
 
 	//-----------------------------------
 
 	// UI's Object
-	CGameObject* ui_power_bar = NULL;
-	ui_power_bar = new CGameObject();
+	UI_Object* ui_power_bar = new BAR_UI_Object(pd3dDevice, pd3dCommandList, 3);
 	ui_power_bar->SetMesh(ui_power_mesh);
-	ui_power_bar->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-//	ui_power_bar->SetMaterial(material_color_none);
+	ui_power_bar->active = true;
 
-	CGameObject* ui_endline = NULL;
-	ui_endline = new CGameObject();
+	UI_Object* ui_endline =  new UI_Object(pd3dDevice, pd3dCommandList);
 	ui_endline->SetMesh(ui_endline_mesh);
-	ui_endline->Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-//	ui_endline->SetMaterial(material_color_none);
+	ui_endline->SetPosition(-100.0f, 0.0f, 0.0f);
+	ui_endline->active = true;
 
 	//=======================================================================
 
 	// UI Object
-	UI* Power_UI_player = new BAR_UI(pd3dDevice, pd3dCommandList, power_ui_area_1, 3);
+	UI* Power_UI_player = new BAR_UI(pd3dDevice, pd3dCommandList, power_ui_area_1);
 	ui_player_power = Power_UI_player;
 	
+	((BAR_UI*)Power_UI_player)->Set_Bar_obj((BAR_UI_Object*)ui_power_bar);
 	Power_UI_player->ui_object.push_back(ui_power_bar);
 	Power_UI_player->ui_object.push_back(ui_endline);
 	Power_UI_player->Active = true;
 	UI_list.push_back(Power_UI_player);
+
 	//-----------------------------------
 
 	//UI* Power_endline_player = new UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_endline_ui_area_1);
@@ -343,7 +354,7 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 
 	//=======================================================================
 
-	UI* Power_UI_com = new BAR_UI(pd3dDevice, pd3dCommandList, power_ui_area_2, 3);
+	UI* Power_UI_com = new BAR_UI(pd3dDevice, pd3dCommandList, power_ui_area_2);
 	ui_com_power = Power_UI_com;
 
 	
@@ -351,7 +362,7 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 	Power_UI_com->ui_object.push_back(ui_endline);
 	Power_UI_com->Active = true;
 
-	UI_list.push_back(Power_UI_com);
+	//UI_list.push_back(Power_UI_com);
 
 
 	//-----------------------------------
@@ -954,8 +965,8 @@ void CScene::Scene_Update(float fTimeElapsed)
 	{
 		ui_player_power->Active = true;
 		ui_com_power->Active = false;
-
-		power_degree = ui_player_power->Update(fTimeElapsed, power_charge);
+		
+		power_degree = ((BAR_UI*)ui_player_power)->Get_Degree();
 		
 		if (power_charge && m_pSelectedObject != NULL)
 		{
@@ -967,10 +978,9 @@ void CScene::Scene_Update(float fTimeElapsed)
 	else if (Com_Turn && Com_Shot == false) // 컴퓨터 턴
 	{
 		ui_player_power->Active = false;
-//		ui_player_power_endline->Active = false;
 
 		ui_com_power->Active = true;
-//		ui_com_power_endline->Active = true;
+
 
 		if (Game_Over == false) // 컴퓨터 차례라면
 		{
@@ -1005,8 +1015,8 @@ void CScene::Scene_Update(float fTimeElapsed)
 				}
 				else // 시간이 될때까지 충전 애니메이션 및 UI 업데이트
 				{
-					power_degree = ui_com_power->Update(fTimeElapsed, power_charge);
-
+					power_degree = ((BAR_UI*)ui_com_power)->Get_Degree();
+					
 					if (power_charge && computer.select_Stone != NULL)
 					{
 						Charge_Effect->active = true;
@@ -1072,7 +1082,7 @@ void CScene::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 	for (UI* ui_ptr : UI_list)
 		if (ui_ptr->Active)
 		{
-			ui_ptr->UI_Render(pd3dDevice, pd3dCommandList, UI_GraphicsRootSignature, UI_Shader);
+			ui_ptr->UI_Render(pd3dDevice, pd3dCommandList, UI_Shader);
 		}
 }
 

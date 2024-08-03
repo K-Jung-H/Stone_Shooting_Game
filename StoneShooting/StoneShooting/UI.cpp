@@ -28,9 +28,8 @@ UICamera::UICamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dComm
 
 }
 
-int UICamera::Update(float fTimeElapsed, bool sign)
+void UICamera::Update(float fTimeElapsed, bool sign)
 {
-	return 0;
 }
 
 void UICamera::Reset()
@@ -45,31 +44,157 @@ void UICamera::SetOrthographicProjection(float viewWidth, float viewHeight, floa
 
 //=================================================================================
 
-UI::UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area) : UICamera(pd3dDevice, pd3dCommandList, monitor_area)
+UI_Object::UI_Object(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
+	Create_Object_Buffer(pd3dDevice, pd3dCommandList);
+	Create_UI_Info_Buffer(pd3dDevice, pd3dCommandList);
+	//Update_UI_Info(pd3dCommandList);
 
 }
+
+UI_Object::~UI_Object()
+{
+}
+
+void UI_Object::Create_UI_Info_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	// 게임 재질 버퍼 생성 및 매핑
+	UINT ncbElementBytes = ((sizeof(CB_UI_INFO) + 255) & ~255); //256의 배수
+	UI_Constant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+
+	UI_Constant_Buffer->Map(0, NULL, (void**)&Mapped_UI_info);
+}
+
+void UI_Object::Update_UI_Info(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	int default_side = 4;
+	float default_Degree = 10;
+	CB_UI_INFO* mapped_bar_info = (CB_UI_INFO*)Mapped_UI_info;
+	::memcpy(&mapped_bar_info->fixType, &default_side, sizeof(int));
+	::memcpy(&mapped_bar_info->scale, &default_Degree, sizeof(float));
+
+	D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = UI_Constant_Buffer->GetGPUVirtualAddress();
+	pd3dCommandList->SetGraphicsRootConstantBufferView(0, d3dcbGameObjectGpuVirtualAddress);
+}
+
+void UI_Object::Animate(float fElapsedTime)
+{
+}
+
+void UI_Object::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
+{
+	if (!active)
+		return;
+
+	// 실제 UI에 필요한 정보는 가상 함수를 호출하는 과정에서 이미 업데이트 함
+	// Update_UI_Info(pd3dCommandList);
+
+	CGameObject::Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::GameObject_info);
+
+	if (m_pMesh)
+		m_pMesh->Render(pd3dCommandList);
+
+	if (m_pSibling)
+		m_pSibling->Render(pd3dCommandList, pCamera, pShader);
+	if (m_pChild)
+		m_pChild->Render(pd3dCommandList, pCamera, pShader);
+}
+
+//=================================================================================
+
+BAR_UI_Object::BAR_UI_Object(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int stick_type)
+	: UI_Object(pd3dDevice, pd3dCommandList)
+{
+	sticked_side = stick_type;
+	Degree = 90;
+	sticked_side = 4;
+}
+
+BAR_UI_Object::~BAR_UI_Object()
+{
+}
+
+void BAR_UI_Object::Update_BAR_UI_Info(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	CB_UI_INFO* mapped_bar_info = (CB_UI_INFO*)Mapped_UI_info;
+	::memcpy(&mapped_bar_info->fixType, &sticked_side, sizeof(int));
+	::memcpy(&mapped_bar_info->scale, &Degree, sizeof(float));
+
+	D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = UI_Constant_Buffer->GetGPUVirtualAddress();
+	pd3dCommandList->SetGraphicsRootConstantBufferView(0, d3dcbGameObjectGpuVirtualAddress);
+}
+
+void BAR_UI_Object::Animate(float fElapsedTime, bool power)
+{
+	if (power)
+	{
+		if (Degree_increase) 
+		{
+			if (Degree < 600)
+				Degree += 1;
+			else 
+				Degree_increase = false;
+		}
+		else 
+		{
+			if (Degree > 300)
+				Degree -= 1;
+			else if (Degree > 200)
+				Degree -= 2;
+			else if (Degree > 100)
+				Degree -= 3;
+			else
+				Degree = 100;
+		}
+	}
+}
+
+void BAR_UI_Object::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
+{
+	Update_BAR_UI_Info(pd3dCommandList);
+	UI_Object::Render(pd3dCommandList, pCamera, pShader);
+}
+
+float BAR_UI_Object::Get_Degree()
+{
+	if (!active)
+		return 0;
+
+	if (400 <= Degree && Degree <= 600)
+		return 600;
+
+	if (Degree_increase == false && Degree == 100)
+		return 100;
+
+	return Degree * 1.5;
+}
+
+//=================================================================================
+
+UI::UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area) 
+	: UICamera(pd3dDevice, pd3dCommandList, monitor_area)
+{
+}
+
 void UI::AnimateObjects(float fTimeElapsed)
 {
-	for (CGameObject* game_obj : ui_object)
+	for (UI_Object* game_obj : ui_object)
 		game_obj->Animate(fTimeElapsed);
 }
 
-void UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CShader* pShader)
+void UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader)
 {
 	SetViewportsAndScissorRects(pd3dCommandList);
-//	pd3dCommandList->SetGraphicsRootSignature(pd3dGraphicsRootSignature);
-	Update_Shader_Resource(pd3dCommandList);  // UI를 그리는 카메라는 내용이 변경될 일 없음
-	CCamera::Update_Shader_Resource(pd3dCommandList);
+	Update_Shader_Resource(pd3dCommandList); 
+	CCamera::Update_Shader_Resource(pd3dCommandList); // UI를 그리는 카메라는 내용이 변경될 일 없음
 
-	for (CGameObject* game_obj : ui_object)
+	for (UI_Object* game_obj : ui_object)
 		game_obj->Render(pd3dCommandList, this, pShader);
-
 }
 
-int UI::Update(float fTimeElapsed, bool sign)
+void UI::Update(float fTimeElapsed, bool sign)
 {
-	return 0;
 }
 
 void UI::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -82,105 +207,56 @@ void UI::Reset()
 
 //=================================================================================
 // BAR_UI 생성자
-BAR_UI::BAR_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area, int stick_side)
+BAR_UI::BAR_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area)
 	: UI(pd3dDevice, pd3dCommandList, monitor_area)
 {
 	Max_Width = monitor_area.right - monitor_area.left;
 	Max_Height = monitor_area.bottom - monitor_area.top;
-	//Degree = 100.0f;
-	sticked_side = stick_side;
-	Create_BarInfo_Buffer(pd3dDevice, pd3dCommandList);
+	SetScissorRect(Monitor_Area.left, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
 }
 
 BAR_UI::~BAR_UI()
 {
 }
 
-int BAR_UI::Update(float fTimeElapsed, bool power_charge)
+void BAR_UI::Update(float fTimeElapsed, bool power_charge)
 {
-	if (!Active)
-		return 0;
-
-	//DebugOutput(std::to_string(Degree));
-
-	if (power_charge)
-	{
-		if (Degree_increase) {
-			if (Degree < 600) 
-				Degree += 1;			
-			else {
-				// 400에 도달하면 증가 상태를 false로 설정
-				Degree_increase = false;  
-			}
-		}
-		else {
-			if (Degree > 300)
-				Degree -= 1;
-			else if (Degree > 200)
-				Degree -= 2;
-			else if (Degree > 100)
-				Degree -= 3;
-			else
-				Degree = 100;  // Degree 100 이하 방지
-		}
-		//if (Right_Start)
-		//	SetScissorRect(Monitor_Area.right - Degree/2, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
-		//else
-		//	SetScissorRect(Monitor_Area.left, 0, Monitor_Area.left + Degree / 2, FRAME_BUFFER_HEIGHT);
-		SetScissorRect(Monitor_Area.left, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
-	}
-	else
-		SetScissorRect(Monitor_Area.left, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
-
-	if( 400 <= Degree && Degree <= 600)
-		return 600;
-
-	if (Degree_increase == false && Degree == 100)
-	{
-		return 100;
-	}
-
-	return Degree * 1.5;
 }
 
-
-void BAR_UI::Create_BarInfo_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-{
-	// 게임 재질 버퍼 생성 및 매핑
-	UINT ncbElementBytes = ((sizeof(CB_BAR_UI_INFO) + 255) & ~255); //256의 배수
-	Bar_Constant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes,
-		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
-
-	Bar_Constant_Buffer->Map(0, NULL, (void**)&Mapped_Bar_info);
-}
-
-void BAR_UI::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
-{
-	CB_BAR_UI_INFO* mapped_bar_info = (CB_BAR_UI_INFO*)Mapped_Bar_info;
-	::memcpy(&mapped_bar_info->fixType, &sticked_side, sizeof(int));
-	::memcpy(&mapped_bar_info->scale, &Degree, sizeof(float));
-
-	D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = Bar_Constant_Buffer->GetGPUVirtualAddress();
-	pd3dCommandList->SetGraphicsRootConstantBufferView(0, d3dcbGameObjectGpuVirtualAddress);
-}
-
-void BAR_UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CShader* pShader)
+void BAR_UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader)
 {
 	SetViewportsAndScissorRects(pd3dCommandList);
-	//pd3dCommandList->SetGraphicsRootSignature(pd3dGraphicsRootSignature);
-	Update_Shader_Resource(pd3dCommandList);  // UI의 정보 업데이트
+
 	CCamera::Update_Shader_Resource(pd3dCommandList);
 
-	ui_object[0]->CGameObject::Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::GameObject_info);
-	ui_object[0]->m_pMesh->Render(pd3dCommandList);
+	for (UI_Object* ui_obj : ui_object)
+	{
+		ui_obj->Render(pd3dCommandList, this, pShader);
+	}
 
-	//for (CGameObject* ui_obj : ui_object)
-	//	ui_obj->Render(pd3dCommandList, this, pShader);
+}
 
+void BAR_UI::Set_Bar_obj(BAR_UI_Object* bar)
+{
+	if (bar_obj != NULL)
+		delete bar_obj;
+
+	bar_obj = bar;
+}
+
+float BAR_UI::Get_Degree()
+{
+	if (bar_obj == NULL)
+		return 0;
+
+	return bar_obj->Degree;
 }
 
 void BAR_UI::Reset()
 {
-	Degree = 0;
-	Degree_increase = true;
+	if (bar_obj != NULL)
+	{
+		bar_obj->Degree = 0;
+		bar_obj->Degree_increase = true;
+	}
 }

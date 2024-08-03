@@ -625,14 +625,7 @@ void CExplosiveObject::Animate(float fElapsedTime)
 
 void CExplosiveObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
-	if (m_bBlowingUp)
-	{
-		//Render_Particle(pd3dCommandList, pCamera);
-	}
-	else
-	{	
-		CGameObject::Render(pd3dCommandList, pCamera, pShader);
-	}
+	CGameObject::Render(pd3dCommandList, pCamera, pShader);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
