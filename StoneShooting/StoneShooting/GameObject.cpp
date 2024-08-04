@@ -123,11 +123,13 @@ void CGameObject::SetChild(CGameObject* pChild, bool bReferenceUpdate)
 	if (pChild)
 	{
 		pChild->m_pParent = this;
-		if (bReferenceUpdate) pChild->AddRef();
+		if (bReferenceUpdate) 
+			pChild->AddRef();
 	}
 	if (m_pChild)
 	{
-		if (pChild) pChild->m_pSibling = m_pChild->m_pSibling;
+		if (pChild) 
+			pChild->m_pSibling = m_pChild->m_pSibling;
 		m_pChild->m_pSibling = pChild;
 	}
 	else
@@ -593,41 +595,6 @@ void CRotatingObject::Animate(float fTimeElapsed)
 
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////
-
-CExplosiveObject::CExplosiveObject()
-{
-	XMStoreFloat4x4(&m_xmf4x4World, XMMatrixIdentity());
-
-}
-
-CExplosiveObject::~CExplosiveObject()
-{
-}
-
-void CExplosiveObject::Animate(float fElapsedTime)
-{
-	if (m_bBlowingUp)
-	{
-		if (true)
-			return;
-		else
-		{
-			m_bBlowingUp = false;
-			active = false;
-		}
-	}
-	else
-	{
-		CRotatingObject::Animate(fElapsedTime);
-	}
-}
-
-void CExplosiveObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
-{
-	CGameObject::Render(pd3dCommandList, pCamera, pShader);
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
 CBoardObject::CBoardObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -658,12 +625,12 @@ StoneObject::~StoneObject()
 
 void StoneObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
-	CExplosiveObject::Render(pd3dCommandList, pCamera, pShader);
+	CGameObject::Render(pd3dCommandList, pCamera, pShader);
 }
 
 void StoneObject::Animate(float fElapsedTime)
 {
-	CExplosiveObject::Animate(fElapsedTime);
+	CRotatingObject::Animate(fElapsedTime);
 
 	XMVECTOR center = XMLoadFloat3(&m_pMesh->m_xmBoundingSphere.Center);
 	XMVECTOR transformedCenter = XMVector3Transform(center, XMLoadFloat4x4(&m_xmf4x4World));

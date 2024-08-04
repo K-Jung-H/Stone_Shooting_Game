@@ -234,18 +234,6 @@ public:
 };
 
 
-class CExplosiveObject : public CRotatingObject
-{
-public:
-	CExplosiveObject();
-	virtual ~CExplosiveObject();
-
-	bool						m_bBlowingUp = false;
-
-	virtual void Animate(float fElapsedTime);
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
-};
-
 class CBoardObject : public CGameObject
 {
 public:
@@ -256,7 +244,7 @@ public:
 };
 
 
-class StoneObject : public CExplosiveObject
+class StoneObject : public CRotatingObject
 {
 public:
 	StoneObject* Overlaped = NULL;

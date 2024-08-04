@@ -2,19 +2,7 @@
 #include "Scene.h"
 #include "Player.h"
 #include <vector>
-/*
-수정 할  내용:
 
-Bar_UI에서 관리하는 객체들의 타입마다 전달하는 버퍼의 값들이 다를 거임 // 어떤건 업데이트가 불필요하고, 어떤건 상시 업데이트 해야 하고...
-개별적으로 나눠질 필요 있음. 
-모든 UI의 정보를 한 컨테이너에서 다루도록 하고, 
-CGameObject에서 사용하는 방식처럼, enum 타입을 분류하여, UI의 타입을 render의 인자로 전달 하고 해당 타입에 따라,
-필요한 부분만 업데이트하거나 해당 값을 고정하도록 처리하자
-
-
-완료하면, 기존 Degree 값 업데이트 및, 값 전달하는 방식 재정리 필요함
-
-*/
 //=========================================================================================
 CMaterial* CScene::material_color_white_stone = NULL;
 CMaterial* CScene::material_color_black_stone = NULL;
@@ -292,12 +280,15 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	for (XMFLOAT3& b_stone_pos : b_stone_pos_list)
 		Setting_Stone(pd3dDevice, pd3dCommandList, StoneMesh, b_stone_pos, false);
 
+	GameObject_Stone[0]->SetChild(GameObject_Stone[4]);
+
 	//===========================================================
-	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material_color_white_stone, ParticleType::Charge);
+
+	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material_color_white_stone, Particle_Type::Charge);
 	Charge_Effect->AddMaterial(material_color_black_stone);
 	Charge_Effect->active = true;
 
-	Setting_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 0.0f, 0.0f), material_color_white_particle, ParticleType::Explosion);
+//	Setting_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 0.0f, 0.0f), material_color_white_particle, Particle_Type::Explosion);
 }
 
 void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -306,24 +297,23 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 	UI_Shader = new UIShader[N_UI_Shader];
 	UI_Shader[0].CreateShader(pd3dDevice, UI_GraphicsRootSignature);
 
+	//=======================================================================
 	// UI Area
 	D3D12_RECT power_ui_area_1 = { 600, 0, 800, 90 };
-	D3D12_RECT power_endline_ui_area_1 = { 595, 0, 600, 90 };
 
 	D3D12_RECT power_ui_area_2 = { 0, 0, 200, 90 };
-	D3D12_RECT power_endline_ui_area_2 = { 200, 0, 205, 90 };
 
-	//-----------------------------------
+	//=======================================================================
 
 	// UI Mesh
 	CMesh* ui_power_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 200.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.5f, 0.0f, 1.0f));
 	
 	CMesh* ui_endline_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 5.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f), false);
 
-	//-----------------------------------
+	//=======================================================================
 
 	// UI's Object
-	UI_Object* ui_power_bar = new BAR_UI_Object(pd3dDevice, pd3dCommandList, 3);
+	UI_Object* ui_power_bar = new BAR_UI_Object(pd3dDevice, pd3dCommandList, 4);
 	ui_power_bar->SetMesh(ui_power_mesh);
 	ui_power_bar->active = true;
 
@@ -332,9 +322,20 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 	ui_endline->SetPosition(-100.0f, 0.0f, 0.0f);
 	ui_endline->active = true;
 
+	//-----------------------------------
+
+	UI_Object* ui_power_bar_com = new BAR_UI_Object(pd3dDevice, pd3dCommandList, 3);
+	ui_power_bar_com->SetMesh(ui_power_mesh);
+	ui_power_bar_com->active = true;
+
+	UI_Object* ui_endline_com = new UI_Object(pd3dDevice, pd3dCommandList);
+	ui_endline_com->SetMesh(ui_endline_mesh);
+	ui_endline_com->SetPosition(100.0f, 0.0f, 0.0f);
+	ui_endline_com->active = true;
+
 	//=======================================================================
 
-	// UI Object
+	// UI Manager
 	UI* Power_UI_player = new BAR_UI(pd3dDevice, pd3dCommandList, power_ui_area_1);
 	ui_player_power = Power_UI_player;
 	
@@ -345,34 +346,17 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 	UI_list.push_back(Power_UI_player);
 
 	//-----------------------------------
-
-	//UI* Power_endline_player = new UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_endline_ui_area_1);
-	//ui_player_power_endline = Power_endline_player;
-
-	//Power_endline_player->ui_object.push_back(ui_endline);
-	//UI_list.push_back(Power_endline_player);
-
-	//=======================================================================
-
+	
 	UI* Power_UI_com = new BAR_UI(pd3dDevice, pd3dCommandList, power_ui_area_2);
 	ui_com_power = Power_UI_com;
 
-	
-	Power_UI_com->ui_object.push_back(ui_power_bar);
-	Power_UI_com->ui_object.push_back(ui_endline);
+	((BAR_UI*)Power_UI_com)->Set_Bar_obj((BAR_UI_Object*)ui_power_bar_com);
+	Power_UI_com->ui_object.push_back(ui_power_bar_com);
+	Power_UI_com->ui_object.push_back(ui_endline_com);
 	Power_UI_com->Active = true;
+	UI_list.push_back(Power_UI_com);
 
-	//UI_list.push_back(Power_UI_com);
-
-
-	//-----------------------------------
-
-	//UI* Power_endline_com = new UI(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, power_endline_ui_area_2);
-	//ui_com_power_endline = Power_endline_com;
-
-	//Power_endline_com->m_uiShaders[0].AddObjects(ui_endline);
-	//UI_list.push_back(Power_endline_com);
-
+	//=======================================================================
 	ui_num = UI_list.size();
 
 }
@@ -788,9 +772,9 @@ void CScene::CheckObject_Out_Board_Collisions(ID3D12Device* pd3dDevice, ID3D12Gr
 			if (stone_ptr->active == true)
 			{
 				if (stone_ptr->player_team)
-					Setting_Particle(pd3dDevice, pd3dCommandList, stone_ptr->GetPosition(), material_color_white_particle, ParticleType::Explosion);
+					Setting_Particle(pd3dDevice, pd3dCommandList, stone_ptr->GetPosition(), material_color_white_particle, Particle_Type::Explosion);
 				else if (!stone_ptr->player_team)
-					Setting_Particle(pd3dDevice, pd3dCommandList, stone_ptr->GetPosition(), material_color_black_particle, ParticleType::Explosion);
+					Setting_Particle(pd3dDevice, pd3dCommandList, stone_ptr->GetPosition(), material_color_black_particle, Particle_Type::Explosion);
 			}
 			stone_ptr->active = false;
 		}
@@ -882,7 +866,7 @@ bool CScene::Check_GameOver()
 		return false;
 }
 
-void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, CMaterial* material, ParticleType type)
+void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, CMaterial* material, Particle_Type type)
 {
 	bool Done = false;
 	for (Particle* particle : m_particle)
@@ -903,18 +887,18 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		switch (type)
 		{
 
-		case ParticleType::Explosion:
+		case Particle_Type::Explosion:
 		{
-			particle = new Explosion_Particle(pd3dDevice, pd3dCommandList, material, ParticleType::Explosion);
+			particle = new Explosion_Particle(pd3dDevice, pd3dCommandList, material, Particle_Type::Explosion);
 			particle->SetActive(true);
 			particle->SetPosition(pos);
 			m_particle.push_back(particle);
 		}
 		break;
 
-		case ParticleType::Charge:
+		case Particle_Type::Charge:
 		{
-			particle = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material, ParticleType::Charge);
+			particle = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material, Particle_Type::Charge);
 			particle->SetActive(true);
 			particle->SetPosition(pos);
 			((Charge_Particle*)particle)->Set_Center_Position(pos);
@@ -922,7 +906,7 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		}
 		break;
 
-		case ParticleType::None:
+		case Particle_Type::None:
 		default:
 			break;
 		}
@@ -999,6 +983,7 @@ void CScene::Scene_Update(float fTimeElapsed)
 
 				// 차징 시간 결정
 				power_charge = true;
+				((BAR_UI*)ui_com_power)->Set_Bar_Charge_Mode(true);
 				computer.random_time = 1.0f + (uid(dre) / 1000);
 			}
 			else
@@ -1012,6 +997,7 @@ void CScene::Scene_Update(float fTimeElapsed)
 					Com_Shot = true;
 
 					power_charge = false;
+					((BAR_UI*)ui_com_power)->Set_Bar_Charge_Mode(false);
 				}
 				else // 시간이 될때까지 충전 애니메이션 및 UI 업데이트
 				{
@@ -1049,8 +1035,10 @@ void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCom
 	m_pBoards->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
 
 	for (CGameObject* gameobject : GameObject_Stone)
+	{
+		// gameobject->UpdateTransform(NULL);
 		gameobject->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
-
+	}
 	Particle_Render(pd3dDevice, pd3dCommandList, pCamera);
 
 	UI_Render(pd3dDevice, pd3dCommandList);
@@ -1351,8 +1339,10 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		switch (wParam)
 		{
 		case VK_SPACE:
-			if (is_Player_Turn())
+			if (is_Player_Turn()) {
 				power_charge = true;
+				((BAR_UI*)ui_player_power)->Set_Bar_Charge_Mode(true);
+			}
 			break;
 
 		default:
@@ -1367,6 +1357,7 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		{
 		case VK_SPACE:
 			power_charge = false;
+			((BAR_UI*)ui_player_power)->Set_Bar_Charge_Mode(false);
 			Shoot_Stone(power_degree);
 
 			ui_player_power->Reset();

@@ -109,7 +109,7 @@ public:
 	void Defend_Overlap();
 	void Remove_Unnecessary_Objects();
 
-	void Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, CMaterial* material, ParticleType type);
+	void Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, CMaterial* material, Particle_Type type);
 	//=============================================
 private:
 	CCamera* pMainCamera = NULL;

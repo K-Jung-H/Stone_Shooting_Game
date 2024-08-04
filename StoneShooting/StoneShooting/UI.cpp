@@ -68,10 +68,11 @@ void UI_Object::Create_UI_Info_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCo
 
 void UI_Object::Update_UI_Info(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	int default_side = 4;
-	float default_Degree = 10;
-	CB_UI_INFO* mapped_bar_info = (CB_UI_INFO*)Mapped_UI_info;
-	::memcpy(&mapped_bar_info->fixType, &default_side, sizeof(int));
+	int default_stick_side = 0;
+	float default_Degree = 100;
+
+	CB_UI_INFO* mapped_bar_info = (CB_UI_INFO*)Mapped_UI_info; 
+	::memcpy(&mapped_bar_info->fixType, &default_stick_side, sizeof(int));
 	::memcpy(&mapped_bar_info->scale, &default_Degree, sizeof(float));
 
 	D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = UI_Constant_Buffer->GetGPUVirtualAddress();
@@ -87,8 +88,9 @@ void UI_Object::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCam
 	if (!active)
 		return;
 
-	// 실제 UI에 필요한 정보는 가상 함수를 호출하는 과정에서 이미 업데이트 함
-	// Update_UI_Info(pd3dCommandList);
+	// 다른 타입이라면 필요한 정보는 이미 Render 호출 과정에서 업데이트 됨
+	if (type == UI_Type::Standard)
+		Update_UI_Info(pd3dCommandList);
 
 	CGameObject::Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::GameObject_info);
 
@@ -106,9 +108,10 @@ void UI_Object::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCam
 BAR_UI_Object::BAR_UI_Object(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int stick_type)
 	: UI_Object(pd3dDevice, pd3dCommandList)
 {
+	type = UI_Type::Bar;
+
 	sticked_side = stick_type;
-	Degree = 90;
-	sticked_side = 4;
+
 }
 
 BAR_UI_Object::~BAR_UI_Object()
@@ -125,9 +128,9 @@ void BAR_UI_Object::Update_BAR_UI_Info(ID3D12GraphicsCommandList* pd3dCommandLis
 	pd3dCommandList->SetGraphicsRootConstantBufferView(0, d3dcbGameObjectGpuVirtualAddress);
 }
 
-void BAR_UI_Object::Animate(float fElapsedTime, bool power)
+void BAR_UI_Object::Animate(float fElapsedTime)
 {
-	if (power)
+	if (Charging)
 	{
 		if (Degree_increase) 
 		{
@@ -156,6 +159,10 @@ void BAR_UI_Object::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* 
 	UI_Object::Render(pd3dCommandList, pCamera, pShader);
 }
 
+void BAR_UI_Object::Set_Charging_Mode(bool charge)
+{
+	Charging = charge;
+}
 float BAR_UI_Object::Get_Degree()
 {
 	if (!active)
@@ -186,11 +193,13 @@ void UI::AnimateObjects(float fTimeElapsed)
 void UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader)
 {
 	SetViewportsAndScissorRects(pd3dCommandList);
-	Update_Shader_Resource(pd3dCommandList); 
-	CCamera::Update_Shader_Resource(pd3dCommandList); // UI를 그리는 카메라는 내용이 변경될 일 없음
+	CCamera::Update_Shader_Resource(pd3dCommandList);
 
-	for (UI_Object* game_obj : ui_object)
-		game_obj->Render(pd3dCommandList, this, pShader);
+	for (UI_Object* ui_obj : ui_object)
+	{
+		if(ui_obj->active)
+			ui_obj->Render(pd3dCommandList, this, pShader);
+	}
 }
 
 void UI::Update(float fTimeElapsed, bool sign)
@@ -225,15 +234,7 @@ void BAR_UI::Update(float fTimeElapsed, bool power_charge)
 
 void BAR_UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader)
 {
-	SetViewportsAndScissorRects(pd3dCommandList);
-
-	CCamera::Update_Shader_Resource(pd3dCommandList);
-
-	for (UI_Object* ui_obj : ui_object)
-	{
-		ui_obj->Render(pd3dCommandList, this, pShader);
-	}
-
+	UI::UI_Render(pd3dDevice, pd3dCommandList, pShader);
 }
 
 void BAR_UI::Set_Bar_obj(BAR_UI_Object* bar)
@@ -242,6 +243,26 @@ void BAR_UI::Set_Bar_obj(BAR_UI_Object* bar)
 		delete bar_obj;
 
 	bar_obj = bar;
+}
+
+BAR_UI_Object* BAR_UI::Get_Bar_obj()
+{
+	if (bar_obj != NULL)
+		return bar_obj;
+
+	return NULL;
+}
+
+void BAR_UI::Set_Bar_Charge_Mode(bool charge)
+{
+	if (bar_obj != NULL)
+	{
+		bar_obj->Set_Charging_Mode(charge);
+	}
+	else
+	{
+		DebugOutput("Bar_Obj is NULL");
+	}
 }
 
 float BAR_UI::Get_Degree()

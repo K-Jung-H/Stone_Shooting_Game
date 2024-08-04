@@ -77,7 +77,7 @@ using namespace DirectX::PackedVector;
 
 using Microsoft::WRL::ComPtr;
 
-enum class ParticleType {
+enum class Particle_Type {
 	Explosion,
 	Charge,
 	None,
@@ -96,6 +96,12 @@ enum class Object_Type
 	None,
 };
 
+enum class UI_Type
+{
+	Standard,
+	Bar,
+
+};
 
 extern std::default_random_engine dre;
 extern std::uniform_int_distribution<int> uid;

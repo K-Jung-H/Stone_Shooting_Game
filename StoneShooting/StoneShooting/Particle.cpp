@@ -18,7 +18,7 @@ XMFLOAT3& Get_Random_Normalize_Direction()
 
 //==========================================================
 
-Particle::Particle(ParticleType p_type)
+Particle::Particle(Particle_Type p_type)
 {
 	type = p_type;
 	active = false;
@@ -65,7 +65,7 @@ CMesh* Explosion_Particle::m_ExplosionMesh = NULL;
 bool Explosion_Particle::Setting = false;
 
 
-Explosion_Particle::Explosion_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMaterial* material, ParticleType p_type) : Particle(p_type)
+Explosion_Particle::Explosion_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMaterial* material, Particle_Type p_type) : Particle(p_type)
 {
 	m_fDuration = 1.0f;
 	m_fExplosionSpeed = 100.0f;
@@ -191,7 +191,7 @@ CMesh* Charge_Particle::m_ChargeMesh = NULL;
 bool Charge_Particle::Setting = false;
 
 Charge_Particle::Charge_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
-	float Range, float cycle_time, CMaterial* material, ParticleType p_type) : Particle(p_type)
+	float Range, float cycle_time, CMaterial* material, Particle_Type p_type) : Particle(p_type)
 {
 	m_fDuration = cycle_time;
 	Max_Range = Range;

@@ -15,6 +15,8 @@ protected:
 	ID3D12Resource* UI_Constant_Buffer = NULL;
 	CB_UI_INFO* Mapped_UI_info = NULL;
 
+	UI_Type type = UI_Type::Standard;
+
 public:
 	UI_Object(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~UI_Object();
@@ -33,6 +35,7 @@ public:
 	float Degree = 0;
 	bool Degree_increase = true;
 
+	bool Charging = false;
 public:
 
 	BAR_UI_Object(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int stick_type = 3);
@@ -40,10 +43,11 @@ public:
 
 	virtual void Update_BAR_UI_Info(ID3D12GraphicsCommandList* pd3dCommandList);
 
-	virtual void Animate(float fElapsedTime, bool power);
+	virtual void Animate(float fElapsedTime);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
 
 	float Get_Degree();
+	void Set_Charging_Mode(bool charge);
 };
 
 //================================================================================
@@ -86,7 +90,8 @@ class BAR_UI : public UI
 private:
 	BAR_UI_Object* bar_obj = NULL;
 	UI_Object* endline_obj = NULL;
-
+	float Max_Width;
+	float Max_Height;
 public:
 	BAR_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area);
 	~BAR_UI();
@@ -94,6 +99,10 @@ public:
 	virtual void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader);
 
 	void Set_Bar_obj(BAR_UI_Object* bar);
+	BAR_UI_Object* Get_Bar_obj();
+
+	void Set_Bar_Charge_Mode(bool charge);
+
 	float Get_Degree();
 	void Reset();
 };
