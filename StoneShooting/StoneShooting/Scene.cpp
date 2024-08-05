@@ -2,7 +2,25 @@
 #include "Scene.h"
 #include "Player.h"
 #include <vector>
+/*
+추가 할  내용:
 
+	gameobject->UpdateTransform(NULL); // 이게 정상 동작 가능하도록 해야 함
+
+	// 기존의 Animate 함수를 변경해야 함, 부모의 변환 행렬을 받아 동작하도록
+	// 자식 객체가 부모의 변환 행렬을 전달 받아, 해당 타입 객체의 Animate 함수에서 이 행렬을 적용하여 동작해야 함
+	Ex: m_pSibling이 StoneObject면, StoneObject의 Animate가 실행될 테니, 거기서 해당 행렬을 적용해야 함
+
+
+	void CGameObject::Animate(float fTimeElapsed, XMFLOAT4X4 * pxmf4x4Parent)
+	{
+		if (m_pSibling)
+			m_pSibling->Animate(fTimeElapsed, pxmf4x4Parent);
+		if (m_pChild)
+			m_pChild->Animate(fTimeElapsed, &m_xmf4x4World);
+	}
+
+*/
 //=========================================================================================
 CMaterial* CScene::material_color_white_stone = NULL;
 CMaterial* CScene::material_color_black_stone = NULL;
@@ -197,16 +215,57 @@ void CScene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	float Board_Half_Width = Board_Width / 2;
 	float Board_Half_Depth = Board_Depth / 2;
 
-	CPlaneMeshIlluminated* pboard = new CPlaneMeshIlluminated(pd3dDevice, pd3dCommandList, Board_Half_Width * 2.0f, Board_Half_Depth * 2.0f);
+	CPlaneMeshIlluminated* pboard_mesh = new CPlaneMeshIlluminated(pd3dDevice, pd3dCommandList, Board_Half_Width * 2.0f, Board_Half_Depth * 2.0f, 500);
 
 	m_pBoards = new CBoardObject(pd3dDevice, pd3dCommandList);
 	m_pBoards->SetPosition(0.0f, 0.0f, 0.0f);
-	m_pBoards->SetMesh(pboard);
+	m_pBoards->SetMesh(pboard_mesh);
 	m_pBoards->type = Object_Type::ETC;
 
 	m_pBoards->SetMaterial(material_color_board);
-	//m_pBoards->m_ppMaterials[0].first->SetShader(&Object_Shader[0]);
 	m_pBoards->m_xmOOBB = m_pBoards->m_pMesh->m_xmBoundingBox; // 시작할 때 한번만 하면 됨
+
+	//-------------------------------------------------------
+
+	CGameObject* board_line = NULL;
+	CPlaneMeshIlluminated* pboard_line_mesh = new CPlaneMeshIlluminated(pd3dDevice, pd3dCommandList, Board_Half_Width / 100.0f, Board_Half_Depth, 1);
+	
+	std::vector<XMFLOAT3> horizontal_line_pos;
+	horizontal_line_pos.push_back(XMFLOAT3(-50.0f, 0.3f, 0.0f));
+	horizontal_line_pos.push_back(XMFLOAT3(0.0f, 0.3f, 0.0f));
+	horizontal_line_pos.push_back(XMFLOAT3(50.0f, 0.3f, 0.0f));
+
+	for (const XMFLOAT3& pos : horizontal_line_pos)
+	{
+		board_line = new CGameObject(pd3dDevice, pd3dCommandList);
+		board_line->SetPosition(XMFLOAT3(pos));
+		board_line->SetScale(1.0f, 1.0f, 2.0f);
+		board_line->SetMesh(pboard_line_mesh);
+		board_line->type = Object_Type::ETC;
+		board_line->SetMaterial(material_color_black_particle);
+
+		m_pBoards->Add_Child(board_line);
+	}
+
+	std::vector<XMFLOAT3> vertical_line_pos;
+	XMFLOAT3 vertical_angle = XMFLOAT3{ 0.0f, 1.0f, 0.0f };
+	vertical_line_pos.push_back(XMFLOAT3(0.0f, 0.3f, -100.0f));
+	vertical_line_pos.push_back(XMFLOAT3(0.0f, 0.3f, 0.0f));
+	vertical_line_pos.push_back(XMFLOAT3(0.0f, 0.3f, 100.0f));
+
+	for (const XMFLOAT3& pos : vertical_line_pos)
+	{
+		board_line = new CGameObject(pd3dDevice, pd3dCommandList);
+		board_line->SetPosition(XMFLOAT3(pos));
+		board_line->SetScale(2.0f/3.0f,1.0f,1.0f);
+		board_line->Rotate(&vertical_angle, 90.0f);
+		board_line->SetMesh(pboard_line_mesh);
+		board_line->type = Object_Type::ETC;
+		board_line->SetMaterial(material_color_black_particle);
+
+		m_pBoards->Add_Child(board_line);
+	}
+
 }
 
 void CScene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team)
@@ -280,7 +339,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	for (XMFLOAT3& b_stone_pos : b_stone_pos_list)
 		Setting_Stone(pd3dDevice, pd3dCommandList, StoneMesh, b_stone_pos, false);
 
-	GameObject_Stone[0]->SetChild(GameObject_Stone[4]);
 
 	//===========================================================
 
@@ -288,7 +346,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	Charge_Effect->AddMaterial(material_color_black_stone);
 	Charge_Effect->active = true;
 
-//	Setting_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 0.0f, 0.0f), material_color_white_particle, Particle_Type::Explosion);
 }
 
 void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -744,14 +801,15 @@ void CScene::Defend_Overlap()
 
 void CScene::Remove_Unnecessary_Objects()
 {
-	auto unactive_stone_range = std::remove_if(GameObject_Stone.begin(), GameObject_Stone.end(), [](CGameObject* stone) {
-		if (!stone->active)
-		{
-			delete stone;
-			return true;
-		}
-		return false; });
-	GameObject_Stone.erase(unactive_stone_range, GameObject_Stone.end());
+	// 자식 객체만 사라져야 하는 일이 발생하는 경우 오류 발생 중
+	//auto unactive_stone_range = std::remove_if(GameObject_Stone.begin(), GameObject_Stone.end(), [](CGameObject* stone) {
+	//	if (!stone->active)
+	//	{
+	//		delete stone;
+	//		return true;
+	//	}
+	//	return false; });
+	//GameObject_Stone.erase(unactive_stone_range, GameObject_Stone.end());
 }
 
 void CScene::CheckObject_Out_Board_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -917,13 +975,16 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 void CScene::AnimateObjects(float fTimeElapsed)
 {
 	for (CGameObject* stone_obj : GameObject_Stone)
-		stone_obj->Animate(fTimeElapsed);
+		stone_obj->Animate(fTimeElapsed, NULL);
 
 	for (UI* ui_ptr : UI_list)
 		ui_ptr->AnimateObjects(fTimeElapsed);
 
 	for (Particle* particle : m_particle)
 		particle->Animate(fTimeElapsed);
+
+	//if (m_pBoards)
+	//	m_pBoards->Animate(fTimeElapsed, NULL);
 
 	if (Charge_Effect)
 		Charge_Effect->Animate(fTimeElapsed);
@@ -1036,7 +1097,7 @@ void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCom
 
 	for (CGameObject* gameobject : GameObject_Stone)
 	{
-		// gameobject->UpdateTransform(NULL);
+		gameobject->UpdateTransform(NULL);
 		gameobject->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
 	}
 	Particle_Render(pd3dDevice, pd3dCommandList, pCamera);

@@ -149,15 +149,6 @@ void Explosion_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandL
 	//IsVisible(pCamera)
 	if (true && active)
 	{
-		//Update_Shader_Resource(pd3dCommandList);
-		//CGameObject::Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info);
-
-		//UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255);
-		//D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
-
-		//D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialGpuVirtualAddress = Material_Constant_Buffer->GetGPUVirtualAddress();
-		//pd3dCommandList->SetGraphicsRootConstantBufferView(3, d3dcbMaterialGpuVirtualAddress);
-
 		// 위치 정보 업데이트
 		Update_Shader_Resource(pd3dCommandList);
 

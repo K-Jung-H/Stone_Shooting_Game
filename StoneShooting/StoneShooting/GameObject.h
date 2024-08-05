@@ -94,10 +94,11 @@ public:
 	XMFLOAT4X4						m_xmf4x4World = Matrix4x4::Identity();
 
 	CGameObject* m_pParent = NULL;
-	CGameObject* m_pChild = NULL;
-	CGameObject* m_pSibling = NULL;
+	std::vector<CGameObject*> m_pChild;  // 자식 노드들
+	std::vector<CGameObject*> m_pSibling;  // 형제 노드들
 
 //=========================================
+// 
 	// GPU에 있는 객체 정보 컨테이너에 대한 리소스 포인터
 	// 해당 포인터를 통해, GPU에 있는 정보 접근 가능
 	CB_GAMEOBJECT_INFO* Mapped_Object_info = NULL;
@@ -128,7 +129,8 @@ public:
 	float						m_fMovingRange = 0.0f;
 	float						m_fFriction = 2.0f;
 
-	CGameObject();
+	CGameObject() {}
+	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~CGameObject();
 
 	void AddRef();
@@ -146,11 +148,12 @@ public:
 	void AddMaterial(CMaterial* pMaterial);
 	void ChangeMaterial(UINT n);
 
-	void SetChild(CGameObject* pChild, bool bReferenceUpdate = false);
+	void Add_Child(CGameObject* pChild, bool bReferenceUpdate = false);
+	void Add_Sibling(CGameObject* pSibling, bool bReferenceUpdate = false);
+	CGameObject* GetParent() { return(m_pParent); }
 
 
 	CGameObject* FindFrame(char* pstrFrameName);
-	CGameObject* GetParent() { return(m_pParent); }
 	void UpdateTransform(XMFLOAT4X4* pxmf4x4Parent = NULL);
 	
 	virtual void Create_Object_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
@@ -164,7 +167,7 @@ public:
 
 	virtual void Release_Shader_Resource();
 
-	virtual void Animate(float fTimeElapsed);
+	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
 
 	// FLOAT3에 행렬을 적용시켜서 반환
@@ -180,7 +183,7 @@ public:
 	void SetPosition(float x, float y, float z);
 	void SetPosition(XMFLOAT3 xmf3Position);
 	void SetFriction(float f) { m_fFriction = f; }
-	
+	void SetScale(float x, float y, float z);
 	//초기 움직임 설정
 	void SetMovingDirection(XMFLOAT3& xmf3MovingDirection) { m_xmf3MovingDirection = Vector3::Normalize(xmf3MovingDirection); }
 	void SetMovingDirection_Reverse();
@@ -197,7 +200,7 @@ public:
 	//게임 객체를 회전(x-축, y-축, z-축)한다.
 	void Rotate(float fPitch = 10.0f, float fYaw = 10.0f, float fRoll = 10.0f);
 	void Rotate(XMFLOAT3* pxmf3Axis, float fAngle);
-
+	void Rotate(XMFLOAT4* pxmf4Quaternion);
 	
 	void LookTo(XMFLOAT3& xmf3LookTo, XMFLOAT3& xmf3Up);
 	void LookAt(XMFLOAT3& xmf3LookAt, XMFLOAT3& xmf3Up);
@@ -224,17 +227,18 @@ public:
 	XMFLOAT3 m_xmf3RotationAxis;
 	float m_fRotationSpeed;
 
-	CRotatingObject();
+	CRotatingObject() {}
+	CRotatingObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~CRotatingObject();
 
 	void SetRotationSpeed(float fRotationSpeed) { m_fRotationSpeed = fRotationSpeed; }
 	void SetRotationAxis(XMFLOAT3 xmf3RotationAxis) { m_xmf3RotationAxis = xmf3RotationAxis; }
 	void Rotate_to_Player(float fElapsedTime, XMFLOAT3& xmf3LookTo);
-	virtual void Animate(float fTimeElapsed);
+	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent);
 };
 
 
-class CBoardObject : public CGameObject
+class CBoardObject : public CRotatingObject
 {
 public:
 	CBoardObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
@@ -252,7 +256,7 @@ public:
 	StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~StoneObject();
 
-	virtual void Animate(float fElapsedTime);
+	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
 };
 

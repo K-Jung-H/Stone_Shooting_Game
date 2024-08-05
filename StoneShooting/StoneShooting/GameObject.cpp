@@ -74,12 +74,12 @@ void CMaterial::SetMaterialColors(CMaterialColors* pMaterialColors)
 //=================================================================================
 
 
-CGameObject::CGameObject()
+CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	m_xmf4x4Transform = Matrix4x4::Identity();
 	m_xmf4x4World = Matrix4x4::Identity();
 
-
+	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 }
 
 CGameObject::~CGameObject()
@@ -101,41 +101,48 @@ void CGameObject::AddRef()
 {
 	m_nReferences++;
 
-	if (m_pSibling) 
-		m_pSibling->AddRef();
-	if (m_pChild) 
-		m_pChild->AddRef();
+	for (CGameObject* child_ptr : m_pChild)
+		child_ptr->AddRef();
+
+	for (CGameObject* sibling_ptr : m_pSibling)
+		sibling_ptr->AddRef();
+
 }
 
 void CGameObject::Release()
 {
-	if (m_pChild)
-		m_pChild->Release();
-	if (m_pSibling) 
-		m_pSibling->Release();
+	for (CGameObject* child_ptr : m_pChild)
+		delete child_ptr;
+
+	for (CGameObject* sibling_ptr : m_pSibling)
+		delete sibling_ptr;
 
 	if (--m_nReferences <= 0) 
 		delete this;
 }
 
-void CGameObject::SetChild(CGameObject* pChild, bool bReferenceUpdate)
+void CGameObject::Add_Child(CGameObject* pChild, bool bReferenceUpdate)
 {
 	if (pChild)
 	{
 		pChild->m_pParent = this;
+
 		if (bReferenceUpdate) 
 			pChild->AddRef();
 	}
-	if (m_pChild)
+	m_pChild.push_back(pChild);
+}
+
+void CGameObject::Add_Sibling(CGameObject* pSibling, bool bReferenceUpdate)
+{
+	if (pSibling)
 	{
-		if (pChild) 
-			pChild->m_pSibling = m_pChild->m_pSibling;
-		m_pChild->m_pSibling = pChild;
+		pSibling->m_pParent = this->GetParent();
+
+		if (bReferenceUpdate)
+			pSibling->AddRef();
 	}
-	else
-	{
-		m_pChild = pChild;
-	}
+	m_pSibling.push_back(pSibling);
 }
 
 void CGameObject::SetMesh(CMesh* pMesh)
@@ -312,59 +319,39 @@ void CGameObject::Release_Shader_Resource()
 	}
 }
 
-void CGameObject::Animate(float fTimeElapsed)
-{
-	if (m_fMovingSpeed != 0.0f)
-		Move(m_xmf3MovingDirection, m_fMovingSpeed * fTimeElapsed);
-
-	UpdateFriction(fTimeElapsed);
-	UpdateBoundingBox();
-}
-
-// FLOAT3 백터를 XMFLOAT4X4 행렬에 적용한 값을 반환
-XMFLOAT3 CGameObject::ApplyTransform(XMFLOAT3 xmfloat3, XMFLOAT4X4 xmfloat4x4)
-{
-	XMVECTOR temp_pos = XMVectorSet(xmfloat3.x, xmfloat3.y, xmfloat3.z, 1.0f);
-
-	XMMATRIX worldMatrix = XMLoadFloat4x4(&xmfloat4x4);
-	temp_pos = XMVector3Transform(temp_pos, worldMatrix);
-
-	XMFLOAT3 now_pos;
-	XMStoreFloat3(&now_pos, temp_pos);
-
-	return now_pos;
-}
-
-void CGameObject::UpdateTransform(XMFLOAT4X4* pxmf4x4Parent)
-{
-	if (pxmf4x4Parent) 
-		m_xmf4x4World = Matrix4x4::Multiply(m_xmf4x4Transform, *pxmf4x4Parent);
-	else 
-		m_xmf4x4World = m_xmf4x4Transform;
-
-	if (m_pSibling)
-		m_pSibling->UpdateTransform(pxmf4x4Parent);
-
-	if (m_pChild)
-		m_pChild->UpdateTransform(&m_xmf4x4World);
-}
-
 CGameObject* CGameObject::FindFrame(char* pstrFrameName)
 {
 	CGameObject* pFrameObject = NULL;
-	if (!strncmp(FrameName, pstrFrameName, strlen(pstrFrameName))) 
+	if (!strncmp(FrameName, pstrFrameName, strlen(pstrFrameName)))
 		return(this);
 
-	if (m_pSibling) 
-		if (pFrameObject = m_pSibling->FindFrame(pstrFrameName)) 
-			return(pFrameObject);
+	for (CGameObject* sibling_ptr : m_pSibling)
+	{
+		if (sibling_ptr)
+			if (pFrameObject = sibling_ptr->FindFrame(pstrFrameName))
+				return(pFrameObject);
+	}
 
-	if (m_pChild) 
-		if (pFrameObject = m_pChild->FindFrame(pstrFrameName)) 
-			return(pFrameObject);
+	for (CGameObject* child_ptr : m_pChild)
+	{
+		if (child_ptr)
+			if (pFrameObject = child_ptr->FindFrame(pstrFrameName))
+				return(pFrameObject);
+	}
 
 	return(NULL);
 }
+
+void CGameObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
+{
+	for (CGameObject* sibling_ptr : m_pSibling)
+		sibling_ptr->Animate(fTimeElapsed, pxmf4x4Parent);
+
+	for (CGameObject* child_ptr : m_pChild)
+		child_ptr->Animate(fTimeElapsed, &m_xmf4x4World);
+
+}
+
 
 void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
@@ -394,26 +381,63 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 			pShader->Setting_Render(pd3dCommandList);
 	}
 
-	
-	if (m_pSibling) 
-		m_pSibling->Render(pd3dCommandList, pCamera, pShader);
+	for (CGameObject* sibling_ptr : m_pSibling)
+		sibling_ptr->Render(pd3dCommandList, pCamera, pShader);
 
-	if (m_pChild)
-		m_pChild->Render(pd3dCommandList, pCamera, pShader);
+	for (CGameObject* child_ptr : m_pChild)
+		child_ptr->Render(pd3dCommandList, pCamera, pShader);
+}
 
+// FLOAT3 백터를 XMFLOAT4X4 행렬에 적용한 값을 반환
+XMFLOAT3 CGameObject::ApplyTransform(XMFLOAT3 xmfloat3, XMFLOAT4X4 xmfloat4x4)
+{
+	XMVECTOR temp_pos = XMVectorSet(xmfloat3.x, xmfloat3.y, xmfloat3.z, 1.0f);
+
+	XMMATRIX worldMatrix = XMLoadFloat4x4(&xmfloat4x4);
+	temp_pos = XMVector3Transform(temp_pos, worldMatrix);
+
+	XMFLOAT3 now_pos;
+	XMStoreFloat3(&now_pos, temp_pos);
+
+	return now_pos;
+}
+
+void CGameObject::UpdateTransform(XMFLOAT4X4* pxmf4x4Parent)
+{
+	if (pxmf4x4Parent)
+		m_xmf4x4World = Matrix4x4::Multiply(m_xmf4x4Transform, *pxmf4x4Parent);
+	else
+		m_xmf4x4World = m_xmf4x4Transform;
+
+	for (CGameObject* sibling_ptr : m_pSibling)
+		sibling_ptr->UpdateTransform(pxmf4x4Parent);
+
+	for (CGameObject* child_ptr : m_pChild)
+		child_ptr->UpdateTransform(&m_xmf4x4World);
 }
 
 void CGameObject::SetPosition(float x, float y, float z)
 {
-	m_xmf4x4World._41 = x;
-	m_xmf4x4World._42 = y;
-	m_xmf4x4World._43 = z;
+	m_xmf4x4Transform._41 = x;
+	m_xmf4x4Transform._42 = y;
+	m_xmf4x4Transform._43 = z;
+
+	UpdateTransform(NULL);
 }
 
 void CGameObject::SetPosition(XMFLOAT3 xmf3Position)
 {
 	SetPosition(xmf3Position.x, xmf3Position.y, xmf3Position.z);
 }
+
+void CGameObject::SetScale(float x, float y, float z)
+{
+	XMMATRIX mtxScale = XMMatrixScaling(x, y, z);
+	m_xmf4x4Transform = Matrix4x4::Multiply(mtxScale, m_xmf4x4Transform);
+
+	UpdateTransform(NULL);
+}
+
 
 XMFLOAT3 CGameObject::GetPosition()
 {
@@ -432,8 +456,7 @@ XMFLOAT3 CGameObject::GetUp()
 //게임 객체의 로컬 x-축 벡터를 반환한다.
 XMFLOAT3 CGameObject::GetRight()
 {
-	return(Vector3::Normalize(XMFLOAT3(m_xmf4x4World._11, m_xmf4x4World._12,
-		m_xmf4x4World._13)));
+	return(Vector3::Normalize(XMFLOAT3(m_xmf4x4World._11, m_xmf4x4World._12, m_xmf4x4World._13)));
 }
 //게임 객체를 로컬 x-축 방향으로 이동한다.
 void CGameObject::MoveStrafe(float fDistance)
@@ -495,20 +518,38 @@ void CGameObject::SetMovingDirection_Reverse()
 	m_xmf3MovingDirection.z *= -1.0f;
 }
 
+
+//===========================================================================================================
 //게임 객체를 주어진 각도로 회전한다.
+
+
 void CGameObject::Rotate(float fPitch, float fYaw, float fRoll)
 {
-	XMMATRIX mtxRotate = XMMatrixRotationRollPitchYaw(XMConvertToRadians(fPitch),
-		XMConvertToRadians(fYaw), XMConvertToRadians(fRoll));
-	m_xmf4x4World = Matrix4x4::Multiply(mtxRotate, m_xmf4x4World);
+	XMMATRIX mtxRotate = XMMatrixRotationRollPitchYaw(XMConvertToRadians(fPitch), XMConvertToRadians(fYaw), XMConvertToRadians(fRoll));
+	m_xmf4x4Transform = Matrix4x4::Multiply(mtxRotate, m_xmf4x4Transform);
+
+	UpdateTransform(NULL);
 }
 
 void CGameObject::Rotate(XMFLOAT3* pxmf3Axis, float fAngle)
 {
-	XMMATRIX mtxRotate = XMMatrixRotationAxis(XMLoadFloat3(pxmf3Axis),
-		XMConvertToRadians(fAngle));
-	m_xmf4x4World = Matrix4x4::Multiply(mtxRotate, m_xmf4x4World);
+	XMMATRIX mtxRotate = XMMatrixRotationAxis(XMLoadFloat3(pxmf3Axis), XMConvertToRadians(fAngle));
+	m_xmf4x4Transform = Matrix4x4::Multiply(mtxRotate, m_xmf4x4Transform);
+
+	UpdateTransform(NULL);
 }
+
+void CGameObject::Rotate(XMFLOAT4* pxmf4Quaternion)
+{
+	XMMATRIX mtxRotate = XMMatrixRotationQuaternion(XMLoadFloat4(pxmf4Quaternion));
+	m_xmf4x4Transform = Matrix4x4::Multiply(mtxRotate, m_xmf4x4Transform);
+
+	UpdateTransform(NULL);
+}
+
+//===========================================================================================================
+
+
 
 void CGameObject::LookTo(XMFLOAT3& xmf3LookTo, XMFLOAT3& xmf3Up)
 {
@@ -560,19 +601,19 @@ int CGameObject::PickObjectByRayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT
 	if (m_pMesh)
 	{
 		XMFLOAT3 xmf3PickRayOrigin, xmf3PickRayDirection;
+
 		//모델 좌표계의 광선을 생성한다. 
-		GenerateRayForPicking(xmf3PickPosition, xmf4x4View, &xmf3PickRayOrigin, 
-		&xmf3PickRayDirection);
+		GenerateRayForPicking(xmf3PickPosition, xmf4x4View, &xmf3PickRayOrigin, &xmf3PickRayDirection);
+
 		//모델 좌표계의 광선과 메쉬의 교차를 검사한다. 
-		nIntersected = m_pMesh->CheckRayIntersection(xmf3PickRayOrigin, 
-		xmf3PickRayDirection, pfHitDistance);
+		nIntersected = m_pMesh->CheckRayIntersection(xmf3PickRayOrigin, xmf3PickRayDirection, pfHitDistance);
 	}
 	return(nIntersected);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-CRotatingObject::CRotatingObject()
+CRotatingObject::CRotatingObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) : CGameObject(pd3dDevice, pd3dCommandList)
 {
 	m_xmf3RotationAxis = XMFLOAT3(0.0f, 0.0f, 1.0f);
 	m_fRotationSpeed = 360.0f;
@@ -586,19 +627,21 @@ void CRotatingObject::Rotate_to_Player(float fElapsedTime, XMFLOAT3& xmf3LookTo)
 	LookAt(xmf3LookTo, GetLook());
 }
 
-void CRotatingObject::Animate(float fTimeElapsed)
+void CRotatingObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 {
 	if (m_fRotationSpeed != 0.0f)
 		Rotate(&m_xmf3RotationAxis, m_fRotationSpeed * fTimeElapsed);
 
-	CGameObject::Animate(fTimeElapsed);
+	CGameObject::Animate(fTimeElapsed, pxmf4x4Parent);
 
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CBoardObject::CBoardObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+CBoardObject::CBoardObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) : CRotatingObject(pd3dDevice, pd3dCommandList)
 {
+	SetRotationAxis(XMFLOAT3(0.0f, 1.0f, 0.0f));
+	SetRotationSpeed(30.0f);
 	CGameObject::Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 }
 
@@ -614,7 +657,7 @@ void CBoardObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* p
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-StoneObject::StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+StoneObject::StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) : CRotatingObject(pd3dDevice, pd3dCommandList)
 {	
 	CGameObject::Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 }
@@ -628,16 +671,27 @@ void StoneObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 	CGameObject::Render(pd3dCommandList, pCamera, pShader);
 }
 
-void StoneObject::Animate(float fElapsedTime)
+void StoneObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 {
-	CRotatingObject::Animate(fElapsedTime);
+	// 돌 객체들이 해야할 기본 애니메이션 == 이동
+	if (m_fMovingSpeed != 0.0f)
+		Move(m_xmf3MovingDirection, m_fMovingSpeed * fTimeElapsed);
 
+	// 이동한 위치를 기반으로 돌의 충돌체 업데이트
 	XMVECTOR center = XMLoadFloat3(&m_pMesh->m_xmBoundingSphere.Center);
 	XMVECTOR transformedCenter = XMVector3Transform(center, XMLoadFloat4x4(&m_xmf4x4World));
 	XMStoreFloat3(&m_xmOOSP.Center, transformedCenter);
 
+	// 마찰력 연산 및 충돌체 업데이트
+	UpdateFriction(fTimeElapsed);
+	UpdateBoundingBox();
+
+	// 충돌체 구의 반지름 업데이트
 	// 시작할때 한번만 하면 되는데 어디에 넣지
 	m_xmOOSP.Radius = m_pMesh->m_xmBoundingSphere.Radius;
+	
+	// 자식 객체가 있다면, 해당 객체들 업데이트
+	CGameObject::Animate(fTimeElapsed, pxmf4x4Parent);
 }
 
 

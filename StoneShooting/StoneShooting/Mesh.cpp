@@ -898,9 +898,9 @@ CSphereMeshIlluminated::~CSphereMeshIlluminated()
 //===============================================================================
 
 CPlaneMeshIlluminated::CPlaneMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
-	float fWidth, float fDepth) : CMeshIlluminated(pd3dDevice, pd3dCommandList)
+	float fWidth, float fDepth, int N_SubRect) : CMeshIlluminated(pd3dDevice, pd3dCommandList)
 {
-	int nSubRects = 500;
+	int nSubRects = N_SubRect;
 
 	float fHalfWidth = fWidth * 0.5f;
 	float fHalfDepth = fDepth * 0.5f;

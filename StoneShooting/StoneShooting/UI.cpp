@@ -97,10 +97,11 @@ void UI_Object::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCam
 	if (m_pMesh)
 		m_pMesh->Render(pd3dCommandList);
 
-	if (m_pSibling)
-		m_pSibling->Render(pd3dCommandList, pCamera, pShader);
-	if (m_pChild)
-		m_pChild->Render(pd3dCommandList, pCamera, pShader);
+	for (CGameObject* sibling_ptr : m_pSibling)
+		sibling_ptr->Render(pd3dCommandList, pCamera, pShader);
+
+	for (CGameObject* child_ptr : m_pChild)
+		child_ptr->Render(pd3dCommandList, pCamera, pShader);
 }
 
 //=================================================================================

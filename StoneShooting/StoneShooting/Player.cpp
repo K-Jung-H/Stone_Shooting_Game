@@ -426,7 +426,7 @@ void CAirplanePlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera
 
 void CAirplanePlayer::Animate(float fElapsedTime)
 {
-	CPlayer::Animate(fElapsedTime);
+	CPlayer::Animate(fElapsedTime, NULL);
 
 }
 
