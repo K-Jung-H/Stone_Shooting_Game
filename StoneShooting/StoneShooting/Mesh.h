@@ -203,7 +203,7 @@ class CSphereMeshIlluminated : public CMeshIlluminated
 {
 public:
 	CSphereMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
-		float fRadius = 2.0f, int nSlices = 20, int nStacks = 20);
+		float fRadius = 2.0f, int nSlices = 20, int nStacks = 20, float y_scale = 1.0f);
 	virtual ~CSphereMeshIlluminated();
 };
 

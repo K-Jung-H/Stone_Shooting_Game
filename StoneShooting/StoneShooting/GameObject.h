@@ -4,7 +4,6 @@
 
 
 
-
 class CShader;
 
 // 객체를 렌더링할 때 적용하는 상수 버퍼 데이터
@@ -260,5 +259,3 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
 };
 
-inline float RandF(float fMin, float fMax);
-XMVECTOR RandomUnitVectorOnSphere();

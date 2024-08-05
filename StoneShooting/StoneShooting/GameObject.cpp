@@ -2,23 +2,6 @@
 #include "Shader.h"
 #include "GameObject.h"
 
-inline float RandF(float fMin, float fMax)
-{
-	return(fMin + ((float)rand() / (float)RAND_MAX) * (fMax - fMin));
-}
-
-XMVECTOR RandomUnitVectorOnSphere()
-{
-	XMVECTOR xmvOne = XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
-	XMVECTOR xmvZero = XMVectorZero();
-
-	while (true)
-	{
-		XMVECTOR v = XMVectorSet(RandF(-1.0f, 1.0f), RandF(-1.0f, 1.0f), RandF(-1.0f, 1.0f), 0.0f);
-		if (!XMVector3Greater(XMVector3LengthSq(v), xmvOne)) return(XMVector3Normalize(v));
-	}
-}
-
 //=================================================================================
 
 CMaterial::CMaterial()
@@ -567,8 +550,6 @@ void CGameObject::LookAt(XMFLOAT3& xmf3LookAt, XMFLOAT3& xmf3Up)
 	m_xmf4x4World._31 = xmf4x4View._13; m_xmf4x4World._32 = xmf4x4View._23; m_xmf4x4World._33 = xmf4x4View._33;
 }
 
-
-
 bool CGameObject::IsVisible(CCamera* pCamera)
 {
 	bool bIsVisible = false;
@@ -642,7 +623,6 @@ CBoardObject::CBoardObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 {
 	SetRotationAxis(XMFLOAT3(0.0f, 1.0f, 0.0f));
 	SetRotationSpeed(30.0f);
-	CGameObject::Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 }
 
 CBoardObject::~CBoardObject()
@@ -657,9 +637,9 @@ void CBoardObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* p
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-StoneObject::StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) : CRotatingObject(pd3dDevice, pd3dCommandList)
+StoneObject::StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) 
+	: CRotatingObject(pd3dDevice, pd3dCommandList)
 {	
-	CGameObject::Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 }
 
 StoneObject::~StoneObject()
@@ -693,7 +673,5 @@ void StoneObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 	// 자식 객체가 있다면, 해당 객체들 업데이트
 	CGameObject::Animate(fTimeElapsed, pxmf4x4Parent);
 }
-
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

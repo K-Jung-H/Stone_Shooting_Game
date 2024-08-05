@@ -2,23 +2,6 @@
 #include "Player.h"
 #include "Shader.h"
 
-inline float pRandF(float fMin, float fMax)
-{
-	return(fMin + ((float)rand() / (float)RAND_MAX) * (fMax - fMin));
-}
-
-XMVECTOR pRandomUnitVectorOnSphere()
-{
-	XMVECTOR xmvOne = XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
-	XMVECTOR xmvZero = XMVectorZero();
-
-	while (true)
-	{
-		XMVECTOR v = XMVectorSet(RandF(-1.0f, 1.0f), RandF(-1.0f, 1.0f), RandF(-1.0f, 1.0f), 0.0f);
-		if (!XMVector3Greater(XMVector3LengthSq(v), xmvOne)) return(XMVector3Normalize(v));
-	}
-}
-
 
 CPlayer::CPlayer()
 {
@@ -368,7 +351,7 @@ CCamera* CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
 		SetMaxVelocityXZ(0);
 		SetMaxVelocityY(0);
-		SetPosition(XMFLOAT3(180.0f, 180.0f, 0.0f));
+		SetPosition(XMFLOAT3(150.0f, 200.0f, 0.0f));
 
 		m_pCamera = OnChangeCamera(TOP_VIEW_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.0f);

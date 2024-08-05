@@ -1,6 +1,52 @@
 #include "stdafx.h"
 #include "Particle.h"
 
+inline float RandF(float fMin, float fMax)
+{
+	return(fMin + ((float)rand() / (float)RAND_MAX) * (fMax - fMin));
+}
+
+XMVECTOR RandomUnitVectorOnSphere()
+{
+	XMVECTOR xmvOne = XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
+	XMVECTOR xmvZero = XMVectorZero();
+
+	while (true)
+	{
+		XMVECTOR v = XMVectorSet(RandF(-1.0f, 1.0f), RandF(-1.0f, 1.0f), RandF(-1.0f, 1.0f), 0.0f);
+		if (!XMVector3Greater(XMVector3LengthSq(v), xmvOne))
+			return(XMVector3Normalize(v));
+	}
+}
+
+XMVECTOR RotateVector(const XMVECTOR& vec, const XMVECTOR& axis, float angle)
+{
+	XMMATRIX rotationMatrix = XMMatrixRotationAxis(axis, angle);
+	return XMVector3TransformNormal(vec, rotationMatrix);
+}
+
+// 0,1,0 벡터가 -angle에서 angle 사이의 무작위 각도로 Z축을 기준으로 회전하고,
+// 이후 0~360도 사이의 각도로 Y축을 기준으로 추가 회전한 벡터를 반환
+XMVECTOR GetRandomRotatedVector(float angle)
+{
+	// 첫 번째 회전: 0,1,0 벡터를 Z축을 기준으로 -angle에서 angle 사이의 무작위 각도로 회전
+	XMVECTOR initialVector = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	float randomAngleDegrees = RandF(-angle, angle);
+	float randomAngleRadians = randomAngleDegrees * XM_PI / 180.0f; // 각도를 라디안으로 변환
+	XMVECTOR rotationAxisZ = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f); // Z축을 기준으로 회전
+	XMVECTOR rotatedVector = RotateVector(initialVector, rotationAxisZ, randomAngleRadians);
+
+	// 두 번째 회전: 회전된 벡터를 Y축을 기준으로 0~360도 사이의 무작위 각도로 회전
+	float additionalRotationDegrees = RandF(0.0f, 360.0f);
+	float additionalRotationRadians = additionalRotationDegrees * XM_PI / 180.0f; // 각도를 라디안으로 변환
+	XMVECTOR rotationAxisY = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f); // Y축을 기준으로 회전
+	XMVECTOR finalVector = RotateVector(rotatedVector, rotationAxisY, additionalRotationRadians);
+
+	return finalVector;
+}
+
+
+
 XMFLOAT3& Get_Random_Normalize_Direction()
 {
 	float randX = static_cast<float>(rand()) / RAND_MAX;
@@ -84,7 +130,7 @@ void Explosion_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12Graphi
 	if (Setting == false)
 	{
 		for (int i = 0; i < EXPLOSION_DEBRISES; ++i)
-			XMStoreFloat3(&Explosion_Sphere_Vectors[i], ::RandomUnitVectorOnSphere());
+			XMStoreFloat3(&Explosion_Sphere_Vectors[i], RandomUnitVectorOnSphere());
 		
 		m_ExplosionMesh = new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 5.5f, 5.5f, 5.5f);
 		Setting = true;
@@ -191,7 +237,7 @@ Charge_Particle::Charge_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	Particle_Start_Position.resize(CHARGE_DEBRISES);
 	Particle_ElapsedTime.resize(CHARGE_DEBRISES);
 	Particle_Speed.resize(CHARGE_DEBRISES);
-
+	
 
 	for (int i = 0; i < CHARGE_DEBRISES; ++i)
 	{
@@ -338,8 +384,7 @@ void Charge_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList
 void Charge_Particle::Reset()
 {
 	Active_Particle = 0;
-	//std::fill(Particle_ElapsedTime.begin(), Particle_ElapsedTime.end(), 0.0f);
-
+	
 	for (int i = 0; i < CHARGE_DEBRISES; ++i)
 	{
 		Particle_ElapsedTime[i] = 0.0f;
@@ -351,3 +396,185 @@ void Charge_Particle::Reset()
 	m_fElapsedTimes = 0.0f;
 	active = false;
 }
+
+//===========================================================================================================
+
+
+XMFLOAT3 Firework_Particle::Firework_Vectors[Firework_DEBRISES];
+CMesh* Firework_Particle::m_FireworkMesh = NULL;
+bool Firework_Particle::Setting = false;
+
+Firework_Particle::Firework_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
+	float Range, float cycle_time, CMaterial* material, Particle_Type p_type) : Particle(p_type)
+{
+	m_fDuration = cycle_time;
+	Particle_Rotation = 30.0f;
+
+	Reset();
+	active = true;
+
+	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
+	Create_Material_Buffer(pd3dDevice, pd3dCommandList);
+
+	SetMaterial(material);
+}
+
+Firework_Particle::~Firework_Particle()
+{
+}
+
+void Firework_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	if (Setting == false)
+	{
+		for (int i = 0; i < Firework_DEBRISES; ++i)
+			XMStoreFloat3(&Firework_Vectors[i], ::GetRandomRotatedVector(15.0f));
+
+		m_FireworkMesh = new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 1.5f, 1.5f, 1.5f);
+		Setting = true;
+	}
+}
+
+void Firework_Particle::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	UINT ncbElementBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
+	m_pConstant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes * Firework_DEBRISES,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+
+	m_pConstant_Buffer->Map(0, NULL, (void**)&particles_info);
+}
+
+void Firework_Particle::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
+	XMFLOAT4X4 xmf4x4World;
+	for (int i = 0; i < Firework_DEBRISES; ++i)
+	{
+		XMStoreFloat4x4(&xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_pxmf4x4Transforms[i])));
+
+		CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)(particles_info + (i * ncbGameObjectBytes));
+		::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
+	}
+}
+
+void Firework_Particle::Release_Shader_Resource()
+{
+	if (m_pConstant_Buffer)
+	{
+		m_pConstant_Buffer->Unmap(0, NULL);
+		m_pConstant_Buffer->Release();
+	}
+}
+
+void Firework_Particle::Set_Main_Direction(XMFLOAT3 Direction)
+{
+	XMVECTOR defaultDirection = XMLoadFloat3(&Default_Direction);
+	XMVECTOR targetDirection = XMLoadFloat3(&Direction);
+
+	// 회전 축과 각도를 계산
+	XMVECTOR rotationAxis = XMVector3Cross(defaultDirection, targetDirection);
+	float dotProduct = XMVectorGetX(XMVector3Dot(defaultDirection, targetDirection));
+	float angle = acosf(dotProduct);
+
+	// 회전 축의 길이 정규화
+	rotationAxis = XMVector3Normalize(rotationAxis);
+
+	XMMATRIX rotationMatrix = XMMatrixRotationAxis(rotationAxis, angle);
+
+
+	for (int i = 0; i < Firework_DEBRISES; ++i)
+	{
+		XMVECTOR particleDirection = XMLoadFloat3(&Particle_Direction[i]);
+		XMVECTOR rotatedDirection = XMVector3TransformNormal(particleDirection, rotationMatrix);
+
+		// 회전된 방향 벡터를 XMFLOAT3로 변환하여 배열에 저장
+		XMStoreFloat3(&Particle_Direction[i], rotatedDirection);
+	}
+
+	Default_Direction = Direction;
+
+}
+
+void Firework_Particle::Animate(float fElapsedTime)
+{
+	static int x = 0;
+	x += 1;
+	if (active)
+	{
+		m_fElapsedTimes += fElapsedTime;
+
+		if (Active_Particle < Firework_DEBRISES)
+			Active_Particle += 2;
+
+		XMFLOAT3 xmf3Position = GetPosition();
+
+		for (int i = 0; i < int(Active_Particle); i++)
+		{
+			Particle_ElapsedTime[i] += fElapsedTime;
+
+			m_pxmf4x4Transforms[i] = Matrix4x4::Identity();
+			// 폭죽 동작 해야 함...
+			m_pxmf4x4Transforms[i]._41 = xmf3Position.x + Particle_Direction[i].x * Particle_Speed[i] * Particle_ElapsedTime[i];
+			m_pxmf4x4Transforms[i]._42 = xmf3Position.y + Particle_Direction[i].y * Particle_Speed[i] * Particle_ElapsedTime[i];
+			m_pxmf4x4Transforms[i]._43 = xmf3Position.z + Particle_Direction[i].z * Particle_Speed[i] * Particle_ElapsedTime[i];
+
+
+			// 회전 적용
+			m_pxmf4x4Transforms[i] = Matrix4x4::Multiply(Matrix4x4::RotationAxis(Particle_Direction[i], Particle_Rotation * Particle_ElapsedTime[i]), m_pxmf4x4Transforms[i]);
+		
+
+			if (m_pxmf4x4Transforms[i]._42 >= 90.0f)
+				Particle_Direction[i].y -= 0.05f;// 0.003f;//Particle_Speed[i] * Particle_ElapsedTime[i];
+		}
+	}
+
+}
+void Firework_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	//IsVisible(pCamera)
+
+	if (true && active)
+	{
+		// 위치 정보 업데이트
+		Update_Shader_Resource(pd3dCommandList);
+
+		UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255);
+		D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
+
+		// 활성화된 재질의 정보 업데이트
+		for (int i = 0; i < m_ppMaterials.size(); ++i)
+			if (m_ppMaterials[i].second == true)
+				CGameObject::Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info, i);
+
+		if (m_FireworkMesh)
+		{
+			for (int j = 0; j < int(Active_Particle); ++j)
+			{
+				pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * j));
+
+				m_FireworkMesh->Render(pd3dCommandList);
+
+			}
+		}
+	}
+}
+
+void Firework_Particle::Reset()
+{
+	Particle_Speed.resize(Firework_DEBRISES);
+	Particle_Direction.resize(Firework_DEBRISES);
+	Particle_ElapsedTime.resize(Firework_DEBRISES);
+
+	for (int i = 0; i < Firework_DEBRISES; ++i)
+	{
+		Particle_ElapsedTime[i] = 0.0f;
+		Particle_Direction[i] = Firework_Vectors[i];
+		Particle_Speed[i] = 200.0f;
+	}
+
+	Active_Particle = 0;
+	m_fElapsedTimes = 0.0f;
+	active = false;
+}
+
+

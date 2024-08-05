@@ -1,6 +1,10 @@
 #pragma once
 #include "GameObject.h"
 
+inline float RandF(float fMin, float fMax);
+XMVECTOR RandomUnitVectorOnSphere();
+XMVECTOR GetRandomRotatedVector(float angle);
+XMVECTOR RotateVector(const XMVECTOR& vec, const XMVECTOR& axis, float angle);
 
 
 class Particle : public CRotatingObject
@@ -74,6 +78,7 @@ class Charge_Particle : public Particle
 	std::vector<XMFLOAT3> Particle_Start_Position; // 각 입자의 시작 위치
 	std::vector<float> Particle_ElapsedTime; // 각 입자의 경과 시간
 	std::vector<float> Particle_Speed; // 입자별 속도
+
 	float						Max_Range = 100.0f;
 	float						m_fChargeSpeed = 10.0f;
 	float						Rotation_Orbit = 200.0f;
@@ -96,5 +101,48 @@ public:
 
 	virtual void Animate(float fElapsedTime);
 	virtual void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	virtual void Reset();
+};
+
+#define Firework_DEBRISES 200
+
+class Firework_Particle : public Particle
+{
+	static bool Setting;
+	static CMesh* m_FireworkMesh;
+	static XMFLOAT3				Firework_Vectors[Firework_DEBRISES];
+	XMFLOAT4X4					m_pxmf4x4Transforms[Firework_DEBRISES];
+
+	std::vector<float> Particle_Speed; // 입자별 속도 == 시간이 지나갈수록 점점 느려지고, 최고점을 찍으면 점점 빨라져야 함
+	std::vector<XMFLOAT3>Particle_Direction; // 입자는 시간이 지날수록 방향이 아래로 향해야 함
+	std::vector<float> Particle_ElapsedTime; // 각 입자의 경과 시간
+
+	float							Active_Particle = 0;
+
+	XMFLOAT3					Default_Direction = { 0.0f,1.0f,0.0f };
+	float						Max_Height = 30.0f;
+	float						slope = 10.0f; // 사이 각도
+	
+
+public:
+	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+
+	Firework_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
+		float Range, float cycle_time, CMaterial* material, Particle_Type p_type = Particle_Type::Firework);
+
+	virtual ~Firework_Particle();
+
+
+	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Release_Shader_Resource();
+
+
+	void Set_Main_Direction(XMFLOAT3 Direction);
+
+	virtual void Animate(float fElapsedTime);
+
+	virtual void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+
 	virtual void Reset();
 };

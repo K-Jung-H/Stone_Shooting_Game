@@ -780,7 +780,7 @@ CCubeMeshIlluminated::~CCubeMeshIlluminated()
 //===============================================================================
 
 CSphereMeshIlluminated::CSphereMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
-	float fRadius, int nSlices, int nStacks) : CMeshIlluminated(pd3dDevice, pd3dCommandList)
+	float fRadius, int nSlices, int nStacks, float y_scale) : CMeshIlluminated(pd3dDevice, pd3dCommandList)
 {
 	m_nStride = sizeof(CIlluminatedVertex);
 	m_d3dPrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -795,8 +795,6 @@ CSphereMeshIlluminated::CSphereMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12G
 	float fDeltaPhi = float(XM_PI / nStacks);
 	float fDeltaTheta = float((2.0f * XM_PI) / nSlices);
 	float theta_i, phi_j;
-
-	float y_scale = 0.5f;
 
 	int k = 0;
 

@@ -122,7 +122,6 @@ public:
 
 };
 
-#define BULLETS					50
 
 class CAirplanePlayer : public CPlayer
 {
@@ -139,8 +138,6 @@ public:
 
 
 	bool game_over = false;
-	float Life{ 3 };
-	float						m_fBulletEffectiveRange = 150.0f;
 	
 	//==================================================
 };

@@ -4,7 +4,7 @@
 #include "Shader.h"
 #include "Particle.h"
 #include "UI.h"
-
+#include "Item.h"
 
 struct LIGHT
 {
@@ -49,10 +49,11 @@ public:
 	void Scene_Update(float fTimeElapsed);
 
 	void Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
-
 	void Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	void Item_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+
 	void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	
+
 	void ReleaseUploadBuffers();
 
 	//그래픽 루트 시그너쳐를 생성한다. 
@@ -109,7 +110,9 @@ public:
 	void Defend_Overlap();
 	void Remove_Unnecessary_Objects();
 
+	void Setting_Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, Item_Type type);
 	void Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, CMaterial* material, Particle_Type type);
+	
 	//=============================================
 private:
 	CCamera* pMainCamera = NULL;
@@ -169,6 +172,8 @@ public:
 	std::vector<CGameObject*> GameObject_Stone;
 	int Scene_GameObjects_N = 0;
 
+
+	std::vector<Item*> Game_Items;
 	std::vector<Particle*>m_particle;
 
 

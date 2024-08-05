@@ -80,6 +80,7 @@ using Microsoft::WRL::ComPtr;
 enum class Particle_Type {
 	Explosion,
 	Charge,
+	Firework,
 	None,
 };
 
@@ -94,6 +95,13 @@ enum class Object_Type
 	Stone,
 	ETC,
 	None,
+};
+
+enum class Item_Type
+{
+	Double_Power,
+	ETC,
+
 };
 
 enum class UI_Type

@@ -5,21 +5,6 @@
 /*
 추가 할  내용:
 
-	gameobject->UpdateTransform(NULL); // 이게 정상 동작 가능하도록 해야 함
-
-	// 기존의 Animate 함수를 변경해야 함, 부모의 변환 행렬을 받아 동작하도록
-	// 자식 객체가 부모의 변환 행렬을 전달 받아, 해당 타입 객체의 Animate 함수에서 이 행렬을 적용하여 동작해야 함
-	Ex: m_pSibling이 StoneObject면, StoneObject의 Animate가 실행될 테니, 거기서 해당 행렬을 적용해야 함
-
-
-	void CGameObject::Animate(float fTimeElapsed, XMFLOAT4X4 * pxmf4x4Parent)
-	{
-		if (m_pSibling)
-			m_pSibling->Animate(fTimeElapsed, pxmf4x4Parent);
-		if (m_pChild)
-			m_pChild->Animate(fTimeElapsed, &m_xmf4x4World);
-	}
-
 */
 //=========================================================================================
 CMaterial* CScene::material_color_white_stone = NULL;
@@ -54,7 +39,7 @@ void CScene::Build_Lights_and_Materials()
 	m_pLights->m_pLights[0].m_xmf4Ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	m_pLights->m_pLights[0].m_xmf4Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	m_pLights->m_pLights[0].m_xmf4Specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_pLights->m_pLights[0].m_xmf3Position = XMFLOAT3(0.0f, 10.0f, 0.0f);
+	m_pLights->m_pLights[0].m_xmf3Position = XMFLOAT3(0.0f, 50.0f, 0.0f);
 	m_pLights->m_pLights[0].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	m_pLights->m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
@@ -198,6 +183,9 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 {
 	Explosion_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
 	Charge_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
+	Firework_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
+
+	Item::Prepare_Item(pd3dDevice, pd3dCommandList);
 	Build_Lights_and_Materials();
 
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
@@ -208,6 +196,16 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 	
 	BuildObjects(pd3dDevice, pd3dCommandList);
 	BuildUIs(pd3dDevice, pd3dCommandList);
+
+
+	// 미리 생성하여 준비
+	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material_color_white_stone, Particle_Type::Charge);
+	Charge_Effect->AddMaterial(material_color_black_stone);
+	Charge_Effect->active = true;
+	
+	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 10.0f, 0.0f), Item_Type::Double_Power);
+
+	Setting_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 10.0f, 0.0f), material_color_black_particle, Particle_Type::Firework);
 }
 
 void CScene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float Board_Width, float Board_Depth)
@@ -308,11 +306,13 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	Object_Shader = new CObjectsShader[N_Object_Shader];
 	Object_Shader[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
 	//===========================================================
+
 	Create_Board(pd3dDevice, pd3dCommandList, 200, 600);
+
 	//===========================================================
 
 
-	CSphereMeshIlluminated* StoneMesh = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 6.0f, 20, 20);
+	CSphereMeshIlluminated* StoneMesh = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 8.0f, 20, 20, 0.5f);
 	std::vector<XMFLOAT3> w_stone_pos_list;
 	
 	w_stone_pos_list.push_back({ -50, 5, 100 });
@@ -342,9 +342,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	//===========================================================
 
-	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material_color_white_stone, Particle_Type::Charge);
-	Charge_Effect->AddMaterial(material_color_black_stone);
-	Charge_Effect->active = true;
 
 }
 
@@ -924,6 +921,28 @@ bool CScene::Check_GameOver()
 		return false;
 }
 
+void CScene::Setting_Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, Item_Type type)
+{
+	Item* item = NULL;
+
+	switch (type)
+	{
+
+	case Item_Type::Double_Power:
+	{
+		item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Double_Power); 
+		item->SetActive(true);
+		item->SetPosition(pos);
+		Game_Items.push_back(item);
+	}
+	break;
+
+	case Item_Type::ETC:
+	default:
+		break;
+	}
+}
+
 void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, CMaterial* material, Particle_Type type)
 {
 	bool Done = false;
@@ -964,6 +983,17 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		}
 		break;
 
+		case Particle_Type::Firework:
+		{
+			particle = new Firework_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material, Particle_Type::Firework);
+			particle->SetActive(true);
+			particle->SetPosition(pos);
+			//((Firework_Particle*)particle)->Set_Main_Direction(XMFLOAT3(0.5f, 0.5f, 0.0f));
+			m_particle.push_back(particle);
+			
+		}
+		break;
+
 		case Particle_Type::None:
 		default:
 			break;
@@ -977,11 +1007,15 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	for (CGameObject* stone_obj : GameObject_Stone)
 		stone_obj->Animate(fTimeElapsed, NULL);
 
-	for (UI* ui_ptr : UI_list)
-		ui_ptr->AnimateObjects(fTimeElapsed);
+
+	for (Item* item : Game_Items)
+		item->Animate(fTimeElapsed, NULL);
 
 	for (Particle* particle : m_particle)
 		particle->Animate(fTimeElapsed);
+
+	for (UI* ui_ptr : UI_list)
+		ui_ptr->AnimateObjects(fTimeElapsed);
 
 	//if (m_pBoards)
 	//	m_pBoards->Animate(fTimeElapsed, NULL);
@@ -1100,15 +1134,12 @@ void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCom
 		gameobject->UpdateTransform(NULL);
 		gameobject->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
 	}
+	
+	//Item_Render(pd3dDevice, pd3dCommandList, pCamera);
+
 	Particle_Render(pd3dDevice, pd3dCommandList, pCamera);
 
 	UI_Render(pd3dDevice, pd3dCommandList);
-
-	//=======================플레이어 렌더링 =======================
-	//CAirplanePlayer* pPlayer = (CAirplanePlayer*)m_pPlayer;
-	//if (m_pPlayer)
-	//	pPlayer->Render(pd3dCommandList, pCamera);
-
 }
 void CScene::Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {	
@@ -1133,6 +1164,19 @@ void CScene::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 		{
 			ui_ptr->UI_Render(pd3dDevice, pd3dCommandList, UI_Shader);
 		}
+}
+
+void CScene::Item_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
+	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
+	pCamera->Update_Shader_Resource(pd3dCommandList);
+
+	for (Item* item : Game_Items)
+	{
+		item->UpdateTransform(NULL);
+		item->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
+	}
 }
 
 CGameObject* CScene::PickObjectPointedByCursor(int xClient, int yClient, CCamera* pCamera)
