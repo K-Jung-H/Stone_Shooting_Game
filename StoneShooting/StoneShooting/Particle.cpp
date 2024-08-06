@@ -501,30 +501,28 @@ void Firework_Particle::Animate(float fElapsedTime)
 	x += 1;
 	if (active)
 	{
-		m_fElapsedTimes += fElapsedTime;
-
 		if (Active_Particle < Firework_DEBRISES)
-			Active_Particle += 2;
+			Active_Particle += 1;
+
+		m_fElapsedTimes += fElapsedTime;
 
 		XMFLOAT3 xmf3Position = GetPosition();
 
-		for (int i = 0; i < int(Active_Particle); i++)
+		for (int i = 0; i < int(Active_Particle); ++i)
 		{
 			Particle_ElapsedTime[i] += fElapsedTime;
 
+			if (-1.0f <= Particle_Direction[i].y)
+				Particle_Direction[i].y -= 0.5f * fElapsedTime;
+
 			m_pxmf4x4Transforms[i] = Matrix4x4::Identity();
-			// 폭죽 동작 해야 함...
 			m_pxmf4x4Transforms[i]._41 = xmf3Position.x + Particle_Direction[i].x * Particle_Speed[i] * Particle_ElapsedTime[i];
 			m_pxmf4x4Transforms[i]._42 = xmf3Position.y + Particle_Direction[i].y * Particle_Speed[i] * Particle_ElapsedTime[i];
 			m_pxmf4x4Transforms[i]._43 = xmf3Position.z + Particle_Direction[i].z * Particle_Speed[i] * Particle_ElapsedTime[i];
 
-
 			// 회전 적용
 			m_pxmf4x4Transforms[i] = Matrix4x4::Multiply(Matrix4x4::RotationAxis(Particle_Direction[i], Particle_Rotation * Particle_ElapsedTime[i]), m_pxmf4x4Transforms[i]);
-		
 
-			if (m_pxmf4x4Transforms[i]._42 >= 90.0f)
-				Particle_Direction[i].y -= 0.05f;// 0.003f;//Particle_Speed[i] * Particle_ElapsedTime[i];
 		}
 	}
 

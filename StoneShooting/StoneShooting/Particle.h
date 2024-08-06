@@ -120,7 +120,7 @@ class Firework_Particle : public Particle
 	float							Active_Particle = 0;
 
 	XMFLOAT3					Default_Direction = { 0.0f,1.0f,0.0f };
-	float						Max_Height = 30.0f;
+	float						Max_Height = 60.0f;
 	float						slope = 10.0f; // 사이 각도
 	
 

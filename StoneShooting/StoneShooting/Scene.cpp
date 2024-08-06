@@ -5,6 +5,17 @@
 /*
 추가 할  내용:
 
+폭죽의 애니메이션은 완성
+
+렌더링 시, 현재 파티클의 인덱스 % 4 == 0 , 1, 2, 3 를 활용하여 파티클 별 색깔을 변경할 생각임.
+
+필요하면, 폭죽 파티클에 재질 버퍼를 별도로 생성할 생각도 해야 함.
+
+for문에서 처리 가능하다면 거기서 처리하도록 하고,
+
+AddMaterial 함수는 재질을 하나만 활성화 하도록 구현되어 있으니까, 
+
+폭죽 파티클 생성시, 자체적으로 비활성화 된 재질들을 활성화 시키는 동작이 필요함
 */
 //=========================================================================================
 CMaterial* CScene::material_color_white_stone = NULL;
@@ -988,7 +999,12 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			particle = new Firework_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material, Particle_Type::Firework);
 			particle->SetActive(true);
 			particle->SetPosition(pos);
-			//((Firework_Particle*)particle)->Set_Main_Direction(XMFLOAT3(0.5f, 0.5f, 0.0f));
+
+			particle->SetMaterial(material_color_item_inner_red);
+			particle->AddMaterial(material_color_item_outer);
+			particle->AddMaterial(material_color_item_inner_blue);
+			particle->SetMaterial(material_color_item_inner_green);
+
 			m_particle.push_back(particle);
 			
 		}
