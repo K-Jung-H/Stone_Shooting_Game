@@ -104,10 +104,14 @@ public:
 	virtual void Reset();
 };
 
-#define Firework_DEBRISES 200
+#define Firework_DEBRISES 300
 
 class Firework_Particle : public Particle
 {
+	UINT8* firework_material_info = NULL;
+	ID3D12Resource* firework_Constant_Buffer;
+
+
 	static bool Setting;
 	static CMesh* m_FireworkMesh;
 	static XMFLOAT3				Firework_Vectors[Firework_DEBRISES];

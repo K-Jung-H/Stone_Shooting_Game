@@ -408,13 +408,12 @@ Firework_Particle::Firework_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 	float Range, float cycle_time, CMaterial* material, Particle_Type p_type) : Particle(p_type)
 {
 	m_fDuration = cycle_time;
-	Particle_Rotation = 30.0f;
+	Particle_Rotation = 300.0f;
 
 	Reset();
 	active = true;
 
 	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
-	Create_Material_Buffer(pd3dDevice, pd3dCommandList);
 
 	SetMaterial(material);
 }
@@ -430,23 +429,36 @@ void Firework_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12Graphic
 		for (int i = 0; i < Firework_DEBRISES; ++i)
 			XMStoreFloat3(&Firework_Vectors[i], ::GetRandomRotatedVector(15.0f));
 
-		m_FireworkMesh = new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 1.5f, 1.5f, 1.5f);
+		m_FireworkMesh = new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 3.0f, 1.0f, 3.0f);
 		Setting = true;
 	}
 }
 
 void Firework_Particle::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	UINT ncbElementBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
-	m_pConstant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes * Firework_DEBRISES,
+	UINT ncbElementBytes1 = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
+	m_pConstant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes1 * Firework_DEBRISES,
 		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 
 	m_pConstant_Buffer->Map(0, NULL, (void**)&particles_info);
+
+	//-------------------------------------------------------------------
+
+	// 게임 재질 버퍼 생성 및 매핑
+	UINT ncbElementBytes2 = ((sizeof(CB_MATERIAL_INFO) + 255) & ~255); //256의 배수
+	firework_Constant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes2 * Firework_DEBRISES,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+
+	firework_Constant_Buffer->Map(0, NULL, (void**)&firework_material_info);
+
+
 }
 
 void Firework_Particle::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
+	UINT ncbMaterialBytes = ((sizeof(CB_MATERIAL_INFO) + 255) & ~255);
+
 	XMFLOAT4X4 xmf4x4World;
 	for (int i = 0; i < Firework_DEBRISES; ++i)
 	{
@@ -454,6 +466,18 @@ void Firework_Particle::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCo
 
 		CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)(particles_info + (i * ncbGameObjectBytes));
 		::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
+
+		//-------------------------------------------------------------------
+
+
+		int T = i % 5;
+		CMaterialColors* colors = m_ppMaterials[T].first->Material_Colors;
+
+		CB_MATERIAL_INFO* pbMappedMaterial = (CB_MATERIAL_INFO*)(firework_material_info + (i * ncbMaterialBytes));
+		::memcpy(&pbMappedMaterial->m_cAmbient, &colors->m_xmf4Ambient, sizeof(XMFLOAT4));
+		::memcpy(&pbMappedMaterial->m_cDiffuse, &colors->m_xmf4Diffuse, sizeof(XMFLOAT4));
+		::memcpy(&pbMappedMaterial->m_cSpecular, &colors->m_xmf4Specular, sizeof(XMFLOAT4));
+		::memcpy(&pbMappedMaterial->m_cEmissive, &colors->m_xmf4Emissive, sizeof(XMFLOAT4));
 	}
 }
 
@@ -530,25 +554,25 @@ void Firework_Particle::Animate(float fElapsedTime)
 void Firework_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
 	//IsVisible(pCamera)
-
 	if (true && active)
 	{
 		// 위치 정보 업데이트
 		Update_Shader_Resource(pd3dCommandList);
 
 		UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255);
+		UINT ncbMaterialBytes = ((sizeof(CB_MATERIAL_INFO) + 255) & ~255);
+
 		D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
 
-		// 활성화된 재질의 정보 업데이트
-		for (int i = 0; i < m_ppMaterials.size(); ++i)
-			if (m_ppMaterials[i].second == true)
-				CGameObject::Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info, i);
+		D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialGpuVirtualAddress = firework_Constant_Buffer->GetGPUVirtualAddress();
 
 		if (m_FireworkMesh)
 		{
 			for (int j = 0; j < int(Active_Particle); ++j)
 			{
 				pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * j));
+				pd3dCommandList->SetGraphicsRootConstantBufferView(3, d3dcbMaterialGpuVirtualAddress + (ncbMaterialBytes * j));
+
 
 				m_FireworkMesh->Render(pd3dCommandList);
 
