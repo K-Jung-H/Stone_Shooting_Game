@@ -333,6 +333,7 @@ void CGameObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 	for (CGameObject* child_ptr : m_pChild)
 		child_ptr->Animate(fTimeElapsed, &m_xmf4x4World);
 
+	UpdateBoundingBox();
 }
 
 
@@ -397,6 +398,8 @@ void CGameObject::UpdateTransform(XMFLOAT4X4* pxmf4x4Parent)
 
 	for (CGameObject* child_ptr : m_pChild)
 		child_ptr->UpdateTransform(&m_xmf4x4World);
+
+	UpdateBoundingBox();
 }
 
 void CGameObject::SetPosition(float x, float y, float z)
@@ -475,6 +478,7 @@ void CGameObject::Move(XMFLOAT3& vDirection, float fSpeed)
 
 void CGameObject::UpdateBoundingBox()
 {
+	// 추후에 계층 구조에 맞춰 업데이트 할 필요 있음
 	if (m_pMesh)
 	{
 		m_pMesh->m_xmBoundingBox.Transform(m_xmOOBB, XMLoadFloat4x4(&m_xmf4x4World));

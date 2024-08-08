@@ -90,8 +90,9 @@ public:
 
 	void Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team);
 
-	void CheckObjectByObjectCollisions();
-	void CheckObject_Out_Board_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void Check_Stones_Collisions();
+	void Check_Board_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void Check_Item_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	void Shoot_Stone(float power);
 
@@ -170,8 +171,6 @@ public:
 
 	// 그려질 모든 게임 객체들
 	std::vector<CGameObject*> GameObject_Stone;
-	int Scene_GameObjects_N = 0;
-
 
 	std::vector<Item*> Game_Items;
 	std::vector<Particle*>m_particle;
@@ -183,11 +182,9 @@ public:
 	UI* ui_com_power;
 	UI* ui_com_power_endline;
 
-	CGameObject* m_pSelectedObject = NULL; // 피킹된 것
 	Charge_Particle* Charge_Effect = NULL;
 
 
-	int m_nGameObjects = 0;
 
 	float m_fElapsedTime = 0.0f;
 
@@ -202,8 +199,17 @@ public:
 	bool power_charge = false;
 	int power_degree = 0;
 
+	struct Game_Player
+	{
+		std::unordered_map<Item_Type, int> Item_Inventory;
+		std::vector<StoneObject*> stone_list; 
+		StoneObject* select_Stone; // 피킹된 것
+	}player1;
+
+
 	struct Computer
 	{
+		std::vector<StoneObject*> stone_list;
 		StoneObject* select_Stone;
 		StoneObject* target_Stone;
 		float random_time = -1;

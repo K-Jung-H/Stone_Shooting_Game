@@ -8,15 +8,12 @@ extern CMaterial* material_color_item_inner_blue;
 
 class Item : public CRotatingObject
 {
-private:
-	Item_Type item_type = Item_Type::ETC;
-
 protected:
 	CRotatingObject* outer_frame = NULL;
 	CGameObject* inner_frame = NULL;
 
 public:
-
+	Item_Type item_type = Item_Type::ETC;
 	static CMesh* outer_Mesh;
 	static CMesh* inner_Mesh;
 	static void Prepare_Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);

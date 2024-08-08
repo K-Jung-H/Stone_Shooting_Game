@@ -1,26 +1,28 @@
 #include "stdafx.h"
 #include "Scene.h"
 #include "Player.h"
-#include <vector>
+
 /*
 추가 할  내용:
 
-폭죽의 애니메이션은 완성
+특정 키를 눌렀을 때, 획득한 아이템을 확인할 수 있는 UI 필요
+새로운 타입의 UI를 만들어서 해결하기
 
-렌더링 시, 현재 파티클의 인덱스 % 4 == 0 , 1, 2, 3 를 활용하여 파티클 별 색깔을 변경할 생각임
--> 쉐이더 버퍼 업데이트 할때, 저장되어 있는 재질을 반복해서 선택하도록 해두었음
+UI에는 아이템 모델이 그려지고 그 밑에 숫자가 나오면 좋을듯
 
+보드에서 우클릭으로 돌을 골라 해당 돌이 사용할 아이템을 미리 정하도록 하고, 우클릭은 시점 변화가 안 일어나야 함
+			+
+돌 시점에서, 특정 키를 누르면 현재 돌이 사용할 아이템 선택 할 수 있도록 하기
 
-필요하면, 폭죽 파티클에 재질 버퍼를 별도로 생성할 생각도 해야 함.
--> 폭죽 파티클은 오브젝트에서 사용하는 재질 버퍼를 사용하지 않음. // 애초에 Particle은 GameObject의 생성자 호출 안함 
--> 게임 객체에서 사용하던 불 필요한 버퍼 생성 안함
+돌 객체에 현재 돌에 적용된 아이템을 변수로 저장하도록 할 것
 
+-------------------추가 희망 사항-------------
+우클릭으로 선택한 돌에 윤곽선이 생겼으면 좋겠음
 
-폭죽 파티클 생성시, 자체적으로 비활성화 된 재질들을 활성화 시키는 동작이 필요함
--> 렌더링 과정이 일반 게임 오브젝트 렌더링과 다른 방식이므로, 동작에 차별화를 두어 해결
+Scene에 player1로 빼놓은 객체를 최대한 활용하면 좋을 듯
 
+특정 연산에서는 해당 객체에 저장된 돌들만 사용해서 연산 하도록.
 
-저장되어있는 재질의 개수를 파악하고 그 개수와 연동되도록 동작하게 하면 됨.
 
 */
 //=========================================================================================
@@ -220,9 +222,12 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 	Charge_Effect->AddMaterial(material_color_black_stone);
 	Charge_Effect->active = true;
 	
-	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 10.0f, 0.0f), Item_Type::Double_Power);
+	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(30.0f, 10.0f, 0.0f), Item_Type::Double_Power);
+	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 10.0f, 0.0f), Item_Type::Ghost);
 
-	Setting_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 10.0f, 0.0f), material_color_black_particle, Particle_Type::Firework);
+
+
+//	Setting_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 10.0f, 0.0f), material_color_black_particle, Particle_Type::Firework);
 }
 
 void CScene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float Board_Width, float Board_Depth)
@@ -312,6 +317,10 @@ void CScene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 	pStoneObject->SetMovingSpeed(0.0f);									// Default
 
 	pStoneObject->player_team = player_team;
+	if (player_team)
+		player1.stone_list.push_back(pStoneObject);
+	else
+		computer.stone_list.push_back(pStoneObject);
 
 	GameObject_Stone.push_back(pStoneObject);
 }
@@ -658,7 +667,92 @@ void CScene::CreateGraphicsPipelineState(ID3D12Device* pd3dDevice)
 	if (pd3dPixelShaderBlob) pd3dPixelShaderBlob->Release();
 }
 
-void CScene::CheckObjectByObjectCollisions()
+
+void CScene::Defend_Overlap()
+{
+	int objs_N = GameObject_Stone.size();
+
+	// 충돌 체크 및 overlaped 상태 설정
+	for (int i = 0; i < objs_N; ++i)
+	{
+		auto* stone_1 = static_cast<StoneObject*>(GameObject_Stone[i]);
+		if (!stone_1->active || stone_1->m_fMovingSpeed > 1.0f)
+			continue;
+
+		for (int j = i + 1; j < objs_N; ++j)
+		{
+			auto* stone_2 = static_cast<StoneObject*>(GameObject_Stone[j]);
+			if (!stone_2->active || stone_2->m_fMovingSpeed > 1.0f)
+				continue;
+
+			if (stone_1->m_xmOOSP.Intersects(stone_2->m_xmOOSP) != DISJOINT)
+			{
+				// 객체를 overlaped 상태로 설정
+				if (stone_1->Overlaped == NULL)
+				{
+					stone_1->Overlaped = stone_2;
+					stone_2->Overlaped = stone_1;
+				}
+			}
+		}
+	}
+
+	// 충돌 처리
+	for (int i = 0; i < objs_N; ++i)
+	{
+		auto* stone_1 = static_cast<StoneObject*>(GameObject_Stone[i]);
+		if (stone_1->Overlaped)
+		{
+			auto* stone_2 = stone_1->Overlaped;
+
+			// 충돌 방향 계산
+			XMFLOAT3 Diff_Pos = XMFLOAT3(
+				stone_2->GetPosition().x - stone_1->GetPosition().x,
+				stone_2->GetPosition().y - stone_1->GetPosition().y,
+				stone_2->GetPosition().z - stone_1->GetPosition().z);
+			XMVECTOR Diff_Vec = XMLoadFloat3(&Diff_Pos);
+			Diff_Vec = XMVector3Normalize(Diff_Vec);
+
+			// 새 이동 방향 설정
+			XMVECTOR New_Speed1 = -Diff_Vec;
+			XMVECTOR New_Speed2 = Diff_Vec;
+
+			stone_1->m_xmf3MovingDirection = XMFLOAT3(XMVectorGetX(New_Speed1), XMVectorGetY(New_Speed1), XMVectorGetZ(New_Speed1));
+			stone_2->m_xmf3MovingDirection = XMFLOAT3(XMVectorGetX(New_Speed2), XMVectorGetY(New_Speed2), XMVectorGetZ(New_Speed2));
+
+			stone_1->m_fMovingSpeed = 5.0f; // 밀어내는 속도
+			stone_2->m_fMovingSpeed = 5.0f; // 밀어내는 속도
+		}
+	}
+
+	// overlaped 상태 정리
+	for (int i = 0; i < objs_N; ++i)
+	{
+		auto* stone_1 = static_cast<StoneObject*>(GameObject_Stone[i]);
+		if (stone_1->Overlaped && stone_1->m_xmOOSP.Intersects(stone_1->Overlaped->m_xmOOSP) == DISJOINT)
+		{
+			stone_1->Overlaped->Overlaped = NULL;
+			stone_1->Overlaped = NULL;
+		}
+	}
+}
+
+void CScene::Remove_Unnecessary_Objects()
+{
+	// 자식 객체만 사라져야 하는 일이 발생하는 경우 오류 발생 중
+	//auto unactive_stone_range = std::remove_if(GameObject_Stone.begin(), GameObject_Stone.end(), [](CGameObject* stone) {
+	//	if (!stone->active)
+	//	{
+	//		delete stone;
+	//		return true;
+	//	}
+	//	return false; });
+	//GameObject_Stone.erase(unactive_stone_range, GameObject_Stone.end());
+}
+
+
+
+void CScene::Check_Stones_Collisions()
 {
 	// CShader 벡터의 참조를 임시 변수에 저장
 	int objs_N = GameObject_Stone.size();
@@ -743,90 +837,7 @@ void CScene::CheckObjectByObjectCollisions()
 		}
 	}
 }
-
-void CScene::Defend_Overlap()
-{
-	int objs_N = GameObject_Stone.size();
-
-	// 충돌 체크 및 overlaped 상태 설정
-	for (int i = 0; i < objs_N; ++i)
-	{
-		auto* stone_1 = static_cast<StoneObject*>(GameObject_Stone[i]);
-		if (!stone_1->active || stone_1->m_fMovingSpeed > 1.0f)
-			continue;
-
-		for (int j = i + 1; j < objs_N; ++j)
-		{
-			auto* stone_2 = static_cast<StoneObject*>(GameObject_Stone[j]);
-			if (!stone_2->active || stone_2->m_fMovingSpeed > 1.0f)
-				continue;
-
-			if (stone_1->m_xmOOSP.Intersects(stone_2->m_xmOOSP) != DISJOINT)
-			{
-				// 객체를 overlaped 상태로 설정
-				if (stone_1->Overlaped == NULL)
-				{
-					stone_1->Overlaped = stone_2;
-					stone_2->Overlaped = stone_1;
-				}
-			}
-		}
-	}
-
-	// 충돌 처리
-	for (int i = 0; i < objs_N; ++i)
-	{
-		auto* stone_1 = static_cast<StoneObject*>(GameObject_Stone[i]);
-		if (stone_1->Overlaped)
-		{
-			auto* stone_2 = stone_1->Overlaped;
-
-			// 충돌 방향 계산
-			XMFLOAT3 Diff_Pos = XMFLOAT3(
-				stone_2->GetPosition().x - stone_1->GetPosition().x,
-				stone_2->GetPosition().y - stone_1->GetPosition().y,
-				stone_2->GetPosition().z - stone_1->GetPosition().z);
-			XMVECTOR Diff_Vec = XMLoadFloat3(&Diff_Pos);
-			Diff_Vec = XMVector3Normalize(Diff_Vec);
-
-			// 새 이동 방향 설정
-			XMVECTOR New_Speed1 = -Diff_Vec;
-			XMVECTOR New_Speed2 = Diff_Vec;
-
-			stone_1->m_xmf3MovingDirection = XMFLOAT3(XMVectorGetX(New_Speed1), XMVectorGetY(New_Speed1), XMVectorGetZ(New_Speed1));
-			stone_2->m_xmf3MovingDirection = XMFLOAT3(XMVectorGetX(New_Speed2), XMVectorGetY(New_Speed2), XMVectorGetZ(New_Speed2));
-
-			stone_1->m_fMovingSpeed = 5.0f; // 밀어내는 속도
-			stone_2->m_fMovingSpeed = 5.0f; // 밀어내는 속도
-		}
-	}
-
-	// overlaped 상태 정리
-	for (int i = 0; i < objs_N; ++i)
-	{
-		auto* stone_1 = static_cast<StoneObject*>(GameObject_Stone[i]);
-		if (stone_1->Overlaped && stone_1->m_xmOOSP.Intersects(stone_1->Overlaped->m_xmOOSP) == DISJOINT)
-		{
-			stone_1->Overlaped->Overlaped = NULL;
-			stone_1->Overlaped = NULL;
-		}
-	}
-}
-
-void CScene::Remove_Unnecessary_Objects()
-{
-	// 자식 객체만 사라져야 하는 일이 발생하는 경우 오류 발생 중
-	//auto unactive_stone_range = std::remove_if(GameObject_Stone.begin(), GameObject_Stone.end(), [](CGameObject* stone) {
-	//	if (!stone->active)
-	//	{
-	//		delete stone;
-	//		return true;
-	//	}
-	//	return false; });
-	//GameObject_Stone.erase(unactive_stone_range, GameObject_Stone.end());
-}
-
-void CScene::CheckObject_Out_Board_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+void CScene::Check_Board_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	// 충돌 객체 초기화
 	for (CGameObject* stone_ptr : GameObject_Stone)
@@ -859,6 +870,30 @@ void CScene::CheckObject_Out_Board_Collisions(ID3D12Device* pd3dDevice, ID3D12Gr
 	}
 }
 
+
+void CScene::Check_Item_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	for (Item* item : Game_Items)
+	{
+		if (!item->active)
+			continue;
+
+		for (CGameObject* stone_ptr : player1.stone_list)
+		{
+			if (!stone_ptr->active)
+				continue;
+
+			if (stone_ptr->m_xmOOSP.Intersects(item->m_xmOOBB))
+			{
+				player1.Item_Inventory[item->item_type] += 1;
+				Setting_Particle(pd3dDevice, pd3dCommandList, item->GetPosition(), material_color_black_particle, Particle_Type::Firework);
+				item->SetActive(false);
+			}
+		}
+	}
+}
+
+
 void CScene::Change_Turn()
 {
 	if (Player_Turn)
@@ -867,9 +902,10 @@ void CScene::Change_Turn()
 		Com_Turn = true;
 		Com_Shot = false;
 
-		if (m_pSelectedObject->active)
-			m_pSelectedObject->ChangeMaterial(0);
-		m_pSelectedObject = NULL;
+		if (player1.select_Stone->active)
+			player1.select_Stone->ChangeMaterial(0);
+
+		player1.select_Stone = NULL;
 		Charge_Effect->ChangeMaterial(1);
 	}
 	else if (Com_Turn)
@@ -954,6 +990,16 @@ void CScene::Setting_Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	}
 	break;
 
+	case Item_Type::Ghost:
+	{
+		item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Ghost);
+		item->SetActive(true);
+		item->SetPosition(pos);
+		Game_Items.push_back(item);
+	}
+	break;
+
+	
 	case Item_Type::ETC:
 	default:
 		break;
@@ -1002,14 +1048,14 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 		case Particle_Type::Firework:
 		{
-			particle = new Firework_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material, Particle_Type::Firework);
+			particle = new Firework_Particle(pd3dDevice, pd3dCommandList, 3.0f, material, Particle_Type::Firework);
 			particle->SetActive(true);
 			particle->SetPosition(pos);
 
 			particle->SetMaterial(material_color_item_inner_red);
 			particle->AddMaterial(material_color_item_outer);
 			particle->AddMaterial(material_color_item_inner_blue);
-			particle->SetMaterial(material_color_item_inner_green);
+			particle->AddMaterial(material_color_item_inner_green);
 
 			m_particle.push_back(particle);
 			
@@ -1050,8 +1096,8 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		m_pLights->m_pLights[3].m_bEnable = true;
 		m_pLights->m_pLights[3].m_xmf3Position.y = 30.0f;
 
-		if (m_pSelectedObject)
-			m_pLights->m_pLights[3].m_xmf3Position = m_pSelectedObject->GetPosition();
+		if (player1.select_Stone != NULL)
+			m_pLights->m_pLights[3].m_xmf3Position = player1.select_Stone->GetPosition();
 		else if (computer.select_Stone)
 			m_pLights->m_pLights[3].m_xmf3Position = computer.select_Stone->GetPosition();
 		else
@@ -1069,10 +1115,10 @@ void CScene::Scene_Update(float fTimeElapsed)
 		
 		power_degree = ((BAR_UI*)ui_player_power)->Get_Degree();
 		
-		if (power_charge && m_pSelectedObject != NULL)
+		if (power_charge && player1.select_Stone != NULL)
 		{
 			Charge_Effect->active = true;
-			Charge_Effect->Set_Center_Position(m_pSelectedObject->GetPosition());
+			Charge_Effect->Set_Center_Position(player1.select_Stone->GetPosition());
 		}
 
 	}
@@ -1157,7 +1203,7 @@ void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCom
 		gameobject->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
 	}
 	
-	//Item_Render(pd3dDevice, pd3dCommandList, pCamera);
+	Item_Render(pd3dDevice, pd3dCommandList, pCamera);
 
 	Particle_Render(pd3dDevice, pd3dCommandList, pCamera);
 
@@ -1175,7 +1221,6 @@ void CScene::Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	for (Particle* particle : m_particle)
 		particle->Particle_Render(pd3dCommandList, pCamera);
 }
-
 void CScene::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	UI_Shader[0].Setting_Render(pd3dCommandList);
@@ -1187,7 +1232,6 @@ void CScene::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 			ui_ptr->UI_Render(pd3dDevice, pd3dCommandList, UI_Shader);
 		}
 }
-
 void CScene::Item_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
 	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
@@ -1235,7 +1279,7 @@ CGameObject* CScene::PickObjectByRayIntersection(XMFLOAT3& xmf3PickPosition, XMF
 	CGameObject* pSelectedObject = NULL;
 	for (CGameObject* obj_stone : GameObject_Stone) 
 	{
-		if (m_pSelectedObject == obj_stone)
+		if (player1.select_Stone == obj_stone)
 			continue;
 
 		nIntersected = obj_stone->PickObjectByRayIntersection(xmf3PickPosition,xmf4x4View, &fHitDistance);
@@ -1250,7 +1294,7 @@ CGameObject* CScene::PickObjectByRayIntersection(XMFLOAT3& xmf3PickPosition, XMF
 
 bool CScene::is_Object_Selectable(CGameObject* now_picked)
 {
-	if (now_picked == m_pSelectedObject || now_picked == NULL)
+	if (now_picked == player1.select_Stone || now_picked == NULL)
 		return false;
 
 	if (now_picked->player_team == false)
@@ -1266,11 +1310,11 @@ bool CScene::is_Player_Turn()
 
 void CScene::Shoot_Stone(float power)
 {
-	if (m_pSelectedObject != NULL)
+	if (player1.select_Stone != NULL)
 	{
 		XMFLOAT3 direction = m_pPlayer->GetLookVector();
-		m_pSelectedObject->SetMovingDirection(direction);
-		m_pSelectedObject->SetMovingSpeed(power);
+		player1.select_Stone->SetMovingDirection(direction);
+		player1.select_Stone->SetMovingSpeed(power);
 
 		Player_Shot = true;
 	}
@@ -1442,7 +1486,7 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 			if ((obj_ptr->active == true) && (obj_ptr->player_team == true))
 			{
 				StoneObject* player_stone = (StoneObject*)obj_ptr;
-				if (player_stone == m_pSelectedObject)
+				if (player_stone == player1.select_Stone)
 					player_stone->ChangeMaterial(1);
 				else
 					player_stone->ChangeMaterial(0);
@@ -1483,12 +1527,14 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		switch (wParam)
 		{
 		case VK_SPACE:
-			power_charge = false;
-			((BAR_UI*)ui_player_power)->Set_Bar_Charge_Mode(false);
-			Shoot_Stone(power_degree);
+			if (is_Player_Turn()) {
+				power_charge = false;
+				((BAR_UI*)ui_player_power)->Set_Bar_Charge_Mode(false);
+				Shoot_Stone(power_degree);
 
-			ui_player_power->Reset();
-			ui_com_power->Reset();
+				ui_player_power->Reset();
+				ui_com_power->Reset();
+			}
 			break;
 
 		case VK_TAB:

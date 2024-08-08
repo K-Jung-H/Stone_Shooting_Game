@@ -71,6 +71,7 @@
 #include <random>
 #include <vector>
 #include <algorithm>
+#include <unordered_map>
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
@@ -93,6 +94,7 @@ enum class Resource_Buffer_Type
 enum class Object_Type
 {
 	Stone,
+	Item,
 	ETC,
 	None,
 };
@@ -100,6 +102,7 @@ enum class Object_Type
 enum class Item_Type
 {
 	Double_Power,
+	Ghost,
 	ETC,
 
 };

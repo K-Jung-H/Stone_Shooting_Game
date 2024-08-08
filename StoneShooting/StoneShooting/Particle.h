@@ -132,7 +132,7 @@ public:
 	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	Firework_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
-		float Range, float cycle_time, CMaterial* material, Particle_Type p_type = Particle_Type::Firework);
+		float cycle_time, CMaterial* material, Particle_Type p_type = Particle_Type::Firework);
 
 	virtual ~Firework_Particle();
 

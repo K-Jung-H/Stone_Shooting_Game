@@ -514,9 +514,9 @@ void CGameFramework::AnimateObjects()
 	}
 
 	m_pScene->Scene_Update(Elapsed_Time);
-	
-	m_pScene->CheckObject_Out_Board_Collisions(m_pd3dDevice, m_pd3dCommandList);
-	m_pScene->CheckObjectByObjectCollisions();
+	m_pScene->Check_Item_and_Stone_Collisions(m_pd3dDevice, m_pd3dCommandList);
+	m_pScene->Check_Board_and_Stone_Collisions(m_pd3dDevice, m_pd3dCommandList);
+	m_pScene->Check_Stones_Collisions();
 	m_pScene->Defend_Overlap();
 
 
@@ -747,7 +747,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 			
 			if (m_pScene->is_Object_Selectable(m_pSelectedObject))
 			{
-				m_pScene->m_pSelectedObject = m_pSelectedObject;
+				m_pScene->player1.select_Stone = ((StoneObject*)m_pSelectedObject);
 				m_pPlayer->SetPosition(m_pSelectedObject->GetPosition());
 
 				pMainCamera = m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed());
@@ -788,7 +788,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_SPACE:
 			if (m_pScene->is_Player_Turn())
 			{
-				if (m_pScene->m_pSelectedObject != NULL)
+				if (m_pScene->player1.select_Stone != NULL)
 				{
 					
 					pMainCamera = m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, m_GameTimer.GetTimeElapsed());
@@ -797,7 +797,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 
 		case VK_TAB:
-			if (m_pScene->m_pSelectedObject)
+			if (m_pScene->player1.select_Stone)
 			{
 				Camera_First_Person_View = !Camera_First_Person_View;
 				if (Camera_First_Person_View)

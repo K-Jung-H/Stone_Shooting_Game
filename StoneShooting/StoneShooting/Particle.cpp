@@ -404,8 +404,8 @@ XMFLOAT3 Firework_Particle::Firework_Vectors[Firework_DEBRISES];
 CMesh* Firework_Particle::m_FireworkMesh = NULL;
 bool Firework_Particle::Setting = false;
 
-Firework_Particle::Firework_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
-	float Range, float cycle_time, CMaterial* material, Particle_Type p_type) : Particle(p_type)
+Firework_Particle::Firework_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList
+	, float cycle_time, CMaterial* material, Particle_Type p_type) : Particle(p_type)
 {
 	m_fDuration = cycle_time;
 	Particle_Rotation = 300.0f;
@@ -470,7 +470,7 @@ void Firework_Particle::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCo
 		//-------------------------------------------------------------------
 
 
-		int T = i % 5;
+		int T = i % m_ppMaterials.size();
 		CMaterialColors* colors = m_ppMaterials[T].first->Material_Colors;
 
 		CB_MATERIAL_INFO* pbMappedMaterial = (CB_MATERIAL_INFO*)(firework_material_info + (i * ncbMaterialBytes));
@@ -550,6 +550,9 @@ void Firework_Particle::Animate(float fElapsedTime)
 		}
 	}
 
+	if (m_fDuration < m_fElapsedTimes)
+		Reset();
+
 }
 void Firework_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
@@ -563,7 +566,6 @@ void Firework_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandLi
 		UINT ncbMaterialBytes = ((sizeof(CB_MATERIAL_INFO) + 255) & ~255);
 
 		D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
-
 		D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialGpuVirtualAddress = firework_Constant_Buffer->GetGPUVirtualAddress();
 
 		if (m_FireworkMesh)
@@ -572,10 +574,7 @@ void Firework_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandLi
 			{
 				pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * j));
 				pd3dCommandList->SetGraphicsRootConstantBufferView(3, d3dcbMaterialGpuVirtualAddress + (ncbMaterialBytes * j));
-
-
 				m_FireworkMesh->Render(pd3dCommandList);
-
 			}
 		}
 	}
