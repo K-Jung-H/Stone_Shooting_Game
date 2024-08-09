@@ -118,7 +118,8 @@ extern std::default_random_engine dre;
 extern std::uniform_int_distribution<int> uid;
 
 extern ID3D12PipelineState* Connected_PSO;
-
+extern ID3D12RootSignature* Object_GraphicsRootSignature_ptr;
+extern ID3D12RootSignature* UI_GraphicsRootSignature_ptr;
 
 extern ID3D12Resource* CreateBufferResource(
 	ID3D12Device* pd3dDevice,

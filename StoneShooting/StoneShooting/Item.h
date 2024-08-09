@@ -8,7 +8,7 @@ extern CMaterial* material_color_item_inner_blue;
 
 class Item : public CRotatingObject
 {
-protected:
+public:
 	CRotatingObject* outer_frame = NULL;
 	CGameObject* inner_frame = NULL;
 

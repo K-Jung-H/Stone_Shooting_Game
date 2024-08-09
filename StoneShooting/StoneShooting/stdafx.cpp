@@ -4,6 +4,9 @@ std::default_random_engine dre(static_cast<unsigned>(time(NULL)));
 std::uniform_int_distribution<int> uid(1, 3000);
 
 ID3D12PipelineState* Connected_PSO = NULL;
+ID3D12RootSignature* Object_GraphicsRootSignature_ptr = NULL;
+ID3D12RootSignature* UI_GraphicsRootSignature_ptr = NULL;
+
 
 void DebugOutput(const std::string& message) {
 	std::wstring wMessage(message.begin(), message.end());

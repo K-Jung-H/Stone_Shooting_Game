@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Camera.h"
 #include "Timer.h"
 #include "Shader.h"
@@ -151,9 +152,6 @@ protected:
 	static CMaterial* material_color_board;
 	static CMaterial* material_color_none;
 public:
-	//UIShader* m_uiShaders = NULL;
-	//int m_n_uiShaders = 1;
-
 	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
 	//루트 시그너쳐를 나타내는 인터페이스 포인터이다.
 
@@ -168,22 +166,16 @@ public:
 	CPlayer* m_pPlayer = NULL;
 
 	CBoardObject* m_pBoards = NULL;
+	UI* ui_player_power;
+	UI* ui_com_power;
+	UI* player_inventory;
+	Charge_Particle* Charge_Effect = NULL;
+
 
 	// 그려질 모든 게임 객체들
 	std::vector<CGameObject*> GameObject_Stone;
-
 	std::vector<Item*> Game_Items;
 	std::vector<Particle*>m_particle;
-
-
-	UI* ui_player_power;
-	UI* ui_player_power_endline;
-
-	UI* ui_com_power;
-	UI* ui_com_power_endline;
-
-	Charge_Particle* Charge_Effect = NULL;
-
 
 
 	float m_fElapsedTime = 0.0f;

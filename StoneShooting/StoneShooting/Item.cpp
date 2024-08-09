@@ -86,7 +86,7 @@ Item::Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 	switch (item_type)
 	{
 	case Item_Type::Double_Power:
-		inner_frame->SetMaterial(material_color_item_inner_blue);
+		inner_frame->SetMaterial(material_color_item_inner_green);
 		break;
 
 

@@ -36,6 +36,7 @@ public:
 	bool Degree_increase = true;
 
 	bool Charging = false;
+
 public:
 
 	BAR_UI_Object(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int stick_type = 3);
@@ -61,7 +62,6 @@ public:
 	UICamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area);
 	virtual ~UICamera() {}
 
-	virtual void Update(float fTimeElapsed, bool sign);
 	virtual void Reset();
 	void SetOrthographicProjection(float viewWidth, float viewHeight, float nearZ, float farZ);
 };
@@ -74,7 +74,6 @@ public:
 	UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area);
 	virtual ~UI() {}
 
-	virtual void Update(float fTimeElapsed, bool sign);
 	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	virtual void AnimateObjects(float fTimeElapsed);
@@ -95,7 +94,7 @@ private:
 public:
 	BAR_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area);
 	~BAR_UI();
-	virtual void Update(float fTimeElapsed, bool power_charge);
+
 	virtual void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader);
 
 	void Set_Bar_obj(BAR_UI_Object* bar);
@@ -104,5 +103,19 @@ public:
 	void Set_Bar_Charge_Mode(bool charge);
 
 	float Get_Degree();
+	void Reset();
+};
+
+class Inventory_UI : public UI
+{
+public:
+
+
+public:
+	Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area);
+	~Inventory_UI();
+
+	virtual void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader);
+
 	void Reset();
 };

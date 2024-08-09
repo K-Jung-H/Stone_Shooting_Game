@@ -28,9 +28,7 @@ UICamera::UICamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dComm
 
 }
 
-void UICamera::Update(float fTimeElapsed, bool sign)
-{
-}
+
 
 void UICamera::Reset()
 {
@@ -81,6 +79,7 @@ void UI_Object::Update_UI_Info(ID3D12GraphicsCommandList* pd3dCommandList)
 
 void UI_Object::Animate(float fElapsedTime)
 {
+	CGameObject::Animate(fElapsedTime, NULL);
 }
 
 void UI_Object::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
@@ -102,6 +101,7 @@ void UI_Object::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCam
 
 	for (CGameObject* child_ptr : m_pChild)
 		child_ptr->Render(pd3dCommandList, pCamera, pShader);
+
 }
 
 //=================================================================================
@@ -198,14 +198,15 @@ void UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dComm
 
 	for (UI_Object* ui_obj : ui_object)
 	{
-		if(ui_obj->active)
+		if (ui_obj->active)
+		{
+			ui_obj->UpdateTransform(NULL);
 			ui_obj->Render(pd3dCommandList, this, pShader);
+		}
 	}
 }
 
-void UI::Update(float fTimeElapsed, bool sign)
-{
-}
+
 
 void UI::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
 {
@@ -229,9 +230,7 @@ BAR_UI::~BAR_UI()
 {
 }
 
-void BAR_UI::Update(float fTimeElapsed, bool power_charge)
-{
-}
+
 
 void BAR_UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader)
 {
@@ -281,4 +280,26 @@ void BAR_UI::Reset()
 		bar_obj->Degree = 0;
 		bar_obj->Degree_increase = true;
 	}
+}
+
+//=================================================================================
+// Inventory_UI »ý¼ºÀÚ
+Inventory_UI::Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area)
+	: UI(pd3dDevice, pd3dCommandList, monitor_area)
+{
+	SetScissorRect(Monitor_Area.left, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
+}
+
+Inventory_UI::~Inventory_UI()
+{
+}
+
+void Inventory_UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader)
+{
+	UI::UI_Render(pd3dDevice, pd3dCommandList, pShader);
+}
+
+void Inventory_UI::Reset()
+{
+
 }

@@ -210,6 +210,9 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
 	UI_GraphicsRootSignature = Create_UI_GraphicsRootSignature(pd3dDevice);
 
+	Object_GraphicsRootSignature_ptr = m_pd3dGraphicsRootSignature;
+	UI_GraphicsRootSignature_ptr = UI_GraphicsRootSignature;
+
 	// 조명 및 재질 리소스 생성
 	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 	
@@ -225,9 +228,6 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(30.0f, 10.0f, 0.0f), Item_Type::Double_Power);
 	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 10.0f, 0.0f), Item_Type::Ghost);
 
-
-
-//	Setting_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 10.0f, 0.0f), material_color_black_particle, Particle_Type::Firework);
 }
 
 void CScene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float Board_Width, float Board_Depth)
@@ -383,12 +383,17 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 
 	D3D12_RECT power_ui_area_2 = { 0, 0, 200, 90 };
 
+	D3D12_RECT power_ui_area_3 = { 0, 500, 800, 600 };
+	
 	//=======================================================================
 
 	// UI Mesh
 	CMesh* ui_power_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 200.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.5f, 0.0f, 1.0f));
 	
 	CMesh* ui_endline_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 5.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f), false);
+
+	CMesh* ui_inventory_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 800.0f, 100.0f, 1.0f, XMFLOAT4(1.0f, 0.3f, 0.8f, 1.0f), false); // 1.0f, 1.0f, 1.0f
+
 
 	//=======================================================================
 
@@ -437,6 +442,30 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 	UI_list.push_back(Power_UI_com);
 
 	//=======================================================================
+
+	UI_Object* ui_inventory = new UI_Object(pd3dDevice, pd3dCommandList);
+	ui_inventory->SetMesh(ui_inventory_mesh);
+	ui_inventory->SetPosition(0.0f, 0.0f, 10.0f);
+	ui_inventory->active = true;
+
+	//-----------------------------------------------------------------------
+
+	UI* Inventory_ui = new Inventory_UI(pd3dDevice, pd3dCommandList, power_ui_area_3);
+	player_inventory = Inventory_ui;
+	Inventory_ui->ui_object.push_back(ui_inventory);
+	
+	Item* item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Double_Power);
+	item->SetActive(true);
+	item->outer_frame->Set_MaterialShader(&Object_Shader[0], 0);
+	item->inner_frame->Set_MaterialShader(&Object_Shader[0], 0);
+	item->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	ui_inventory->Add_Child(item);
+	
+	Inventory_ui->Active = true;
+
+
+	UI_list.push_back(Inventory_ui);
+
 	ui_num = UI_list.size();
 
 }
@@ -1184,8 +1213,9 @@ void CScene::Scene_Update(float fTimeElapsed)
 
 void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
-	Object_Shader[0].Setting_PSO(pd3dCommandList); // 일단 시작용 셰이더
+	// 커멘드 리스트에 PSO 연결, 루트 시그니처는 PSO에 이미 바인딩 되어 있음 == 따로 커멘드 리스트에서 바인딩 안해도 되지만, 안정성 문제
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
+	Object_Shader[0].Setting_PSO(pd3dCommandList); 
 
 	// 카메라 영역 및 정보 업데이트
 	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
@@ -1211,20 +1241,27 @@ void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCom
 }
 void CScene::Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {	
-	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
+	// 커멘드 리스트에 PSO 연결, 루트 시그니처는 PSO에 이미 바인딩 되어 있음 == 따로 커멘드 리스트에서 바인딩 안해도 되지만, 안정성 문제
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
+	Object_Shader[0].Setting_PSO(pd3dCommandList);
+
+	// 카메라 영역 및 정보 업데이트
+	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
 	pCamera->Update_Shader_Resource(pd3dCommandList);
+
 
 	if(power_charge)
 		Charge_Effect->Particle_Render(pd3dCommandList, pCamera);
 	
+
 	for (Particle* particle : m_particle)
 		particle->Particle_Render(pd3dCommandList, pCamera);
 }
 void CScene::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	UI_Shader[0].Setting_Render(pd3dCommandList);
+	// 커멘드 리스트에 PSO 연결, 루트 시그니처는 PSO에 이미 바인딩 되어 있음 == 따로 커멘드 리스트에서 바인딩 안해도 되지만, 안정성 문제
 	pd3dCommandList->SetGraphicsRootSignature(UI_GraphicsRootSignature);
+	UI_Shader[0].Setting_PSO(pd3dCommandList);
 
 	for (UI* ui_ptr : UI_list)
 		if (ui_ptr->Active)
@@ -1234,8 +1271,12 @@ void CScene::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 }
 void CScene::Item_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
-	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
+	// 커멘드 리스트에 PSO 연결, 루트 시그니처는 PSO에 이미 바인딩 되어 있음 == 따로 커멘드 리스트에서 바인딩 안해도 되지만, 안정성 문제
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
+	Object_Shader[0].Setting_PSO(pd3dCommandList);
+
+	// 카메라 영역 및 정보 업데이트
+	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
 	pCamera->Update_Shader_Resource(pd3dCommandList);
 
 	for (Item* item : Game_Items)
