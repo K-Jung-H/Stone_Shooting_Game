@@ -288,6 +288,7 @@ Inventory_UI::Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 	: UI(pd3dDevice, pd3dCommandList, monitor_area)
 {
 	SetScissorRect(Monitor_Area.left, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
+
 }
 
 Inventory_UI::~Inventory_UI()

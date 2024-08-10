@@ -7,29 +7,6 @@
 #include "UI.h"
 #include "Item.h"
 
-struct LIGHT
-{
-	XMFLOAT4 m_xmf4Ambient;
-	XMFLOAT4 m_xmf4Diffuse;
-	XMFLOAT4 m_xmf4Specular;
-	XMFLOAT3 m_xmf3Position;
-	float m_fFalloff;
-	XMFLOAT3 m_xmf3Direction;
-	float m_fTheta; //cos(m_fTheta)
-	XMFLOAT3 m_xmf3Attenuation;
-	float m_fPhi; //cos(m_fPhi)
-	bool m_bEnable;
-	int m_nType;
-	float m_fRange;
-	float padding;
-};
-
-struct LIGHTS
-{
-	LIGHT m_pLights[MAX_LIGHTS];
-	XMFLOAT4 m_xmf4GlobalAmbient;
-};
-
 class CScene
 {
 public:
@@ -86,7 +63,7 @@ public:
 	
 	//=============================================
 	void Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float Board_Width, float Board_Depth);
-
+	UI* Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, D3D12_RECT area);
 
 
 	void Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team);

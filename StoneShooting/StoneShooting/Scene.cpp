@@ -50,50 +50,37 @@ void CScene::Build_Lights_and_Materials()
 {
 	m_pLights = new LIGHTS;
 	::ZeroMemory(m_pLights, sizeof(LIGHTS));
-	m_pLights->m_xmf4GlobalAmbient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_pLights->m_xmf4GlobalAmbient = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	m_pLights->m_pLights[0].m_bEnable = true;
 	m_pLights->m_pLights[0].m_nType = POINT_LIGHT;
 	m_pLights->m_pLights[0].m_fRange = 300.0f;
 	m_pLights->m_pLights[0].m_xmf4Ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_pLights->m_pLights[0].m_xmf4Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	m_pLights->m_pLights[0].m_xmf4Diffuse = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 	m_pLights->m_pLights[0].m_xmf4Specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
 	m_pLights->m_pLights[0].m_xmf3Position = XMFLOAT3(0.0f, 50.0f, 0.0f);
 	m_pLights->m_pLights[0].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	m_pLights->m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
-	m_pLights->m_pLights[1].m_bEnable = false;
-	m_pLights->m_pLights[1].m_nType = SPOT_LIGHT;
-	m_pLights->m_pLights[1].m_fRange = 50.0f;
+	m_pLights->m_pLights[1].m_bEnable = true;
+	m_pLights->m_pLights[1].m_nType = DIRECTIONAL_LIGHT;
 	m_pLights->m_pLights[1].m_xmf4Ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_pLights->m_pLights[1].m_xmf4Diffuse = XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f);
-	m_pLights->m_pLights[1].m_xmf4Specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_pLights->m_pLights[1].m_xmf3Position = XMFLOAT3(0.0f, 20.0f, .0f);
+	m_pLights->m_pLights[1].m_xmf4Diffuse = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
+	m_pLights->m_pLights[1].m_xmf4Specular = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 	m_pLights->m_pLights[1].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 1.0f);
-	m_pLights->m_pLights[1].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.01f, 0.0001f);
-	m_pLights->m_pLights[1].m_fFalloff = 8.0f;
-	m_pLights->m_pLights[1].m_fPhi = (float)cos(XMConvertToRadians(40.0f));
-	m_pLights->m_pLights[1].m_fTheta = (float)cos(XMConvertToRadians(20.0f));
 
-	m_pLights->m_pLights[2].m_bEnable = false;
-	m_pLights->m_pLights[2].m_nType = DIRECTIONAL_LIGHT;
+	m_pLights->m_pLights[2].m_bEnable = true;
+	m_pLights->m_pLights[2].m_nType = SPOT_LIGHT;
+	m_pLights->m_pLights[2].m_fRange = 30.0f;
 	m_pLights->m_pLights[2].m_xmf4Ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-	m_pLights->m_pLights[2].m_xmf4Diffuse = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-	m_pLights->m_pLights[2].m_xmf4Specular = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	m_pLights->m_pLights[2].m_xmf3Direction = XMFLOAT3(0.0f, -0.5f, 0.1f);
-
-	m_pLights->m_pLights[3].m_bEnable = true;
-	m_pLights->m_pLights[3].m_nType = SPOT_LIGHT;
-	m_pLights->m_pLights[3].m_fRange = 50.0f;
-	m_pLights->m_pLights[3].m_xmf4Ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-	m_pLights->m_pLights[3].m_xmf4Diffuse = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-	m_pLights->m_pLights[3].m_xmf4Specular = XMFLOAT4(0.01f, 0.01f, 0.01f, 0.0f);
-	m_pLights->m_pLights[3].m_xmf3Position = XMFLOAT3(0.0f, 30.0f, 0.0f);
-	m_pLights->m_pLights[3].m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_pLights->m_pLights[3].m_xmf3Attenuation = XMFLOAT3(0.5f, 0.001f, 0.0001f);
-	m_pLights->m_pLights[3].m_fFalloff = 0.5f;
-	m_pLights->m_pLights[3].m_fPhi = (float)cos(XMConvertToRadians(90.0f));
-	m_pLights->m_pLights[3].m_fTheta = (float)cos(XMConvertToRadians(30.0f));
+	m_pLights->m_pLights[2].m_xmf4Diffuse = XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f);
+	m_pLights->m_pLights[2].m_xmf4Specular = XMFLOAT4(0.2, 0.2, 0.2, 0.0f);
+	m_pLights->m_pLights[2].m_xmf3Position = XMFLOAT3(0.0f, 30.0f, 0.0f);
+	m_pLights->m_pLights[2].m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_pLights->m_pLights[2].m_xmf3Attenuation = XMFLOAT3(0.5f, 0.001f, 0.0001f);
+	m_pLights->m_pLights[2].m_fFalloff = 0.5f;
+	m_pLights->m_pLights[2].m_fPhi = (float)cos(XMConvertToRadians(90.0f));
+	m_pLights->m_pLights[2].m_fTheta = (float)cos(XMConvertToRadians(30.0f));
 
 	//=====================================================
 	CMaterialColors white_stone_color = {
@@ -141,8 +128,8 @@ void CScene::Build_Lights_and_Materials()
 
 	CMaterialColors board_color = {
 		XMFLOAT4(2.0f, 1.5f, 0.2f, 1.0f),
-		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f),
-		XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f),
+		XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f),
+		XMFLOAT4(0.4f, 0.4f, 0.4f, 20.0f),
 		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f)
 	};
 
@@ -221,8 +208,8 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 
 
 	// 미리 생성하여 준비
-	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material_color_white_stone, Particle_Type::Charge);
-	Charge_Effect->AddMaterial(material_color_black_stone);
+	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material_color_white_particle, Particle_Type::Charge);
+	Charge_Effect->AddMaterial(material_color_black_particle);
 	Charge_Effect->active = true;
 	
 	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(30.0f, 10.0f, 0.0f), Item_Type::Double_Power);
@@ -382,8 +369,6 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 	D3D12_RECT power_ui_area_1 = { 600, 0, 800, 90 };
 
 	D3D12_RECT power_ui_area_2 = { 0, 0, 200, 90 };
-
-	D3D12_RECT power_ui_area_3 = { 0, 500, 800, 600 };
 	
 	//=======================================================================
 
@@ -391,9 +376,6 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 	CMesh* ui_power_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 200.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.5f, 0.0f, 1.0f));
 	
 	CMesh* ui_endline_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 5.0f, 90.0f, 1.0f, XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f), false);
-
-	CMesh* ui_inventory_mesh = new UIMesh(pd3dDevice, pd3dCommandList, 800.0f, 100.0f, 1.0f, XMFLOAT4(1.0f, 0.3f, 0.8f, 1.0f), false); // 1.0f, 1.0f, 1.0f
-
 
 	//=======================================================================
 
@@ -443,26 +425,10 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 
 	//=======================================================================
 
-	UI_Object* ui_inventory = new UI_Object(pd3dDevice, pd3dCommandList);
-	ui_inventory->SetMesh(ui_inventory_mesh);
-	ui_inventory->SetPosition(0.0f, 0.0f, 10.0f);
-	ui_inventory->active = true;
+	D3D12_RECT inventory_ui_area = { 0, 500, 800, 600 };
 
-	//-----------------------------------------------------------------------
-
-	UI* Inventory_ui = new Inventory_UI(pd3dDevice, pd3dCommandList, power_ui_area_3);
+	UI* Inventory_ui = Create_Inventory_UI(pd3dDevice, pd3dCommandList, inventory_ui_area);
 	player_inventory = Inventory_ui;
-	Inventory_ui->ui_object.push_back(ui_inventory);
-	
-	Item* item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Double_Power);
-	item->SetActive(true);
-	item->outer_frame->Set_MaterialShader(&Object_Shader[0], 0);
-	item->inner_frame->Set_MaterialShader(&Object_Shader[0], 0);
-	item->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
-	ui_inventory->Add_Child(item);
-	
-	Inventory_ui->Active = true;
-
 
 	UI_list.push_back(Inventory_ui);
 
@@ -470,6 +436,81 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 
 }
 
+UI* CScene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, D3D12_RECT area)
+{
+	float inventory_width = area.right - area.left;
+	float inventory_height = area.bottom - area.top;
+	float start_pos_x = -(inventory_width / 2);
+
+	if (inventory_width < 100.0f)
+		inventory_width = 100;
+
+
+	float icon_Box_size = inventory_width / (8 * 2); // 아이템 8개, 아이템 간 간격
+	float icon_distance = icon_Box_size; // 아이템 아이콘별 간격
+
+
+	// 인벤토리의 아이템 아이콘 크기 설정
+	float min_width = 100;
+	float max_width = 800;
+	float min_scale = 0.5f; // 100일 때의 scale 값
+	float max_scale = 3.0f; // 800일 때의 scale 값
+
+	// 선형 보간 계산
+	float icon_scale = (inventory_width - min_width) / (max_width - min_width) * (max_scale - min_scale) + min_scale;
+
+	//------------------------------------------------------------------------------
+
+	CMesh* ui_inventory_mesh = new UIMesh(pd3dDevice, pd3dCommandList, inventory_width, inventory_height, 1.0f, XMFLOAT4(1.0f, 0.3f, 0.8f, 1.0f), false); // 1.0f, 1.0f, 1.0f
+
+	//------------------------------------------------------------------------------
+	UI* Inventory_ui = new Inventory_UI(pd3dDevice, pd3dCommandList, area);
+	
+	UI_Object* ui_inventory = new UI_Object(pd3dDevice, pd3dCommandList);
+	ui_inventory->SetMesh(ui_inventory_mesh);
+	ui_inventory->SetPosition(0.0f, 0.0f, 50.0f);
+	ui_inventory->active = true;
+	
+	Inventory_ui->ui_object.push_back(ui_inventory);
+
+	//------------------------------------------------------------------------------
+
+	std::vector <Item_Type> item_type_list
+	{ 
+		Item_Type::Double_Power, 
+		Item_Type::Ghost, 
+		Item_Type::ETC,
+		Item_Type::ETC,
+		Item_Type::ETC,
+		Item_Type::ETC,
+		Item_Type::ETC,
+		Item_Type::Double_Power
+	};
+
+	std::vector<std::pair<Item_Type, XMFLOAT3>> icon_info;
+
+	for (int i = 0; i < item_type_list.size(); ++i)
+		icon_info.push_back(std::make_pair(item_type_list[i], XMFLOAT3(start_pos_x + icon_Box_size * (i + 1) + (icon_distance * i), 0.0f, -10.0f)));
+
+
+
+	for (std::pair < Item_Type, XMFLOAT3> info : icon_info)
+	{
+		Item* item = new Item(pd3dDevice, pd3dCommandList, info.first);
+
+		item->SetActive(true);
+		item->outer_frame->Set_MaterialShader(&Object_Shader[0], 0);
+		item->inner_frame->Set_MaterialShader(&Object_Shader[0], 0);
+		item->SetScale(icon_scale, icon_scale, icon_scale);
+
+		item->SetPosition(info.second);
+		ui_inventory->Add_Child(item);
+	}
+
+	Inventory_ui->Active = true;
+	
+	return Inventory_ui;
+}
 void CScene::ReleaseObjects()
 {
 	Release_Shader_Resource();
@@ -884,9 +925,9 @@ void CScene::Check_Board_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12Gr
 			if (stone_ptr->active == true)
 			{
 				if (stone_ptr->player_team)
-					Setting_Particle(pd3dDevice, pd3dCommandList, stone_ptr->GetPosition(), material_color_white_particle, Particle_Type::Explosion);
+					Setting_Particle(pd3dDevice, pd3dCommandList, stone_ptr->GetPosition(), material_color_white_stone, Particle_Type::Explosion);
 				else if (!stone_ptr->player_team)
-					Setting_Particle(pd3dDevice, pd3dCommandList, stone_ptr->GetPosition(), material_color_black_particle, Particle_Type::Explosion);
+					Setting_Particle(pd3dDevice, pd3dCommandList, stone_ptr->GetPosition(), material_color_black_stone, Particle_Type::Explosion);
 			}
 			stone_ptr->active = false;
 		}
@@ -931,7 +972,7 @@ void CScene::Change_Turn()
 		Com_Turn = true;
 		Com_Shot = false;
 
-		if (player1.select_Stone->active)
+		if (player1.select_Stone != NULL && player1.select_Stone->active)
 			player1.select_Stone->ChangeMaterial(0);
 
 		player1.select_Stone = NULL;
@@ -1122,15 +1163,15 @@ void CScene::AnimateObjects(float fTimeElapsed)
 
 	if (m_pLights)
 	{
-		m_pLights->m_pLights[3].m_bEnable = true;
-		m_pLights->m_pLights[3].m_xmf3Position.y = 30.0f;
+		m_pLights->m_pLights[2].m_bEnable = true;
+		m_pLights->m_pLights[2].m_xmf3Position.y = 30.0f;
 
 		if (player1.select_Stone != NULL)
-			m_pLights->m_pLights[3].m_xmf3Position = player1.select_Stone->GetPosition();
+			m_pLights->m_pLights[2].m_xmf3Position = player1.select_Stone->GetPosition();
 		else if (computer.select_Stone)
-			m_pLights->m_pLights[3].m_xmf3Position = computer.select_Stone->GetPosition();
+			m_pLights->m_pLights[2].m_xmf3Position = computer.select_Stone->GetPosition();
 		else
-			m_pLights->m_pLights[3].m_bEnable = false;
+			m_pLights->m_pLights[2].m_bEnable = false;
 	}
 
 }
@@ -1176,7 +1217,7 @@ void CScene::Scene_Update(float fTimeElapsed)
 				// 차징 시간 결정
 				power_charge = true;
 				((BAR_UI*)ui_com_power)->Set_Bar_Charge_Mode(true);
-				computer.random_time = 1.0f + (uid(dre) / 1000);
+				computer.random_time = 3.0f + (uid(dre) / 1200);
 			}
 			else
 			{
@@ -1263,6 +1304,7 @@ void CScene::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 	pd3dCommandList->SetGraphicsRootSignature(UI_GraphicsRootSignature);
 	UI_Shader[0].Setting_PSO(pd3dCommandList);
 
+
 	for (UI* ui_ptr : UI_list)
 		if (ui_ptr->Active)
 		{
@@ -1279,11 +1321,14 @@ void CScene::Item_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
 	pCamera->Update_Shader_Resource(pd3dCommandList);
 
+
 	for (Item* item : Game_Items)
 	{
 		item->UpdateTransform(NULL);
 		item->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
 	}
+
+
 }
 
 CGameObject* CScene::PickObjectPointedByCursor(int xClient, int yClient, CCamera* pCamera)

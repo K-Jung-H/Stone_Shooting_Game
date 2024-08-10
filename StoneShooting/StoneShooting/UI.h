@@ -108,12 +108,12 @@ public:
 
 class Inventory_UI : public UI
 {
-public:
-
 
 public:
 	Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area);
 	~Inventory_UI();
+
+
 
 	virtual void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader);
 
