@@ -29,7 +29,6 @@ public:
 	void Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 	void Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 	void Item_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
-
 	void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	void ReleaseUploadBuffers();
@@ -44,11 +43,15 @@ public:
 	ID3D12RootSignature* GetGraphicsRootSignature();
 
 	//씬의 모든 게임 객체들에 대한 마우스 픽킹을 수행한다. 
-	CGameObject *PickObjectPointedByCursor(int xClient, int yClient, CCamera *pCamera);
-	CGameObject* PickObjectByRayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance);
+	CGameObject *Pick_Stone_Pointed_By_Cursor(int xClient, int yClient, CCamera *pCamera);
+	CGameObject* Pick_Stone_By_RayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance);
 	bool is_Object_Selectable(CGameObject* gameobject);
 	//=============================================
 	
+	CGameObject* Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCamera* pCamera);
+	CGameObject* Pick_Item_By_RayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance);
+
+
 	//씬의 모든 조명과 재질을 생성
 	void Build_Lights_and_Materials();
 
@@ -63,7 +66,7 @@ public:
 	
 	//=============================================
 	void Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float Board_Width, float Board_Depth);
-	UI* Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, D3D12_RECT area);
+	Inventory_UI* Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, D3D12_RECT area);
 
 
 	void Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team);
@@ -81,6 +84,8 @@ public:
 
 	std::pair<StoneObject*, StoneObject*> Find_Nearest_Enemy_Stone();
 
+	void Mark_selected_stone();
+	void Select_Item();
 
 	void Change_Turn();
 	bool Check_Turn();
@@ -145,7 +150,7 @@ public:
 	CBoardObject* m_pBoards = NULL;
 	UI* ui_player_power;
 	UI* ui_com_power;
-	UI* player_inventory;
+	Inventory_UI* player_inventory;
 	Charge_Particle* Charge_Effect = NULL;
 
 
@@ -173,6 +178,8 @@ public:
 		std::unordered_map<Item_Type, int> Item_Inventory;
 		std::vector<StoneObject*> stone_list; 
 		StoneObject* select_Stone; // 피킹된 것
+		CGameObject* select_Item; // 피킹된 것
+		bool inventory_open = false;
 	}player1;
 
 

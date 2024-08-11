@@ -6,15 +6,27 @@
 추가 할  내용:
 
 특정 키를 눌렀을 때, 획득한 아이템을 확인할 수 있는 UI 필요
-새로운 타입의 UI를 만들어서 해결하기
+새로운 타입의 UI를 만들어서 해결하기 
+-> TAB 키를 눌러 인벤토리 화면을 토글하도록 구현 완료
 
 UI에는 아이템 모델이 그려지고 그 밑에 숫자가 나오면 좋을듯
+>> 아이템은 보드 객체의 자식 객체로 선언하여 그려지도록 완성함
+>> 숫자 그리기는 프레임 워크에서 해야 하므로 마지막에 구현할 예정
+
 
 보드에서 우클릭으로 돌을 골라 해당 돌이 사용할 아이템을 미리 정하도록 하고, 우클릭은 시점 변화가 안 일어나야 함
 			+
 돌 시점에서, 특정 키를 누르면 현재 돌이 사용할 아이템 선택 할 수 있도록 하기
 
 돌 객체에 현재 돌에 적용된 아이템을 변수로 저장하도록 할 것
+
+//=============================================
+문제점::
+
+아이템 객체 -> 계층 구조 --> 레이케스팅 시 계층 구조에 따른 충돌체 검사 연산 필요함
+
+
+
 
 -------------------추가 희망 사항-------------
 우클릭으로 선택한 돌에 윤곽선이 생겼으면 좋겠음
@@ -427,7 +439,7 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 
 	D3D12_RECT inventory_ui_area = { 0, 500, 800, 600 };
 
-	UI* Inventory_ui = Create_Inventory_UI(pd3dDevice, pd3dCommandList, inventory_ui_area);
+	Inventory_UI* Inventory_ui = Create_Inventory_UI(pd3dDevice, pd3dCommandList, inventory_ui_area); 
 	player_inventory = Inventory_ui;
 
 	UI_list.push_back(Inventory_ui);
@@ -436,7 +448,7 @@ void CScene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dC
 
 }
 
-UI* CScene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, D3D12_RECT area)
+Inventory_UI* CScene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, D3D12_RECT area)
 {
 	float inventory_width = area.right - area.left;
 	float inventory_height = area.bottom - area.top;
@@ -464,13 +476,14 @@ UI* CScene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 	CMesh* ui_inventory_mesh = new UIMesh(pd3dDevice, pd3dCommandList, inventory_width, inventory_height, 1.0f, XMFLOAT4(1.0f, 0.3f, 0.8f, 1.0f), false); // 1.0f, 1.0f, 1.0f
 
 	//------------------------------------------------------------------------------
-	UI* Inventory_ui = new Inventory_UI(pd3dDevice, pd3dCommandList, area);
+	Inventory_UI* Inventory_ui = new Inventory_UI(pd3dDevice, pd3dCommandList, area);
 	
 	UI_Object* ui_inventory = new UI_Object(pd3dDevice, pd3dCommandList);
 	ui_inventory->SetMesh(ui_inventory_mesh);
 	ui_inventory->SetPosition(0.0f, 0.0f, 50.0f);
 	ui_inventory->active = true;
 	
+	((Inventory_UI*)Inventory_ui)->Set_Inventory_board_obj(ui_inventory);
 	Inventory_ui->ui_object.push_back(ui_inventory);
 
 	//------------------------------------------------------------------------------
@@ -1307,9 +1320,8 @@ void CScene::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 
 	for (UI* ui_ptr : UI_list)
 		if (ui_ptr->Active)
-		{
 			ui_ptr->UI_Render(pd3dDevice, pd3dCommandList, UI_Shader);
-		}
+
 }
 void CScene::Item_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
@@ -1331,9 +1343,10 @@ void CScene::Item_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 
 }
 
-CGameObject* CScene::PickObjectPointedByCursor(int xClient, int yClient, CCamera* pCamera)
+CGameObject* CScene::Pick_Stone_Pointed_By_Cursor(int xClient, int yClient, CCamera* pCamera)
 {
-	if (!pCamera) return(NULL);
+	if (!pCamera) 
+		return(NULL);
 	XMFLOAT4X4 xmf4x4View = pCamera->GetViewMatrix();
 	XMFLOAT4X4 xmf4x4Projection = pCamera->GetProjectionMatrix();
 	D3D12_VIEWPORT d3dViewport = pCamera->GetViewport();
@@ -1343,11 +1356,16 @@ CGameObject* CScene::PickObjectPointedByCursor(int xClient, int yClient, CCamera
 	xmf3PickPosition.x = (((2.0f * xClient) / d3dViewport.Width) - 1) / xmf4x4Projection._11;
 	xmf3PickPosition.y = -(((2.0f * yClient) / d3dViewport.Height) - 1) / xmf4x4Projection._22;
 	xmf3PickPosition.z = 1.0f;
+
 	int nIntersected = 0;
-	float fHitDistance = FLT_MAX, fNearestHitDistance = FLT_MAX;
-	CGameObject* pIntersectedObject = NULL, * pNearestObject = NULL;
+
+	float fHitDistance = FLT_MAX;
+	float fNearestHitDistance = FLT_MAX;
+
+	CGameObject* pIntersectedObject = NULL;
+	CGameObject* pNearestObject = NULL;
 	
-	pIntersectedObject = PickObjectByRayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
+	pIntersectedObject = Pick_Stone_By_RayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
 	if (pIntersectedObject && (fHitDistance < fNearestHitDistance))
 	{
 		fNearestHitDistance = fHitDistance;
@@ -1357,7 +1375,7 @@ CGameObject* CScene::PickObjectPointedByCursor(int xClient, int yClient, CCamera
 	return(pNearestObject);
 }
 
-CGameObject* CScene::PickObjectByRayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance)
+CGameObject* CScene::Pick_Stone_By_RayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance)
 {
 	int nIntersected = 0;
 	*pfNearHitDistance = FLT_MAX;
@@ -1559,23 +1577,103 @@ std::pair<StoneObject*, StoneObject*> CScene::Find_Nearest_Enemy_Stone()
 }
 
 
+
+void CScene::Mark_selected_stone()
+{
+	for (StoneObject* stone_obj : player1.stone_list)
+	{
+		if (stone_obj->active)
+		{
+			if (stone_obj == player1.select_Stone)
+				stone_obj->ChangeMaterial(1);
+			else
+				stone_obj->ChangeMaterial(0);
+		}
+	}
+}
+
+void CScene::Select_Item()
+{
+
+}
+
+CGameObject* CScene::Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCamera* pCamera)
+{
+	if (!pCamera)
+		return(NULL);
+	XMFLOAT4X4 xmf4x4View = pCamera->GetViewMatrix();
+	XMFLOAT4X4 xmf4x4Projection = pCamera->GetProjectionMatrix();
+	D3D12_VIEWPORT d3dViewport = pCamera->GetViewport();
+	XMFLOAT3 xmf3PickPosition;
+	// 화면 좌표계의 점 (xClient, yClient)를 화면 좌표 변환의 역변환과 투영 변환의 역변환을 한다. 
+	// 그 결과는 카메라 좌표계의 점이다. 투영 평면이 카메라에서 z-축으로 거리가 1이므로 z-좌표는 1로 설정한다.
+	xmf3PickPosition.x = (((2.0f * xClient) / d3dViewport.Width) - 1) / xmf4x4Projection._11;
+	xmf3PickPosition.y = -(((2.0f * yClient) / d3dViewport.Height) - 1) / xmf4x4Projection._22;
+	xmf3PickPosition.z = 1.0f;
+
+	int nIntersected = 0;
+
+	float fHitDistance = FLT_MAX;
+	float fNearestHitDistance = FLT_MAX;
+
+	CGameObject* pIntersectedObject = NULL;
+	CGameObject* pNearestObject = NULL;
+
+	pIntersectedObject = Pick_Item_By_RayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
+	if (pIntersectedObject && (fHitDistance < fNearestHitDistance))
+	{
+		fNearestHitDistance = fHitDistance;
+		pNearestObject = pIntersectedObject;
+	}
+
+	return(pNearestObject);
+}
+
+CGameObject* CScene::Pick_Item_By_RayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance)
+{
+	int nIntersected = 0;
+	*pfNearHitDistance = FLT_MAX;
+	float fHitDistance = FLT_MAX;
+	CGameObject* pSelected_item = NULL;
+
+	for (CGameObject* item_obj : player_inventory->Get_Inventory_board_obj()->m_pChild)
+	{
+		// 아이템 객체 -> 계층 구조 --> 레이케스팅 시 계층 구조에 따른 충돌체 검사 연산 필요함
+		nIntersected = item_obj->PickObjectByRayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
+		if ((nIntersected > 0) && (fHitDistance < *pfNearHitDistance))
+		{
+			*pfNearHitDistance = fHitDistance;
+			pSelected_item = item_obj;
+		}
+	}
+	return(pSelected_item);
+}
+
+
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	//player1.inventory_open
 	switch (nMessageID)
 	{
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
+		if (player1.inventory_open)
+		{
+			//마우스 위치를 기반으로 레이케스팅하여 아이템
+			player1.select_Item = Pick_Item_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), player_inventory);
+
+		}
+
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
-		for (CGameObject* obj_ptr : GameObject_Stone)
+		for (StoneObject* stone_obj : player1.stone_list)
 		{
-			if ((obj_ptr->active == true) && (obj_ptr->player_team == true))
+			if(stone_obj->active)
 			{
-				StoneObject* player_stone = (StoneObject*)obj_ptr;
-				if (player_stone == player1.select_Stone)
-					player_stone->ChangeMaterial(1);
+				if (stone_obj == player1.select_Stone)
+					stone_obj->ChangeMaterial(1);
 				else
-					player_stone->ChangeMaterial(0);
+					stone_obj->ChangeMaterial(0);
 			}
 		}
 		break;
@@ -1624,6 +1722,10 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			break;
 
 		case VK_TAB:
+		{
+			player1.inventory_open = !player1.inventory_open;
+			player_inventory->Set_Visualize(player1.inventory_open);
+		}
 			break;
 
 		case VK_F9:

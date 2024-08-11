@@ -135,22 +135,32 @@ void BAR_UI_Object::Animate(float fElapsedTime)
 	{
 		if (Degree_increase) 
 		{
-			if (Degree < 600)
+			if (Degree < 300)
+				Degree += 4;
+			else if (Degree < 500)
+				Degree += 2;
+			else if (Degree < 600)
 				Degree += 1;
 			else 
 				Degree_increase = false;
 		}
 		else 
 		{
-			if (Degree > 300)
+			if (Degree > 500)
 				Degree -= 1;
-			else if (Degree > 200)
+			else if (Degree > 300)
 				Degree -= 2;
 			else if (Degree > 100)
 				Degree -= 3;
 			else
 				Degree = 100;
 		}
+	}
+
+	if (500 <= Degree && Degree <= 600)
+	{
+		std::string str = "Degree is " + std::to_string(Degree);
+		DebugOutput(str);
 	}
 }
 
@@ -169,8 +179,11 @@ float BAR_UI_Object::Get_Degree()
 	if (!active)
 		return 0;
 
-	if (400 <= Degree && Degree <= 600)
-		return 600;
+	if (500 <= Degree && Degree <= 600)
+		return Degree * 2;
+
+	if (400 <= Degree && Degree <= 500)
+		return Degree;
 
 	if (Degree_increase == false && Degree == 100)
 		return 100;
@@ -288,16 +301,64 @@ Inventory_UI::Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 	: UI(pd3dDevice, pd3dCommandList, monitor_area)
 {
 	SetScissorRect(Monitor_Area.left, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
-
+	visualize = true;
 }
 
 Inventory_UI::~Inventory_UI()
 {
 }
 
+void Inventory_UI::AnimateObjects(float fTimeElapsed)
+{
+	if (visualize)
+	{
+		if (inventory_board_obj != NULL)
+		{
+			XMFLOAT3 board_pos = inventory_board_obj->GetPosition();
+
+			if (Drag_up)
+			{
+				if (board_pos.y > 0)
+				{
+					inventory_board_obj->SetPosition(0.0f, 0.0f, 50.0f);
+				}
+				else
+					inventory_board_obj->Move(Drag_Direction, 180.0f * fTimeElapsed);
+			}
+			else if (Drag_up == false)
+			{
+				float board_height = (Monitor_Area.bottom - Monitor_Area.top);
+				if (board_pos.y < -board_height)
+				{
+					inventory_board_obj->SetPosition(0.0f, -board_height, 50.0f);
+					visualize = false;
+				}
+				else
+					inventory_board_obj->Move(Drag_Direction, -180.0f * fTimeElapsed);
+			}
+		}
+
+		UI::AnimateObjects(fTimeElapsed);
+	}
+}
+
 void Inventory_UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader)
 {
-	UI::UI_Render(pd3dDevice, pd3dCommandList, pShader);
+	if(true)
+		UI::UI_Render(pd3dDevice, pd3dCommandList, pShader);
+}
+
+void Inventory_UI::Set_Visualize(bool Bool)
+{
+	if (Bool)
+	{
+		Drag_up = true;
+		visualize = true;
+	}
+	else
+	{
+		Drag_up = false;
+	}
 }
 
 void Inventory_UI::Reset()

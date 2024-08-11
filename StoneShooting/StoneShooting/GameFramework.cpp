@@ -741,8 +741,8 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	case WM_RBUTTONDOWN:
 		if (m_pScene->is_Player_Turn())
 		{
-			//마우스 캡쳐를 하고 현재 마우스 위치를 가져온다.
-			m_pSelectedObject = m_pScene->PickObjectPointedByCursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
+			//마우스 위치를 기반으로 레이케스팅하여 돌 선택
+			m_pSelectedObject = m_pScene->Pick_Item_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
 			
 			if (m_pScene->is_Object_Selectable(m_pSelectedObject))
 			{
@@ -750,7 +750,6 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 				m_pPlayer->SetPosition(m_pSelectedObject->GetPosition());
 
 				pMainCamera = m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed());
-
 			}
 		}
 		::SetCapture(hWnd);

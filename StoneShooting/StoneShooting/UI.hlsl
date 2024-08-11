@@ -37,7 +37,7 @@ VS_OUTPUT BAR_UI_VS(VS_INPUT input)
     VS_OUTPUT output;
 
     // scale 값의 범위를 0.0에서 1.0으로 변환
-    float scaledValue = scale / 100.0f;
+    float scaledValue = scale / 600.0f;
 
     float3 scaledPosition = input.position;
 

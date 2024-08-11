@@ -108,14 +108,24 @@ public:
 
 class Inventory_UI : public UI
 {
+private:
+	bool visualize = false;
+	bool Drag_up = false;
 
+	XMFLOAT3 Drag_Direction = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	float Drag_Speed = 180.0f;
+
+	UI_Object* inventory_board_obj = NULL;
 public:
 	Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area);
 	~Inventory_UI();
-
-
-
+	
+	virtual void AnimateObjects(float fTimeElapsed);
 	virtual void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader);
+
+	void Set_Inventory_board_obj(UI_Object* obj) { inventory_board_obj = obj; }
+	UI_Object* Get_Inventory_board_obj() { return inventory_board_obj; }
+	void Set_Visualize(bool Bool);
 
 	void Reset();
 };
