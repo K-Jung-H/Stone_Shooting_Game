@@ -91,8 +91,10 @@ protected:
 	UINT m_nOffset = 0;
 
 	//정점을 픽킹을 위하여 저장한다(정점 버퍼를 Map()하여 읽지 않아도 되도록).
-	CDiffusedVertex* m_pVertices = NULL;
-	CIlluminatedVertex* m_test = NULL;
+	CDiffusedVertex* m_pVertices_D = NULL;
+
+
+	CIlluminatedVertex* m_pVertices_I = NULL;
 	//메쉬의 인덱스를 저장한다(인덱스 버퍼를 Map()하여 읽지 않아도 되도록).
 	UINT* m_pnIndices = NULL;
 

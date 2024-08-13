@@ -320,7 +320,7 @@ void Inventory_UI::AnimateObjects(float fTimeElapsed)
 			{
 				if (board_pos.y > 0)
 				{
-					inventory_board_obj->SetPosition(0.0f, 0.0f, 50.0f);
+					inventory_board_obj->SetPosition(0.0f, 0.0f, board_pos.z);
 				}
 				else
 					inventory_board_obj->Move(Drag_Direction, 180.0f * fTimeElapsed);
@@ -330,14 +330,14 @@ void Inventory_UI::AnimateObjects(float fTimeElapsed)
 				float board_height = (Monitor_Area.bottom - Monitor_Area.top);
 				if (board_pos.y < -board_height)
 				{
-					inventory_board_obj->SetPosition(0.0f, -board_height, 50.0f);
+					inventory_board_obj->SetPosition(0.0f, -board_height, board_pos.z);
 					visualize = false;
 				}
 				else
 					inventory_board_obj->Move(Drag_Direction, -180.0f * fTimeElapsed);
 			}
 		}
-
+		inventory_board_obj->UpdateTransform(NULL);
 		UI::AnimateObjects(fTimeElapsed);
 	}
 }

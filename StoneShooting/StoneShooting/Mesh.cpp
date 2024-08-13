@@ -14,7 +14,8 @@ CMesh::~CMesh()
 	if (m_pd3dIndexBuffer) m_pd3dIndexBuffer->Release();
 	if (m_pd3dIndexUploadBuffer) m_pd3dIndexUploadBuffer->Release();
 
-	if (m_pVertices) delete[] m_pVertices;
+	if (m_pVertices_D) delete[] m_pVertices_D;
+	if (m_pVertices_I) delete[] m_pVertices_I;
 	if (m_pnIndices) delete[] m_pnIndices;
 
 }
@@ -65,17 +66,17 @@ CCubeMeshDiffused::CCubeMeshDiffused(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 
 
 	//정점 버퍼는 직육면체의 꼭지점 8개에 대한 정점 데이터를 가진다. 
-	m_pVertices = new CDiffusedVertex[m_nVertices];
-	m_pVertices[0] = CDiffusedVertex(XMFLOAT3(-fx, +fy, -fz), fcolor1);
-	m_pVertices[1] = CDiffusedVertex(XMFLOAT3(+fx, +fy, -fz), fcolor2);
-	m_pVertices[2] = CDiffusedVertex(XMFLOAT3(+fx, +fy, +fz), fcolor1);
-	m_pVertices[3] = CDiffusedVertex(XMFLOAT3(-fx, +fy, +fz), fcolor2);
-	m_pVertices[4] = CDiffusedVertex(XMFLOAT3(-fx, -fy, -fz), fcolor1);
-	m_pVertices[5] = CDiffusedVertex(XMFLOAT3(+fx, -fy, -fz), fcolor2);
-	m_pVertices[6] = CDiffusedVertex(XMFLOAT3(+fx, -fy, +fz), fcolor1);
-	m_pVertices[7] = CDiffusedVertex(XMFLOAT3(-fx, -fy, +fz), fcolor2);
+	m_pVertices_D = new CDiffusedVertex[m_nVertices];
+	m_pVertices_D[0] = CDiffusedVertex(XMFLOAT3(-fx, +fy, -fz), fcolor1);
+	m_pVertices_D[1] = CDiffusedVertex(XMFLOAT3(+fx, +fy, -fz), fcolor2);
+	m_pVertices_D[2] = CDiffusedVertex(XMFLOAT3(+fx, +fy, +fz), fcolor1);
+	m_pVertices_D[3] = CDiffusedVertex(XMFLOAT3(-fx, +fy, +fz), fcolor2);
+	m_pVertices_D[4] = CDiffusedVertex(XMFLOAT3(-fx, -fy, -fz), fcolor1);
+	m_pVertices_D[5] = CDiffusedVertex(XMFLOAT3(+fx, -fy, -fz), fcolor2);
+	m_pVertices_D[6] = CDiffusedVertex(XMFLOAT3(+fx, -fy, +fz), fcolor1);
+	m_pVertices_D[7] = CDiffusedVertex(XMFLOAT3(-fx, -fy, +fz), fcolor2);
 
-	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices, m_nStride * m_nVertices, 
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices_D, m_nStride * m_nVertices,
 		D3D12_HEAP_TYPE_DEFAULT,D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, 
 		&m_pd3dVertexUploadBuffer);
 	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
@@ -186,10 +187,10 @@ CPlaneMesh::CPlaneMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 	}
 
 	m_nVertices = tempVertices.size();
-	m_pVertices = new CDiffusedVertex[m_nVertices];
-	std::copy(tempVertices.begin(), tempVertices.end(), m_pVertices);
+	m_pVertices_D = new CDiffusedVertex[m_nVertices];
+	std::copy(tempVertices.begin(), tempVertices.end(), m_pVertices_D);
 
-	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices, m_nStride * m_nVertices,
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices_D, m_nStride * m_nVertices,
 		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
 	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
 	m_d3dVertexBufferView.StrideInBytes = m_nStride;
@@ -199,7 +200,7 @@ CPlaneMesh::CPlaneMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 }
 
 CPlaneMesh::~CPlaneMesh() {
-	if (m_pVertices) delete[] m_pVertices;
+	if (m_pVertices_D) delete[] m_pVertices_D;
 	if (m_pd3dVertexBuffer) m_pd3dVertexBuffer->Release();
 	if (m_pd3dVertexUploadBuffer) m_pd3dVertexUploadBuffer->Release();
 }
@@ -221,140 +222,140 @@ CAirplaneMeshDiffused::CAirplaneMeshDiffused(ID3D12Device* pd3dDevice,
 	float fx = fWidth * 0.5f, fy = fHeight * 0.5f, fz = fDepth * 0.5f;
 
 	//비행기 메쉬를 표현하기 위한 정점 데이터이다.
-	m_pVertices = new CDiffusedVertex[m_nVertices];
+	m_pVertices_D = new CDiffusedVertex[m_nVertices];
 	float x1 = fx * 0.2f, y1 = fy * 0.2f, x2 = fx * 0.1f, y3 = fy * 0.3f, y2 = ((y1 - (fy - y3)) / x1) * x2 + (fy - y3);
 	int i = 0;
 
 	//비행기 메쉬의 위쪽 면
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), -fz),Vector4::Add(xmf4Color, RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), -fz),Vector4::Add(xmf4Color, RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), -fz),Vector4::Add(xmf4Color, RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), -fz),Vector4::Add(xmf4Color, RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, -fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
 
 	//비행기 메쉬의 아래쪽 면
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), +fz),Vector4::Add(xmf4Color, RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), +fz),Vector4::Add(xmf4Color, RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, +fz), Vector4::Add(xmf4Color, RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, +fz), Vector4::Add(xmf4Color, RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, +fz), Vector4::Add(xmf4Color, RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), +fz),Vector4::Add(xmf4Color, RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), +fz),Vector4::Add(xmf4Color, RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, +fz), Vector4::Add(xmf4Color,RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, +fz), Vector4::Add(xmf4Color, RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, +fz), Vector4::Add(xmf4Color, RANDOM_COLOR));
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, +fz), Vector4::Add(xmf4Color, RANDOM_COLOR));
 
 	//비행기 메쉬의 오른쪽 면
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), -fz),
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), -fz),
 		Vector4::Add(xmf4Color, RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), +fz),
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), +fz),
 		Vector4::Add(xmf4Color, RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), +fz),
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), +fz),
 		Vector4::Add(xmf4Color, RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x2, +y2, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
 	//비행기 메쉬의 뒤쪽/오른쪽 면
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+fx, -y3, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(+x1, -y1, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
 	//비행기 메쉬의 왼쪽 면
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), +fz),
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), +fz),
 		Vector4::Add(xmf4Color, RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), -fz),
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), -fz),
 		Vector4::Add(xmf4Color, RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), +fz),
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, +(fy + y3), +fz),
 		Vector4::Add(xmf4Color, RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x2, +y2, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
 	//비행기 메쉬의 뒤쪽/왼쪽 면
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(0.0f, 0.0f, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-x1, -y1, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, +fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, +fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
-	m_pVertices[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, -fz), Vector4::Add(xmf4Color,
+	m_pVertices_D[i++] = CDiffusedVertex(XMFLOAT3(-fx, -y3, -fz), Vector4::Add(xmf4Color,
 		RANDOM_COLOR));
 
-	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices,
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices_D,
 		m_nStride * m_nVertices, D3D12_HEAP_TYPE_DEFAULT,
 		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
 	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
@@ -400,7 +401,7 @@ CSphereMeshDiffused::CSphereMeshDiffused(ID3D12Device* pd3dDevice,
 	를 자르면 원기둥이 아니라 원뿔이 되므로 이 원뿔을 표현하기 위하여 2개의 정점이 더 필요하다. 그러므로 정점의 전
 	체 개수는 {(nSlices * (nStacks–1)) + 2}이다.*/
 	m_nVertices = 2 + (nSlices * (nStacks - 1));
-	m_pVertices = new CDiffusedVertex[m_nVertices];
+	m_pVertices_D = new CDiffusedVertex[m_nVertices];
 
 	//180도를 nStacks 만큼 분할한다. 
 	float fDeltaPhi = float(XM_PI / nStacks);
@@ -412,7 +413,7 @@ CSphereMeshDiffused::CSphereMeshDiffused(ID3D12Device* pd3dDevice,
 
 
 	//구의 위(북극)를 나타내는 정점이다. 
-	m_pVertices[k++] = CDiffusedVertex(0.0f, +fRadius * y_scale, 0.0f, (rand() % 2 == 0 ? stone_color1 : stone_color2)
+	m_pVertices_D[k++] = CDiffusedVertex(0.0f, +fRadius * y_scale, 0.0f, (rand() % 2 == 0 ? stone_color1 : stone_color2)
 	);
 
 	float theta_i, phi_j;
@@ -423,7 +424,7 @@ CSphereMeshDiffused::CSphereMeshDiffused(ID3D12Device* pd3dDevice,
 		for (int i = 0; i < nSlices; i++)
 		{
 			theta_i = fDeltaTheta * i;
-			m_pVertices[k++] = CDiffusedVertex(
+			m_pVertices_D[k++] = CDiffusedVertex(
 				fRadius * sinf(phi_j) * cosf(theta_i), 
 				fRadius * cosf(phi_j) * y_scale,
 				fRadius * sinf(phi_j) * sinf(theta_i), 
@@ -431,9 +432,9 @@ CSphereMeshDiffused::CSphereMeshDiffused(ID3D12Device* pd3dDevice,
 		}
 	}
 	//구의 아래(남극)를 나타내는 정점이다. 
-	m_pVertices[k] = CDiffusedVertex(0.0f, -fRadius * y_scale, 0.0f, (rand() % 2 == 0 ? stone_color1 : stone_color2));
+	m_pVertices_D[k] = CDiffusedVertex(0.0f, -fRadius * y_scale, 0.0f, (rand() % 2 == 0 ? stone_color1 : stone_color2));
 
-	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices,
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices_D,
 		m_nStride * m_nVertices, D3D12_HEAP_TYPE_DEFAULT,
 		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
 	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
@@ -509,14 +510,14 @@ UIMesh::UIMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandL
 		another_color = xmf4Color;
 
 
-	m_pVertices = new CDiffusedVertex[m_nVertices];
-	m_pVertices[0] = CDiffusedVertex(XMFLOAT3(+fx, +fy, fz), xmf4Color);
-	m_pVertices[1] = CDiffusedVertex(XMFLOAT3(-fx, +fy, fz), another_color);
-	m_pVertices[2] = CDiffusedVertex(XMFLOAT3(-fx, -fy, fz), another_color);
-	m_pVertices[3] = CDiffusedVertex(XMFLOAT3(+fx, -fy, fz), xmf4Color);
+	m_pVertices_D = new CDiffusedVertex[m_nVertices];
+	m_pVertices_D[0] = CDiffusedVertex(XMFLOAT3(+fx, +fy, fz), xmf4Color);
+	m_pVertices_D[1] = CDiffusedVertex(XMFLOAT3(-fx, +fy, fz), another_color);
+	m_pVertices_D[2] = CDiffusedVertex(XMFLOAT3(-fx, -fy, fz), another_color);
+	m_pVertices_D[3] = CDiffusedVertex(XMFLOAT3(+fx, -fy, fz), xmf4Color);
 
 
-	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices, m_nStride * m_nVertices,
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices_D, m_nStride * m_nVertices,
 		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
 	
 	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
@@ -550,42 +551,49 @@ int CMesh::CheckRayIntersection(XMFLOAT3& xmf3RayOrigin, XMFLOAT3& xmf3RayDirect
 {
 	//하나의 메쉬에서 광선은 여러 개의 삼각형과 교차할 수 있다. 교차하는 삼각형들 중 가장 가까운 삼각형을 찾는다. 
 	int nIntersections = 0;
-	BYTE* pbPositions = (BYTE*)m_test; // m_pVertices
+
+	// 정점 형태에 따라서 설정
+	BYTE* pbPositions = NULL;
+		if (m_pVertices_I != NULL) 
+			pbPositions = (BYTE*)m_pVertices_I;
+		else 
+			pbPositions = (BYTE*)m_pVertices_D;
+		
 	int nOffset = (m_d3dPrimitiveTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST) ? 3 : 1;
 
-	/*메쉬의 프리미티브(삼각형)들의 개수이다. 삼각형 리스트인 경우 (정점의 개수 / 3) 또는 (인덱스의 개수 / 3), 삼각
-	형 스트립의 경우 (정점의 개수 - 2) 또는 (인덱스의 개수 – 2)이다.*/
-	int nPrimitives = (m_d3dPrimitiveTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST) ?
-		(m_nVertices / 3) : (m_nVertices - 2);
-	if (m_nIndices > 0) nPrimitives = (m_d3dPrimitiveTopology ==
-		D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST) ? (m_nIndices / 3) : (m_nIndices - 2);
+	/*메쉬의 프리미티브(삼각형)들의 개수이다. 
+	삼각형 리스트인 경우 (정점의 개수 / 3) 또는 (인덱스의 개수 / 3), 
+	삼각형 스트립의 경우 (정점의 개수 - 2) 또는 (인덱스의 개수 – 2)이다.*/
+	int nPrimitives = (m_d3dPrimitiveTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST) ? (m_nVertices / 3) : (m_nVertices - 2);
+	
+	if (m_nIndices > 0) 
+		nPrimitives = (m_d3dPrimitiveTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST) ? (m_nIndices / 3) : (m_nIndices - 2);
 
 	//광선은 모델 좌표계로 표현된다. 
 	XMVECTOR xmRayOrigin = XMLoadFloat3(&xmf3RayOrigin);
 	XMVECTOR xmRayDirection = XMLoadFloat3(&xmf3RayDirection);
 
 	//모델 좌표계의 광선과 메쉬의 바운딩 박스(모델 좌표계)와의 교차를 검사한다. 
-	bool bIntersected = m_xmBoundingBox.Intersects(xmRayOrigin, xmRayDirection,
-		*pfNearHitDistance);
+	bool bIntersected = m_xmBoundingBox.Intersects(xmRayOrigin, xmRayDirection, *pfNearHitDistance);
 
 	//모델 좌표계의 광선이 메쉬의 바운딩 박스와 교차하면 메쉬와의 교차를 검사한다. 
 	if (bIntersected)
 	{
+		//nIntersections++;
+
 		float fNearHitDistance = FLT_MAX;
 		/*메쉬의 모든 프리미티브(삼각형)들에 대하여 픽킹 광선과의 충돌을 검사한다.
 		충돌하는 모든 삼각형을 찾아 광선의 시작점(실제로는 카메라 좌표계의 원점)에 가장 가까운 삼각형을 찾는다.*/
 
 		for (int i = 0; i < nPrimitives; i++)
 		{
-			XMVECTOR v0 = XMLoadFloat3((XMFLOAT3*)(pbPositions + ((m_pnIndices) ?
-				(m_pnIndices[(i * nOffset) + 0]) : ((i * nOffset) + 0)) * m_nStride));
-			XMVECTOR v1 = XMLoadFloat3((XMFLOAT3*)(pbPositions + ((m_pnIndices) ?
-				(m_pnIndices[(i * nOffset) + 1]) : ((i * nOffset) + 1)) * m_nStride));
-			XMVECTOR v2 = XMLoadFloat3((XMFLOAT3*)(pbPositions + ((m_pnIndices) ?
-				(m_pnIndices[(i * nOffset) + 2]) : ((i * nOffset) + 2)) * m_nStride));
+			XMVECTOR v0 = XMLoadFloat3((XMFLOAT3*)(pbPositions + ((m_pnIndices) ? (m_pnIndices[(i * nOffset) + 0]) : ((i * nOffset) + 0)) * m_nStride));
+			XMVECTOR v1 = XMLoadFloat3((XMFLOAT3*)(pbPositions + ((m_pnIndices) ? (m_pnIndices[(i * nOffset) + 1]) : ((i * nOffset) + 1)) * m_nStride));
+			XMVECTOR v2 = XMLoadFloat3((XMFLOAT3*)(pbPositions + ((m_pnIndices) ? (m_pnIndices[(i * nOffset) + 2]) : ((i * nOffset) + 2)) * m_nStride));
+			
 			float fHitDistance;
-			BOOL bIntersected = TriangleTests::Intersects(xmRayOrigin, xmRayDirection, v0,
-				v1, v2, fHitDistance);
+			BOOL bIntersected = TriangleTests::Intersects(xmRayOrigin, xmRayDirection, v0, v1, v2, fHitDistance);
+			
 			if (bIntersected)
 			{
 				if (fHitDistance < fNearHitDistance)
@@ -719,7 +727,7 @@ CCubeMeshIlluminated::CCubeMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12Graph
 	m_nSlot = 0;
 	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	m_nIndices = 36;
-	UINT pnIndices[36];
+	UINT* pnIndices = new UINT[m_nIndices];
 	pnIndices[0] = 3; pnIndices[1] = 1; pnIndices[2] = 0;
 	pnIndices[3] = 2; pnIndices[4] = 1; pnIndices[5] = 3;
 	pnIndices[6] = 0; pnIndices[7] = 5; pnIndices[8] = 4;
@@ -732,15 +740,6 @@ CCubeMeshIlluminated::CCubeMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12Graph
 	pnIndices[27] = 3; pnIndices[28] = 7; pnIndices[29] = 2;
 	pnIndices[30] = 6; pnIndices[31] = 4; pnIndices[32] = 5;
 	pnIndices[33] = 7; pnIndices[34] = 4; pnIndices[35] = 6;
-
-
-	m_pd3dIndexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pnIndices, sizeof(UINT) * m_nIndices,
-		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pd3dIndexUploadBuffer);
-
-	m_d3dIndexBufferView.BufferLocation = m_pd3dIndexBuffer->GetGPUVirtualAddress();
-	m_d3dIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
-	m_d3dIndexBufferView.SizeInBytes = sizeof(UINT) * m_nIndices;
-
 
 	XMFLOAT3 pxmf3Positions[8];
 	float fx = fWidth * 0.5f, fy = fHeight * 0.5f, fz = fDepth * 0.5f;
@@ -764,12 +763,28 @@ CCubeMeshIlluminated::CCubeMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12Graph
 		pVertices[i] = CIlluminatedVertex(pxmf3Positions[i], pxmf3Normals[i]);
 
 
+	//  피킹에 사용하기 위해, 정점 데이터만  별도로 저장
+	m_pVertices_I = pVertices;
+	m_pnIndices = pnIndices;
+
 	m_pd3dVertexBuffer = CreateBufferResource(pd3dDevice, pd3dCommandList, pVertices, m_nStride * m_nVertices,
 		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
 
 	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
 	m_d3dVertexBufferView.StrideInBytes = m_nStride;
 	m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
+
+	m_pd3dIndexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pnIndices, sizeof(UINT) * m_nIndices,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pd3dIndexUploadBuffer);
+
+	m_d3dIndexBufferView.BufferLocation = m_pd3dIndexBuffer->GetGPUVirtualAddress();
+	m_d3dIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
+	m_d3dIndexBufferView.SizeInBytes = sizeof(UINT) * m_nIndices;
+
+
+
+
+	m_xmBoundingBox = BoundingOrientedBox(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(fx, fy, fz), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 }
 
 CCubeMeshIlluminated::~CCubeMeshIlluminated()
@@ -866,7 +881,7 @@ CSphereMeshIlluminated::CSphereMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12G
 		pVertices[i] = CIlluminatedVertex(pxmf3Positions[i], pxmf3Normals[i]);
 
 	// 객체에 정점 정보 저장
-	m_test = pVertices;
+	m_pVertices_I = pVertices;
 	m_pnIndices = pnIndices;
 
 	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pVertices, m_nStride * m_nVertices,
@@ -933,10 +948,10 @@ CPlaneMeshIlluminated::CPlaneMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12Gra
 	}
 
 	m_nVertices = tempVertices.size();
-	m_test = new CIlluminatedVertex[m_nVertices];
-	std::copy(tempVertices.begin(), tempVertices.end(), m_test);
+	m_pVertices_I = new CIlluminatedVertex[m_nVertices];
+	std::copy(tempVertices.begin(), tempVertices.end(), m_pVertices_I);
 
-	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_test, m_nStride * m_nVertices,
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices_I, m_nStride * m_nVertices,
 		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
 	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
 	m_d3dVertexBufferView.StrideInBytes = m_nStride;
@@ -946,7 +961,7 @@ CPlaneMeshIlluminated::CPlaneMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12Gra
 }
 
 CPlaneMeshIlluminated::~CPlaneMeshIlluminated() {
-	if (m_pVertices) delete[] m_pVertices;
+	if (m_pVertices_I) delete[] m_pVertices_I;
 	if (m_pd3dVertexBuffer) m_pd3dVertexBuffer->Release();
 	if (m_pd3dVertexUploadBuffer) m_pd3dVertexUploadBuffer->Release();
 }

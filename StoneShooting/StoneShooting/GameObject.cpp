@@ -485,6 +485,12 @@ void CGameObject::UpdateBoundingBox()
 		m_pMesh->m_xmBoundingBox.Transform(m_xmOOBB, XMLoadFloat4x4(&m_xmf4x4World));
 		XMStoreFloat4(&m_xmOOBB.Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_xmOOBB.Orientation)));
 	}
+
+	//for (CGameObject* sibling_ptr : m_pSibling)
+	//	sibling_ptr->UpdateBoundingBox();
+
+	//for (CGameObject* child_ptr : m_pChild)
+	//	child_ptr->UpdateBoundingBox();
 }
 
 void CGameObject::UpdateFriction(float fTimeElapsed)
@@ -567,8 +573,8 @@ bool CGameObject::IsVisible(CCamera* pCamera)
 	return(bIsVisible);
 }
 
-void CGameObject::GenerateRayForPicking(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4&
-	xmf4x4View, XMFLOAT3* pxmf3PickRayOrigin, XMFLOAT3* pxmf3PickRayDirection)
+void CGameObject::GenerateRayForPicking(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4&xmf4x4View, 
+	XMFLOAT3* pxmf3PickRayOrigin, XMFLOAT3* pxmf3PickRayDirection)
 {
 	XMFLOAT4X4 xmf4x4WorldView = Matrix4x4::Multiply(m_xmf4x4World, xmf4x4View);
 	XMFLOAT4X4 xmf4x4Inverse = Matrix4x4::Inverse(xmf4x4WorldView);
@@ -581,20 +587,54 @@ void CGameObject::GenerateRayForPicking(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4&
 	*pxmf3PickRayDirection = Vector3::Normalize(Vector3::Subtract(*pxmf3PickRayDirection, *pxmf3PickRayOrigin));
 }
 
+
 int CGameObject::PickObjectByRayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfHitDistance)
 {
 	int nIntersected = 0;
+	float currentHitDistance = FLT_MAX;  
+
 	if (m_pMesh)
 	{
 		XMFLOAT3 xmf3PickRayOrigin, xmf3PickRayDirection;
 
-		//모델 좌표계의 광선을 생성한다. 
+		// 모델 좌표계의 광선을 생성한다. 
 		GenerateRayForPicking(xmf3PickPosition, xmf4x4View, &xmf3PickRayOrigin, &xmf3PickRayDirection);
 
-		//모델 좌표계의 광선과 메쉬의 교차를 검사한다. 
-		nIntersected = m_pMesh->CheckRayIntersection(xmf3PickRayOrigin, xmf3PickRayDirection, pfHitDistance);
+		//DebugOutput("p_x: " + std::to_string(xmf3PickPosition.x) + "\t p_y: " + std::to_string(xmf3PickPosition.y) + "\t p_z: " + std::to_string(xmf3PickPosition.z));
+		//DebugOutput("ray_x: " + std::to_string(xmf3PickRayOrigin.x) + "\t ray_y: " + std::to_string(xmf3PickRayOrigin.y) + "\t ray_z: " + std::to_string(xmf3PickRayOrigin.z));
+		//DebugOutput("dir_x: " + std::to_string(xmf3PickRayDirection.x) + "\t dir_y: " + std::to_string(xmf3PickRayDirection.y) + "\t dir_z: " + std::to_string(xmf3PickRayDirection.z));
+
+		// 모델 좌표계의 광선과 메쉬의 교차를 검사한다. 
+		nIntersected = m_pMesh->CheckRayIntersection(xmf3PickRayOrigin, xmf3PickRayDirection, &currentHitDistance);
+		if (nIntersected != 0 && currentHitDistance < *pfHitDistance)
+			*pfHitDistance = currentHitDistance;
+
+
 	}
-	return(nIntersected);
+
+	// 자식 객체들 순회
+	for (CGameObject* child_ptr : m_pChild)
+	{
+		int childIntersected = child_ptr->PickObjectByRayIntersection(xmf3PickPosition, xmf4x4View, &currentHitDistance);
+		if (childIntersected > nIntersected && currentHitDistance < *pfHitDistance)
+		{
+			nIntersected = childIntersected;
+			*pfHitDistance = currentHitDistance;
+		}
+	}
+	// 형제 객체들 순회
+	for (CGameObject* sibling_ptr : m_pSibling)
+	{
+		int siblingIntersected = sibling_ptr->PickObjectByRayIntersection(xmf3PickPosition, xmf4x4View, &currentHitDistance);
+		if (siblingIntersected > nIntersected && currentHitDistance < *pfHitDistance)
+		{
+			nIntersected = siblingIntersected;
+			*pfHitDistance = currentHitDistance;
+		}
+	}
+
+
+	return nIntersected;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

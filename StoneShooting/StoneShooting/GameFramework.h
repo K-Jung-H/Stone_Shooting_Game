@@ -7,7 +7,7 @@
 #include "UI.h"
 
 
-#define TURN_MAX_TIME 30
+#define TURN_MAX_TIME 60
 #define TURN_DELAY 0
 
 class CGameFramework

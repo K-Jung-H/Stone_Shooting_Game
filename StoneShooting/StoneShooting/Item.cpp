@@ -19,6 +19,9 @@ void Item::Prepare_Item(ID3D12Device * pd3dDevice, ID3D12GraphicsCommandList * p
 	if (outer_Mesh == NULL && inner_Mesh == NULL)
 	{
 		outer_Mesh = new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 13.0f, 13.0f, 13.0f);
+		outer_Mesh->m_xmBoundingBox.Extents.x = 39;
+		outer_Mesh->m_xmBoundingBox.Extents.y = 39;
+		outer_Mesh->m_xmBoundingBox.Extents.z = 39;
 		inner_Mesh = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 8.0f, 20, 20, 1.0f);
 	}
 
@@ -74,7 +77,7 @@ Item::Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 	outer_frame = new CRotatingObject(pd3dDevice, pd3dCommandList);	
 	outer_frame->SetMesh(outer_Mesh);
 	outer_frame->SetRotationAxis(XMFLOAT3(0.0f, 1.0f, 0.0f));
-	outer_frame->SetRotationSpeed(30.0f);
+	outer_frame->SetRotationSpeed(0.0f);
 	outer_frame->SetMaterial(material_color_item_outer);
 	
 	Add_Child(outer_frame);

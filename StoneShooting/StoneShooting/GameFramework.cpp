@@ -742,7 +742,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		if (m_pScene->is_Player_Turn())
 		{
 			//마우스 위치를 기반으로 레이케스팅하여 돌 선택
-			m_pSelectedObject = m_pScene->Pick_Item_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
+			//m_pSelectedObject = m_pScene->Pick_Stone_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
 			
 			if (m_pScene->is_Object_Selectable(m_pSelectedObject))
 			{

@@ -480,7 +480,7 @@ Inventory_UI* CScene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12Graphi
 	
 	UI_Object* ui_inventory = new UI_Object(pd3dDevice, pd3dCommandList);
 	ui_inventory->SetMesh(ui_inventory_mesh);
-	ui_inventory->SetPosition(0.0f, 0.0f, 50.0f);
+	ui_inventory->SetPosition(0.0f, 0.0f, 30.0f);
 	ui_inventory->active = true;
 	
 	((Inventory_UI*)Inventory_ui)->Set_Inventory_board_obj(ui_inventory);
@@ -503,7 +503,8 @@ Inventory_UI* CScene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12Graphi
 	std::vector<std::pair<Item_Type, XMFLOAT3>> icon_info;
 
 	for (int i = 0; i < item_type_list.size(); ++i)
-		icon_info.push_back(std::make_pair(item_type_list[i], XMFLOAT3(start_pos_x + icon_Box_size * (i + 1) + (icon_distance * i), 0.0f, -10.0f)));
+		icon_info.push_back(std::make_pair(item_type_list[i], XMFLOAT3(start_pos_x + icon_Box_size * (i + 1) + (icon_distance * i), 0.0f, 0.0f)));
+
 
 
 
@@ -522,6 +523,9 @@ Inventory_UI* CScene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12Graphi
 
 	Inventory_ui->Active = true;
 	
+
+
+
 	return Inventory_ui;
 }
 void CScene::ReleaseObjects()
@@ -1356,6 +1360,7 @@ CGameObject* CScene::Pick_Stone_Pointed_By_Cursor(int xClient, int yClient, CCam
 	xmf3PickPosition.x = (((2.0f * xClient) / d3dViewport.Width) - 1) / xmf4x4Projection._11;
 	xmf3PickPosition.y = -(((2.0f * yClient) / d3dViewport.Height) - 1) / xmf4x4Projection._22;
 	xmf3PickPosition.z = 1.0f;
+	DebugOutput("x: " + std::to_string(xmf3PickPosition.x) + "\t y: " + std::to_string(xmf3PickPosition.y));
 
 	int nIntersected = 0;
 
@@ -1601,18 +1606,23 @@ CGameObject* CScene::Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCame
 {
 	if (!pCamera)
 		return(NULL);
+
 	XMFLOAT4X4 xmf4x4View = pCamera->GetViewMatrix();
 	XMFLOAT4X4 xmf4x4Projection = pCamera->GetProjectionMatrix();
 	D3D12_VIEWPORT d3dViewport = pCamera->GetViewport();
 	XMFLOAT3 xmf3PickPosition;
 	// 화면 좌표계의 점 (xClient, yClient)를 화면 좌표 변환의 역변환과 투영 변환의 역변환을 한다. 
 	// 그 결과는 카메라 좌표계의 점이다. 투영 평면이 카메라에서 z-축으로 거리가 1이므로 z-좌표는 1로 설정한다.
-	xmf3PickPosition.x = (((2.0f * xClient) / d3dViewport.Width) - 1) / xmf4x4Projection._11;
-	xmf3PickPosition.y = -(((2.0f * yClient) / d3dViewport.Height) - 1) / xmf4x4Projection._22;
-	xmf3PickPosition.z = 1.0f;
+	//xmf3PickPosition.x = (2.0f * xClient / d3dViewport.Width - 1.0f) / xmf4x4Projection._11;							// X 좌표 정규화
+	//xmf3PickPosition.y = (1.0f - 2.0f * (yClient - d3dViewport.TopLeftY) / d3dViewport.Height) / xmf4x4Projection._22;		// Y 좌표 정규화
+
+
+	xmf3PickPosition.x = (((2.0f * xClient) / d3dViewport.Width) - 1) * 8;// / xmf4x4Projection._11;
+	xmf3PickPosition.y = -(((2.0f * (yClient - 500)) / d3dViewport.Height) - 1);// / xmf4x4Projection._22;
+	xmf3PickPosition.z = 0.0f; 
+	DebugOutput("x: " + std::to_string(xmf3PickPosition.x) + "\t y: " + std::to_string(xmf3PickPosition.y));
 
 	int nIntersected = 0;
-
 	float fHitDistance = FLT_MAX;
 	float fNearestHitDistance = FLT_MAX;
 
@@ -1636,19 +1646,21 @@ CGameObject* CScene::Pick_Item_By_RayIntersection(XMFLOAT3& xmf3PickPosition, XM
 	float fHitDistance = FLT_MAX;
 	CGameObject* pSelected_item = NULL;
 
+	int N = 1;
 	for (CGameObject* item_obj : player_inventory->Get_Inventory_board_obj()->m_pChild)
 	{
-		// 아이템 객체 -> 계층 구조 --> 레이케스팅 시 계층 구조에 따른 충돌체 검사 연산 필요함
 		nIntersected = item_obj->PickObjectByRayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
+
 		if ((nIntersected > 0) && (fHitDistance < *pfNearHitDistance))
 		{
+			DebugOutput("Picked Item" + std::to_string(N));
 			*pfNearHitDistance = fHitDistance;
 			pSelected_item = item_obj;
 		}
+		N++;
 	}
 	return(pSelected_item);
 }
-
 
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
@@ -1659,9 +1671,19 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 	case WM_RBUTTONDOWN:
 		if (player1.inventory_open)
 		{
-			//마우스 위치를 기반으로 레이케스팅하여 아이템
-			player1.select_Item = Pick_Item_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), player_inventory);
+			int clientX = LOWORD(lParam);
+			int clientY = HIWORD(lParam);
 
+			const int xMin = 0;
+			const int xMax = 800;
+			const int yMin = 500;
+			const int yMax = 600;
+
+			// 좌표가 영역 내에 있는지 확인하는 조건문
+			if (clientX >= xMin && clientX <= xMax && clientY >= yMin && clientY <= yMax) {
+				//마우스 위치를 기반으로 레이케스팅하여 아이템
+				player1.select_Item = Pick_Item_Pointed_By_Cursor(clientX, clientY, player_inventory);
+			}
 		}
 
 	case WM_LBUTTONUP:
