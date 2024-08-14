@@ -1613,9 +1613,6 @@ CGameObject* CScene::Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCame
 	XMFLOAT3 xmf3PickPosition;
 	// 화면 좌표계의 점 (xClient, yClient)를 화면 좌표 변환의 역변환과 투영 변환의 역변환을 한다. 
 	// 그 결과는 카메라 좌표계의 점이다. 투영 평면이 카메라에서 z-축으로 거리가 1이므로 z-좌표는 1로 설정한다.
-	//xmf3PickPosition.x = (2.0f * xClient / d3dViewport.Width - 1.0f) / xmf4x4Projection._11;							// X 좌표 정규화
-	//xmf3PickPosition.y = (1.0f - 2.0f * (yClient - d3dViewport.TopLeftY) / d3dViewport.Height) / xmf4x4Projection._22;		// Y 좌표 정규화
-
 
 	xmf3PickPosition.x = (((2.0f * xClient) / d3dViewport.Width) - 1) * 8;// / xmf4x4Projection._11;
 	xmf3PickPosition.y = -(((2.0f * (yClient - 500)) / d3dViewport.Height) - 1);// / xmf4x4Projection._22;
@@ -1629,7 +1626,9 @@ CGameObject* CScene::Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCame
 	CGameObject* pIntersectedObject = NULL;
 	CGameObject* pNearestObject = NULL;
 
-	pIntersectedObject = Pick_Item_By_RayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
+	//pIntersectedObject = Pick_Item_By_RayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
+	pIntersectedObject = Pick_Item_By_RayIntersection22(xmf3PickPosition, xmf4x4View, xmf4x4Projection, &fHitDistance);
+
 	if (pIntersectedObject && (fHitDistance < fNearestHitDistance))
 	{
 		fNearestHitDistance = fHitDistance;
@@ -1638,6 +1637,34 @@ CGameObject* CScene::Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCame
 
 	return(pNearestObject);
 }
+
+
+CGameObject* CScene::Pick_Item_By_RayIntersection22(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, XMFLOAT4X4& xmprojection, float* pfNearHitDistance)
+{
+	int nIntersected = 0;
+	*pfNearHitDistance = FLT_MAX;
+	float fHitDistance = FLT_MAX;
+	CGameObject* pSelected_item = NULL;
+
+	int N = 1;
+	for (CGameObject* item_obj : player_inventory->Get_Inventory_board_obj()->m_pChild)
+	{
+		DebugOutput("Item info : " + std::to_string(N));
+		nIntersected = item_obj->PickObjectByRayIntersection22(xmf3PickPosition, xmf4x4View, xmprojection, &fHitDistance);
+
+		if ((nIntersected > 0) && (fHitDistance < *pfNearHitDistance))
+		{
+			DebugOutput("Picked Item" + std::to_string(N));
+			DebugOutput("-------------------------------");
+			*pfNearHitDistance = fHitDistance;
+			pSelected_item = item_obj;
+		}
+		N++;
+	}
+	return(pSelected_item);
+}
+
+
 
 CGameObject* CScene::Pick_Item_By_RayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance)
 {
@@ -1649,11 +1676,13 @@ CGameObject* CScene::Pick_Item_By_RayIntersection(XMFLOAT3& xmf3PickPosition, XM
 	int N = 1;
 	for (CGameObject* item_obj : player_inventory->Get_Inventory_board_obj()->m_pChild)
 	{
+		DebugOutput("Item info : " + std::to_string(N));
 		nIntersected = item_obj->PickObjectByRayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
 
 		if ((nIntersected > 0) && (fHitDistance < *pfNearHitDistance))
 		{
 			DebugOutput("Picked Item" + std::to_string(N));
+			DebugOutput("-------------------------------");
 			*pfNearHitDistance = fHitDistance;
 			pSelected_item = item_obj;
 		}

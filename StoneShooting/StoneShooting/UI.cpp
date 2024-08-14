@@ -22,7 +22,7 @@ UICamera::UICamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dComm
 	// UI의 직교 투영 행렬 설정
 	// UI의 최대 넓이 길이: ui_width
 	// UI의 최대 높이 길이: ui_height
-	SetOrthographicProjection(ui_width, ui_height, 0.0f, 100.0f);
+	SetOrthographicProjection(ui_width, ui_height, 0.1f, 100.0f);
 
 	CCamera::Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 
@@ -302,6 +302,7 @@ Inventory_UI::Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 {
 	SetScissorRect(Monitor_Area.left, 0, Monitor_Area.right, FRAME_BUFFER_HEIGHT);
 	visualize = true;
+
 }
 
 Inventory_UI::~Inventory_UI()
