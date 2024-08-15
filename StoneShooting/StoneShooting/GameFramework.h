@@ -85,7 +85,10 @@ private:
 
 	ID2D1SolidColorBrush* m_pd2dbrBackground = NULL;
 	ID2D1SolidColorBrush* m_pd2dbrBorder = NULL;
-	IDWriteTextFormat* m_pdwFont = NULL;
+
+	IDWriteTextFormat* m_pdw_Timer_Font = NULL;
+	IDWriteTextFormat* m_pdw_Inventory_Font = NULL;
+
 	IDWriteTextLayout* m_pdwTextLayout = NULL;
 	ID2D1SolidColorBrush* m_pd2dbrText = NULL;
 #endif

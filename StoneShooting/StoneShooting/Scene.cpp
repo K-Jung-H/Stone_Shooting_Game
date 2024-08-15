@@ -478,13 +478,13 @@ Inventory_UI* CScene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12Graphi
 	//------------------------------------------------------------------------------
 	Inventory_UI* Inventory_ui = new Inventory_UI(pd3dDevice, pd3dCommandList, area);
 	
-	UI_Object* ui_inventory = new UI_Object(pd3dDevice, pd3dCommandList);
-	ui_inventory->SetMesh(ui_inventory_mesh);
-	ui_inventory->SetPosition(0.0f, 0.0f, 30.0f);
-	ui_inventory->active = true;
+	UI_Object* ui_inventory_obj = new UI_Object(pd3dDevice, pd3dCommandList);
+	ui_inventory_obj->SetMesh(ui_inventory_mesh);
+	ui_inventory_obj->SetPosition(0.0f, 0.0f, 30.0f);
+	ui_inventory_obj->active = true;
 	
-	((Inventory_UI*)Inventory_ui)->Set_Inventory_board_obj(ui_inventory);
-	Inventory_ui->ui_object.push_back(ui_inventory);
+	((Inventory_UI*)Inventory_ui)->Set_Inventory_board_obj(ui_inventory_obj);
+	Inventory_ui->ui_object.push_back(ui_inventory_obj);
 
 	//------------------------------------------------------------------------------
 
@@ -503,7 +503,7 @@ Inventory_UI* CScene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12Graphi
 	std::vector<std::pair<Item_Type, XMFLOAT3>> icon_info;
 
 	for (int i = 0; i < item_type_list.size(); ++i)
-		icon_info.push_back(std::make_pair(item_type_list[i], XMFLOAT3(start_pos_x + icon_Box_size * (i + 1) + (icon_distance * i), 0.0f, 0.0f)));
+		icon_info.push_back(std::make_pair(item_type_list[i], XMFLOAT3(start_pos_x + icon_Box_size * (i + 1) + (icon_distance * i), 10.0f, 0.0f)));
 
 
 
@@ -516,15 +516,19 @@ Inventory_UI* CScene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12Graphi
 		item->outer_frame->Set_MaterialShader(&Object_Shader[0], 0);
 		item->inner_frame->Set_MaterialShader(&Object_Shader[0], 0);
 		item->SetScale(icon_scale, icon_scale, icon_scale);
-
 		item->SetPosition(info.second);
-		ui_inventory->Add_Child(item);
+		ui_inventory_obj->Add_Child(item);
+
+		Inventory_ui->item_list.push_back(std::make_pair(info.first, 0));
+	}
+
+	for (std::pair<Item_Type, XMFLOAT3> info : icon_info)
+	{
+		D2D1_RECT_F temp{ inventory_width / 2 + info.second.x - icon_Box_size, 550, inventory_width / 2 + info.second.x + icon_Box_size, 600 };
+		Inventory_ui->text_area.push_back(temp);
 	}
 
 	Inventory_ui->Active = true;
-	
-
-
 
 	return Inventory_ui;
 }
@@ -975,6 +979,15 @@ void CScene::Check_Item_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12Gra
 				player1.Item_Inventory[item->item_type] += 1;
 				Setting_Particle(pd3dDevice, pd3dCommandList, item->GetPosition(), material_color_black_particle, Particle_Type::Firework);
 				item->SetActive(false);
+
+				if (player_inventory != NULL)
+				{
+					for (std::pair<Item_Type, int> &info : player_inventory->item_list)
+					{
+						if (info.first == item->item_type)
+							info.second += 1;					
+					}
+				}
 			}
 		}
 	}
@@ -1354,9 +1367,10 @@ CGameObject* CScene::Pick_Stone_Pointed_By_Cursor(int xClient, int yClient, CCam
 	XMFLOAT4X4 xmf4x4View = pCamera->GetViewMatrix();
 	XMFLOAT4X4 xmf4x4Projection = pCamera->GetProjectionMatrix();
 	D3D12_VIEWPORT d3dViewport = pCamera->GetViewport();
-	XMFLOAT3 xmf3PickPosition;
+
 	// 화면 좌표계의 점 (xClient, yClient)를 화면 좌표 변환의 역변환과 투영 변환의 역변환을 한다. 
 	// 그 결과는 카메라 좌표계의 점이다. 투영 평면이 카메라에서 z-축으로 거리가 1이므로 z-좌표는 1로 설정한다.
+	XMFLOAT3 xmf3PickPosition;
 	xmf3PickPosition.x = (((2.0f * xClient) / d3dViewport.Width) - 1) / xmf4x4Projection._11;
 	xmf3PickPosition.y = -(((2.0f * yClient) / d3dViewport.Height) - 1) / xmf4x4Projection._22;
 	xmf3PickPosition.z = 1.0f;
@@ -1390,8 +1404,8 @@ CGameObject* CScene::Pick_Stone_By_RayIntersection(XMFLOAT3& xmf3PickPosition, X
 	{
 		if (player1.select_Stone == obj_stone)
 			continue;
-
-		nIntersected = obj_stone->PickObjectByRayIntersection(xmf3PickPosition,xmf4x4View, &fHitDistance);
+		
+		nIntersected = obj_stone->Pick_Object_By_Ray_Intersection_Projection(xmf3PickPosition,xmf4x4View, &fHitDistance); 
 		if ((nIntersected > 0) && (fHitDistance < *pfNearHitDistance))
 		{
 			*pfNearHitDistance = fHitDistance;
@@ -1607,16 +1621,15 @@ CGameObject* CScene::Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCame
 	if (!pCamera)
 		return(NULL);
 
-	XMFLOAT4X4 xmf4x4View = pCamera->GetViewMatrix();
-	XMFLOAT4X4 xmf4x4Projection = pCamera->GetProjectionMatrix();
 	D3D12_VIEWPORT d3dViewport = pCamera->GetViewport();
-	XMFLOAT3 xmf3PickPosition;
+
 	// 화면 좌표계의 점 (xClient, yClient)를 화면 좌표 변환의 역변환과 투영 변환의 역변환을 한다. 
 	// 그 결과는 카메라 좌표계의 점이다. 투영 평면이 카메라에서 z-축으로 거리가 1이므로 z-좌표는 1로 설정한다.
-
-	xmf3PickPosition.x = (((2.0f * xClient) / d3dViewport.Width) - 1) * 8;// / xmf4x4Projection._11;
-	xmf3PickPosition.y = -(((2.0f * (yClient - 500)) / d3dViewport.Height) - 1);// / xmf4x4Projection._22;
+	XMFLOAT3 xmf3PickPosition;
+	xmf3PickPosition.x = (((2.0f * xClient) / d3dViewport.Width) - 1) * 8;
+	xmf3PickPosition.y = -(((2.0f * (yClient - 500)) / d3dViewport.Height) - 1);
 	xmf3PickPosition.z = 0.0f; 
+
 	DebugOutput("x: " + std::to_string(xmf3PickPosition.x) + "\t y: " + std::to_string(xmf3PickPosition.y));
 
 	int nIntersected = 0;
@@ -1626,8 +1639,7 @@ CGameObject* CScene::Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCame
 	CGameObject* pIntersectedObject = NULL;
 	CGameObject* pNearestObject = NULL;
 
-	//pIntersectedObject = Pick_Item_By_RayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
-	pIntersectedObject = Pick_Item_By_RayIntersection22(xmf3PickPosition, xmf4x4View, xmf4x4Projection, &fHitDistance);
+	pIntersectedObject = Pick_Item_By_RayIntersection(xmf3PickPosition, pCamera, &fHitDistance);
 
 	if (pIntersectedObject && (fHitDistance < fNearestHitDistance))
 	{
@@ -1638,23 +1650,26 @@ CGameObject* CScene::Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCame
 	return(pNearestObject);
 }
 
-
-CGameObject* CScene::Pick_Item_By_RayIntersection22(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, XMFLOAT4X4& xmprojection, float* pfNearHitDistance)
+CGameObject* CScene::Pick_Item_By_RayIntersection(XMFLOAT3& xmf3PickPosition, CCamera* pCamera, float* pfNearHitDistance)
 {
+	XMFLOAT4X4 xmf4x4View = pCamera->GetViewMatrix();
+	XMFLOAT4X4 xmf4x4Projection = pCamera->GetProjectionMatrix();
+
+	int N = 1;
 	int nIntersected = 0;
 	*pfNearHitDistance = FLT_MAX;
 	float fHitDistance = FLT_MAX;
 	CGameObject* pSelected_item = NULL;
 
-	int N = 1;
 	for (CGameObject* item_obj : player_inventory->Get_Inventory_board_obj()->m_pChild)
 	{
-		DebugOutput("Item info : " + std::to_string(N));
-		nIntersected = item_obj->PickObjectByRayIntersection22(xmf3PickPosition, xmf4x4View, xmprojection, &fHitDistance);
+		//DebugOutput("Item info : " + std::to_string(N));
+		nIntersected = item_obj->Pick_Object_By_Ray_Intersection_Orthographic(xmf3PickPosition, xmf4x4View, xmf4x4Projection, &fHitDistance);
 
 		if ((nIntersected > 0) && (fHitDistance < *pfNearHitDistance))
 		{
-			DebugOutput("Picked Item" + std::to_string(N));
+			DebugOutput("-------------------------------");
+			DebugOutput("Picked Item: " + std::to_string(N));
 			DebugOutput("-------------------------------");
 			*pfNearHitDistance = fHitDistance;
 			pSelected_item = item_obj;
@@ -1664,32 +1679,6 @@ CGameObject* CScene::Pick_Item_By_RayIntersection22(XMFLOAT3& xmf3PickPosition, 
 	return(pSelected_item);
 }
 
-
-
-CGameObject* CScene::Pick_Item_By_RayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance)
-{
-	int nIntersected = 0;
-	*pfNearHitDistance = FLT_MAX;
-	float fHitDistance = FLT_MAX;
-	CGameObject* pSelected_item = NULL;
-
-	int N = 1;
-	for (CGameObject* item_obj : player_inventory->Get_Inventory_board_obj()->m_pChild)
-	{
-		DebugOutput("Item info : " + std::to_string(N));
-		nIntersected = item_obj->PickObjectByRayIntersection(xmf3PickPosition, xmf4x4View, &fHitDistance);
-
-		if ((nIntersected > 0) && (fHitDistance < *pfNearHitDistance))
-		{
-			DebugOutput("Picked Item" + std::to_string(N));
-			DebugOutput("-------------------------------");
-			*pfNearHitDistance = fHitDistance;
-			pSelected_item = item_obj;
-		}
-		N++;
-	}
-	return(pSelected_item);
-}
 
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
@@ -1734,7 +1723,6 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 	}
 	return(false);
 }
-
 
 bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {

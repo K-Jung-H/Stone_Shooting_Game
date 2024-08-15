@@ -104,7 +104,7 @@ void CGameFramework::OnDestroy()
 #ifdef _WITH_DIRECT2D
 	if (m_pd2dbrBackground) m_pd2dbrBackground->Release();
 	if (m_pd2dbrBorder) m_pd2dbrBorder->Release();
-	if (m_pdwFont) m_pdwFont->Release();
+	if (m_pdw_Timer_Font) m_pdw_Timer_Font->Release();
 	if (m_pdwTextLayout) m_pdwTextLayout->Release();
 	if (m_pd2dbrText) m_pd2dbrText->Release();
 
@@ -306,12 +306,17 @@ void CGameFramework::CreateDirect2DDevice()
 	m_pd2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF(0x9ACD32, 1.0f)), &m_pd2dbrBorder);
 	m_pd2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Purple, 1.0f), &m_pd2dbrText);
 
-	hResult = m_pdWriteFactory->CreateTextFormat(L"궁서체", NULL, DWRITE_FONT_WEIGHT_DEMI_BOLD, DWRITE_FONT_STYLE_ITALIC, DWRITE_FONT_STRETCH_NORMAL, 48.0f, L"en-US", &m_pdwFont);
-	hResult = m_pdwFont->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-	hResult = m_pdwFont->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+	hResult = m_pdWriteFactory->CreateTextFormat(L"맑은 고딕", NULL, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 48.0f, L"ko-KR", &m_pdw_Timer_Font);
+	hResult = m_pdw_Timer_Font->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+	hResult = m_pdw_Timer_Font->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+	//hResult = m_pdWriteFactory->CreateTextLayout(L"텍스트 레이아웃", 8, m_pdw_Timer_Font, 4096.0f, 4096.0f, &m_pdwTextLayout);
 	
+	hResult = m_pdWriteFactory->CreateTextFormat(L"맑은 고딕", NULL, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 48.0f, L"ko-KR", &m_pdw_Inventory_Font);
+	hResult = m_pdw_Inventory_Font->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+	hResult = m_pdw_Inventory_Font->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
-	hResult = m_pdWriteFactory->CreateTextLayout(L"텍스트 레이아웃", 8, m_pdwFont, 4096.0f, 4096.0f, &m_pdwTextLayout);
+
+
 
 	float fDpi = (float)GetDpiForWindow(m_hWnd);
 	D2D1_BITMAP_PROPERTIES1 d2dBitmapProperties = D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW, D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED), fDpi, fDpi);
@@ -636,13 +641,24 @@ void CGameFramework::FrameAdvance()
 	//	m_pd2dDeviceContext->DrawTextW(ws_COM_Power.c_str(), (UINT32)wcslen(ws_COM_Power.c_str()), m_pdwFont, &COM_shooting_power, m_pd2dbrText);
 	//}
 	
+	// 	m_pd2dDeviceContext->DrawTextW(L"한글 테스트", (UINT32)wcslen(L"한글 테스트"), m_pdwFont, &rcLowerText, m_pd2dbrText);
 
 	// 시간 제한 출력
 	std::wstring wsTimeLimit = std::to_wstring(TURN_MAX_TIME - static_cast<int>(Limit_time));
 	D2D1_RECT_F player_Time_Limit = D2D1::RectF(350, 0, 450, 100);
-	m_pd2dDeviceContext->DrawTextW(wsTimeLimit.c_str(), (UINT32)wcslen(wsTimeLimit.c_str()), m_pdwFont, &player_Time_Limit, m_pd2dbrText);
+	m_pd2dDeviceContext->DrawTextW(wsTimeLimit.c_str(), (UINT32)wcslen(wsTimeLimit.c_str()), m_pdw_Timer_Font, &player_Time_Limit, m_pd2dbrText);
+	
 
-	// 	m_pd2dDeviceContext->DrawTextW(L"한글 테스트", (UINT32)wcslen(L"한글 테스트"), m_pdwFont, &rcLowerText, m_pd2dbrText);
+	Inventory_UI* inven_ptr = m_pScene->player_inventory;
+
+	int item_list_n = inven_ptr->text_area.size();
+
+	for (int i = 0; i < item_list_n; ++i)
+	{
+		std::wstring item_n = std::to_wstring(inven_ptr->item_list[i].second);
+		m_pd2dDeviceContext->DrawTextW(item_n.c_str(), (UINT32)wcslen(item_n.c_str()), m_pdw_Inventory_Font, &inven_ptr->text_area[i], m_pd2dbrText);
+	}
+
 	
 	m_pd2dDeviceContext->EndDraw();
 
@@ -742,7 +758,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		if (m_pScene->is_Player_Turn())
 		{
 			//마우스 위치를 기반으로 레이케스팅하여 돌 선택
-//			m_pSelectedObject = m_pScene->Pick_Stone_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
+			m_pSelectedObject = m_pScene->Pick_Stone_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
 			
 			if (m_pScene->is_Object_Selectable(m_pSelectedObject))
 			{

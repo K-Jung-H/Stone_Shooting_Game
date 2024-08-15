@@ -231,19 +231,15 @@ public:
 	bool IsVisible(CCamera *pCamera=NULL);
 
 	//모델 좌표계의 픽킹 광선을 생성한다. 
-	void GenerateRayForPicking(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, XMFLOAT3* pxmf3PickRayOrigin, XMFLOAT3* pxmf3PickRayDirection);
+	void Generate_Ray_For_Picking_Projection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, XMFLOAT3* pxmf3PickRayOrigin, XMFLOAT3* pxmf3PickRayDirection);
 	
-	void GenerateRayFromNearPlaneOrthographic(
-		XMFLOAT3& xmf3PickPosition,
-		XMFLOAT4X4& xmf4x4View,
-		XMFLOAT4X4& xmf4x4Projection,
-		XMFLOAT3* pxmf3RayOrigin,
-		XMFLOAT3* pxmf3RayDirection);
+	void Generate_Ray_For_Picking_Orthographic(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, XMFLOAT4X4& xmf4x4Projection,
+		XMFLOAT3* pxmf3RayOrigin, XMFLOAT3* pxmf3RayDirection);
 
 
 	//카메라 좌표계의 한 점에 대한 모델 좌표계의 픽킹 광선을 생성하고 객체와의 교차를 검사한다. 
-	int PickObjectByRayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfHitDistance);
-	int PickObjectByRayIntersection22(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, XMFLOAT4X4& xmfprojection, float* pfHitDistance);
+	int Pick_Object_By_Ray_Intersection_Projection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfHitDistance);
+	int Pick_Object_By_Ray_Intersection_Orthographic(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, XMFLOAT4X4& xmfprojection, float* pfHitDistance);
 
 
 	void UpdateBoundingBox();

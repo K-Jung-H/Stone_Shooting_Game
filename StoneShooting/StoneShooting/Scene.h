@@ -51,7 +51,7 @@ public:
 	CGameObject* Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCamera* pCamera);
 	CGameObject* Pick_Item_By_RayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance);
 
-	CGameObject* Pick_Item_By_RayIntersection22(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, XMFLOAT4X4& xmfprojection, float* pfNearHitDistance);
+	CGameObject* Pick_Item_By_RayIntersection(XMFLOAT3& xmf3PickPosition, CCamera* pCamera, float* pfNearHitDistance);
 
 
 	//씬의 모든 조명과 재질을 생성
