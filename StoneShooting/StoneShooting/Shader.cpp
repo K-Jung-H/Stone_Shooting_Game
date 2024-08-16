@@ -364,8 +364,31 @@ void OutlineShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* 
 	m_ppd3dPipelineStates = new ID3D12PipelineState * [m_nPipelineStates];
 
 	CShader::CreateShader(pd3dDevice, pd3dGraphicsRootSignature);
+
 }
 
+void OutlineShader::Create_Outline_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	UINT ncbElementBytes = ((sizeof(CB_Outline_INFO) + 255) & ~255); //256의 배수
+	Outline_Constant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+
+	Outline_Constant_Buffer->Map(0, NULL, (void**)&Mapped_Outline_info);
+}
+
+void OutlineShader::Update_Outline_Buffer(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	XMFLOAT4 line_color = { 0.0f,0.0f,0.0f,1.0f };
+	float line_thickness = 2.0f;
+
+	CB_Outline_INFO* pbMappedcbOutline = (CB_Outline_INFO*)Mapped_Outline_info;
+	::memcpy(&pbMappedcbOutline->color, &line_color, sizeof(XMFLOAT4));
+	::memcpy(&pbMappedcbOutline->Outline_Thickness, &line_thickness, sizeof(float));
+
+
+	D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = Outline_Constant_Buffer->GetGPUVirtualAddress();
+	pd3dCommandList->SetGraphicsRootConstantBufferView(5, d3dcbGameObjectGpuVirtualAddress);
+}
 
 void OutlineShader::AnimateObjects(float fTimeElapsed)
 {
@@ -375,7 +398,7 @@ void OutlineShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	// 파이프라인에 그래픽스 상태 객체를 설정
 	CShader::Setting_PSO(pd3dCommandList, 0);
-
+	Update_Outline_Buffer(pd3dCommandList);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////

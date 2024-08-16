@@ -4,15 +4,7 @@
 
 /*
 추가 할  내용:
-
-특정 키를 눌렀을 때, 획득한 아이템을 확인할 수 있는 UI 필요
-새로운 타입의 UI를 만들어서 해결하기 
--> TAB 키를 눌러 인벤토리 화면을 토글하도록 구현 완료
-
-UI에는 아이템 모델이 그려지고 그 밑에 숫자가 나오면 좋을듯
->> 아이템은 보드 객체의 자식 객체로 선언하여 그려지도록 완성함
->> 숫자 그리기는 프레임 워크에서 해야 하므로 마지막에 구현할 예정
-
+우클릭으로 선택한 돌에 윤곽선이 생겼으면 좋겠음
 
 보드에서 우클릭으로 돌을 골라 해당 돌이 사용할 아이템을 미리 정하도록 하고, 우클릭은 시점 변화가 안 일어나야 함
 			+
@@ -21,15 +13,8 @@ UI에는 아이템 모델이 그려지고 그 밑에 숫자가 나오면 좋을듯
 돌 객체에 현재 돌에 적용된 아이템을 변수로 저장하도록 할 것
 
 //=============================================
-문제점::
-
-아이템 객체 -> 계층 구조 --> 레이케스팅 시 계층 구조에 따른 충돌체 검사 연산 필요함
-
-
-
 
 -------------------추가 희망 사항-------------
-우클릭으로 선택한 돌에 윤곽선이 생겼으면 좋겠음
 
 Scene에 player1로 빼놓은 객체를 최대한 활용하면 좋을 듯
 
@@ -244,6 +229,7 @@ void CScene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pBoards->SetMaterial(material_color_board);
 	m_pBoards->m_xmOOBB = m_pBoards->m_pMesh->m_xmBoundingBox; // 시작할 때 한번만 하면 됨
 
+
 	//-------------------------------------------------------
 
 	CGameObject* board_line = NULL;
@@ -330,6 +316,11 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// 게임 객체
 	Object_Shader = new CObjectsShader[N_Object_Shader];
 	Object_Shader[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
+	
+	// 윤곽선
+	Outline_Shader = new OutlineShader[N_Outline_Shader];
+	Outline_Shader[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
+	((OutlineShader*)&Outline_Shader[0])->Create_Outline_Buffer(pd3dDevice, pd3dCommandList);
 	//===========================================================
 
 	Create_Board(pd3dDevice, pd3dCommandList, 200, 600);
@@ -579,7 +570,7 @@ ID3D12RootSignature* CScene::GetGraphicsRootSignature()
 ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevice)
 {
 	ID3D12RootSignature* pd3dGraphicsRootSignature = NULL;
-	D3D12_ROOT_PARAMETER pd3dRootParameters[5];
+	D3D12_ROOT_PARAMETER pd3dRootParameters[6];
 
 	pd3dRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	pd3dRootParameters[0].Descriptor.ShaderRegister = 0; //Player
@@ -605,6 +596,11 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dRootParameters[4].Descriptor.ShaderRegister = 4; //Lights
 	pd3dRootParameters[4].Descriptor.RegisterSpace = 0;
 	pd3dRootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	pd3dRootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	pd3dRootParameters[5].Descriptor.ShaderRegister = 5; // Outline
+	pd3dRootParameters[5].Descriptor.RegisterSpace = 0;
+	pd3dRootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	D3D12_ROOT_SIGNATURE_FLAGS d3dRootSignatureFlags =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -716,6 +712,7 @@ void CScene::CreateGraphicsPipelineState(ID3D12Device* pd3dDevice)
 	d3dRasterizerDesc.AntialiasedLineEnable = FALSE;
 	d3dRasterizerDesc.ForcedSampleCount = 0;
 	d3dRasterizerDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
 	//블렌드 상태를 설정한다.
 	D3D12_BLEND_DESC d3dBlendDesc;
 	::ZeroMemory(&d3dBlendDesc, sizeof(D3D12_BLEND_DESC));
@@ -731,6 +728,7 @@ void CScene::CreateGraphicsPipelineState(ID3D12Device* pd3dDevice)
 	d3dBlendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
 	d3dBlendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
 	d3dBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
 	//그래픽 파이프라인 상태를 설정한다.
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC d3dPipelineStateDesc;
 	::ZeroMemory(&d3dPipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));

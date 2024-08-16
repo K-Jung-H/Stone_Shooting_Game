@@ -12,7 +12,7 @@ cbuffer cbCameraInfo : register(b1)
     float3 gvCameraPosition : packoffset(c8);
 };
  
-//게임 객체의 데이터를 위한 상수 버퍼\
+//게임 객체의 데이터를 위한 상수 버퍼
 cbuffer cbGameObjectInfo : register(b2)
 {
     matrix gmtxGameObject : packoffset(c0);
@@ -22,7 +22,7 @@ cbuffer cbOutline : register(b5)
 {
     float4 color : packoffset(c0);
     float OutlineThickness : packoffset(c1);
-}
+};
 //========================================================================
 // 플레이어를 그리는 셰이더 
 

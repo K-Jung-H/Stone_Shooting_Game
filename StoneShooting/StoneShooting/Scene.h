@@ -115,6 +115,9 @@ protected:
 	std::vector<UI*> UI_list;
 	int ui_num = 0;
 
+	CShader* Outline_Shader = NULL;
+	int N_Outline_Shader = 1;
+
 //==========================================
 
 	LIGHTS* m_pLights = NULL; // æ¿¿« ¡∂∏Ì

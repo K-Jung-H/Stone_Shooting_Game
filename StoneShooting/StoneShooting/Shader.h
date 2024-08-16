@@ -83,8 +83,19 @@ public:
 
 };
 
+
+struct CB_Outline_INFO
+{
+	XMFLOAT4 color;
+	float Outline_Thickness;
+};
+
 class OutlineShader : public CShader
 {
+private:
+	CB_Outline_INFO* Mapped_Outline_info = NULL;
+	ID3D12Resource* Outline_Constant_Buffer = NULL;
+
 public:
 	OutlineShader();
 	virtual ~OutlineShader();
@@ -93,8 +104,8 @@ public:
 	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob** ppd3dShaderBlob);
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob** ppd3dShaderBlob);
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature);
-
-
+	void Create_Outline_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void Update_Outline_Buffer(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	virtual void AnimateObjects(float fTimeElapsed);
 	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList);
