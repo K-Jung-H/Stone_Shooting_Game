@@ -328,6 +328,58 @@ void CObjectsShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList)
 
 //////////////////////////////////////////////////////////////////////////////////////
 
+OutlineShader::OutlineShader()
+{
+}
+OutlineShader::~OutlineShader()
+{
+}
+
+D3D12_INPUT_LAYOUT_DESC OutlineShader::CreateInputLayout()
+{
+	UINT nInputElementDescs = 2;
+
+	D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
+	pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+	D3D12_INPUT_LAYOUT_DESC d3dInputLayoutDesc;
+	d3dInputLayoutDesc.pInputElementDescs = pd3dInputElementDescs;
+	d3dInputLayoutDesc.NumElements = nInputElementDescs;
+	return(d3dInputLayoutDesc);
+}
+
+D3D12_SHADER_BYTECODE OutlineShader::CreateVertexShader(ID3DBlob** ppd3dShaderBlob)
+{
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSOutline", "vs_5_1", ppd3dShaderBlob));
+}
+D3D12_SHADER_BYTECODE OutlineShader::CreatePixelShader(ID3DBlob** ppd3dShaderBlob)
+{
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSOutline", "ps_5_1", ppd3dShaderBlob));
+}
+
+void OutlineShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature)
+{
+	m_nPipelineStates = 2;
+	m_ppd3dPipelineStates = new ID3D12PipelineState * [m_nPipelineStates];
+
+	CShader::CreateShader(pd3dDevice, pd3dGraphicsRootSignature);
+}
+
+
+void OutlineShader::AnimateObjects(float fTimeElapsed)
+{
+}
+
+void OutlineShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	// 파이프라인에 그래픽스 상태 객체를 설정
+	CShader::Setting_PSO(pd3dCommandList, 0);
+
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+
 UIShader::UIShader()
 {
 }

@@ -304,14 +304,14 @@ void CGameFramework::CreateDirect2DDevice()
 	m_pd2dDeviceContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 	m_pd2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(0.3f, 0.0f, 0.0f, 0.5f), &m_pd2dbrBackground);
 	m_pd2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF(0x9ACD32, 1.0f)), &m_pd2dbrBorder);
-	m_pd2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Purple, 1.0f), &m_pd2dbrText);
+	m_pd2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black, 1.0f), &m_pd2dbrText);
 
 	hResult = m_pdWriteFactory->CreateTextFormat(L"¸¼Àº °íµñ", NULL, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 48.0f, L"ko-KR", &m_pdw_Timer_Font);
 	hResult = m_pdw_Timer_Font->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
 	hResult = m_pdw_Timer_Font->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 	//hResult = m_pdWriteFactory->CreateTextLayout(L"ÅØ½ºÆ® ·¹ÀÌ¾Æ¿ô", 8, m_pdw_Timer_Font, 4096.0f, 4096.0f, &m_pdwTextLayout);
 	
-	hResult = m_pdWriteFactory->CreateTextFormat(L"¸¼Àº °íµñ", NULL, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 48.0f, L"ko-KR", &m_pdw_Inventory_Font);
+	hResult = m_pdWriteFactory->CreateTextFormat(L"¸¼Àº °íµñ", NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 30.0f, L"ko-KR", &m_pdw_Inventory_Font);
 	hResult = m_pdw_Inventory_Font->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
 	hResult = m_pdw_Inventory_Font->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
@@ -650,15 +650,16 @@ void CGameFramework::FrameAdvance()
 	
 
 	Inventory_UI* inven_ptr = m_pScene->player_inventory;
-
-	int item_list_n = inven_ptr->text_area.size();
-
-	for (int i = 0; i < item_list_n; ++i)
+	if(inven_ptr->Get_Visualize() && inven_ptr->hold)
 	{
-		std::wstring item_n = std::to_wstring(inven_ptr->item_list[i].second);
-		m_pd2dDeviceContext->DrawTextW(item_n.c_str(), (UINT32)wcslen(item_n.c_str()), m_pdw_Inventory_Font, &inven_ptr->text_area[i], m_pd2dbrText);
-	}
+		int item_list_n = inven_ptr->text_area.size();
 
+		for (int i = 0; i < item_list_n; ++i)
+		{
+			std::wstring item_n = std::to_wstring(inven_ptr->item_list[i].second);
+			m_pd2dDeviceContext->DrawTextW(item_n.c_str(), (UINT32)wcslen(item_n.c_str()), m_pdw_Inventory_Font, &inven_ptr->text_area[i], m_pd2dbrText);
+		}
+	}
 	
 	m_pd2dDeviceContext->EndDraw();
 

@@ -117,10 +117,12 @@ private:
 
 	UI_Object* inventory_board_obj = NULL;
 
-public:
+public:	
 	std::vector<D2D1_RECT_F> text_area;
 	std::vector<std::pair<Item_Type, int>> item_list;
 
+	bool hold = false;
+	
 	Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area);
 	~Inventory_UI();
 	
@@ -130,6 +132,6 @@ public:
 	void Set_Inventory_board_obj(UI_Object* obj) { inventory_board_obj = obj; }
 	UI_Object* Get_Inventory_board_obj() { return inventory_board_obj; }
 	void Set_Visualize(bool Bool);
-
+	bool Get_Visualize() { return visualize; }
 	void Reset();
 };

@@ -322,13 +322,16 @@ void Inventory_UI::AnimateObjects(float fTimeElapsed)
 				if (board_pos.y > 0)
 				{
 					inventory_board_obj->SetPosition(0.0f, 0.0f, board_pos.z);
+					hold = true;
 				}
 				else
+
 					inventory_board_obj->Move(Drag_Direction, 180.0f * fTimeElapsed);
 			}
 			else if (Drag_up == false)
 			{
 				float board_height = (Monitor_Area.bottom - Monitor_Area.top);
+				hold = false;
 				if (board_pos.y < -board_height)
 				{
 					inventory_board_obj->SetPosition(0.0f, -board_height, board_pos.z);
