@@ -12,6 +12,14 @@
 
 돌 객체에 현재 돌에 적용된 아이템을 변수로 저장하도록 할 것
 
+
+셰이더마다 타입을 추가하여 구별하는 중
+
+윤곽선 셰이더가 연결된 재질은 active가 변경되지 않도록 조건을 부분마다 추가하는 중
+
+현재, 마우스로 선택한 돌의 색상이 바뀐 후,
+다른 돌로 갈아타면, 이전 돌의 색상이 안바뀌는 중-> 원인 찾기!!!!!!!!!!
+
 //=============================================
 
 -------------------추가 희망 사항-------------
@@ -224,9 +232,8 @@ void CScene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pBoards = new CBoardObject(pd3dDevice, pd3dCommandList);
 	m_pBoards->SetPosition(0.0f, 0.0f, 0.0f);
 	m_pBoards->SetMesh(pboard_mesh);
-	m_pBoards->type = Object_Type::ETC;
-
-	m_pBoards->SetMaterial(material_color_board);
+	m_pBoards->SetMaterial(material_color_none);
+	m_pBoards->AddMaterial(material_color_board, true);
 	m_pBoards->m_xmOOBB = m_pBoards->m_pMesh->m_xmBoundingBox; // 시작할 때 한번만 하면 됨
 
 
@@ -265,7 +272,7 @@ void CScene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		board_line->SetScale(2.0f/3.0f,1.0f,1.0f);
 		board_line->Rotate(&vertical_angle, 90.0f);
 		board_line->SetMesh(pboard_line_mesh);
-		board_line->type = Object_Type::ETC;
+		board_line->type = Object_Type::Board;
 		board_line->SetMaterial(material_color_black_particle);
 
 		m_pBoards->Add_Child(board_line);
@@ -287,18 +294,20 @@ void CScene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 	pStoneObject->SetRotationAxis(XMFLOAT3(0.0f, 1.0f, 0.0f));			// Default
 	pStoneObject->SetRotationSpeed(0.0f);								// Default
 
+	pStoneObject->SetMaterial(material_color_none);
 	if (player_team)
 	{
-		pStoneObject->SetMaterial(material_color_white_stone);
-		pStoneObject->AddMaterial(material_color_player_selected);
+		pStoneObject->AddMaterial(material_color_white_stone, true);
+		pStoneObject->AddMaterial(material_color_player_selected, false);
 		pStoneObject->SetMovingDirection(XMFLOAT3(0.0f, 0.0f, -1.0f));	// Default
 	}
 	else
 	{
-		pStoneObject->SetMaterial(material_color_black_stone);
-		pStoneObject->AddMaterial(material_color_com_selected);
+		pStoneObject->AddMaterial(material_color_black_stone, true);
+		pStoneObject->AddMaterial(material_color_com_selected, false);
 		pStoneObject->SetMovingDirection(XMFLOAT3(0.0f, 0.0f, 1.0f));	// Default
 	}
+
 	pStoneObject->SetMovingSpeed(0.0f);									// Default
 
 	pStoneObject->player_team = player_team;
@@ -316,12 +325,13 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// 게임 객체
 	Object_Shader = new CObjectsShader[N_Object_Shader];
 	Object_Shader[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
-	
+
 	// 윤곽선
 	Outline_Shader = new OutlineShader[N_Outline_Shader];
 	Outline_Shader[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
 	((OutlineShader*)&Outline_Shader[0])->Create_Outline_Buffer(pd3dDevice, pd3dCommandList);
 	//===========================================================
+	material_color_none->SetShader(&Outline_Shader[0]);
 
 	Create_Board(pd3dDevice, pd3dCommandList, 200, 600);
 
@@ -505,7 +515,13 @@ Inventory_UI* CScene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12Graphi
 
 		item->SetActive(true);
 		item->outer_frame->Set_MaterialShader(&Object_Shader[0], 0);
+		item->outer_frame->SetMaterial(material_color_none,true);
+		item->outer_frame->m_ppMaterials[1].second = true;
+
 		item->inner_frame->Set_MaterialShader(&Object_Shader[0], 0);
+		item->inner_frame->SetMaterial(material_color_none, true);
+		item->inner_frame->m_ppMaterials[1].second = true;
+
 		item->SetScale(icon_scale, icon_scale, icon_scale);
 		item->SetPosition(info.second);
 		ui_inventory_obj->Add_Child(item);
@@ -1001,7 +1017,7 @@ void CScene::Change_Turn()
 		Com_Shot = false;
 
 		if (player1.select_Stone != NULL && player1.select_Stone->active)
-			player1.select_Stone->ChangeMaterial(0);
+			player1.select_Stone->ChangeMaterial(1);
 
 		player1.select_Stone = NULL;
 		Charge_Effect->ChangeMaterial(1);
@@ -1014,7 +1030,7 @@ void CScene::Change_Turn()
 		
 		if (computer.select_Stone->active)
 		{
-			computer.select_Stone->ChangeMaterial(0);
+			computer.select_Stone->ChangeMaterial(1);
 			computer.select_Stone = NULL;
 			computer.target_Stone = NULL;
 		
@@ -1078,29 +1094,32 @@ void CScene::Setting_Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	switch (type)
 	{
-
 	case Item_Type::Double_Power:
-	{
 		item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Double_Power); 
-		item->SetActive(true);
-		item->SetPosition(pos);
-		Game_Items.push_back(item);
-	}
 	break;
 
 	case Item_Type::Ghost:
-	{
 		item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Ghost);
-		item->SetActive(true);
-		item->SetPosition(pos);
-		Game_Items.push_back(item);
-	}
 	break;
 
-	
 	case Item_Type::ETC:
 	default:
 		break;
+	}
+
+	if (item != NULL)
+	{
+		item->SetActive(true);
+		item->SetPosition(pos);
+		item->outer_frame->Set_MaterialShader(&Object_Shader[0], 0);
+		item->outer_frame->SetMaterial(material_color_none, true);
+		item->outer_frame->m_ppMaterials[1].second = true;
+
+		item->inner_frame->Set_MaterialShader(&Object_Shader[0], 0);
+		item->inner_frame->SetMaterial(material_color_none, true);
+		item->inner_frame->m_ppMaterials[1].second = true;
+
+		Game_Items.push_back(item);
 	}
 }
 
@@ -1238,7 +1257,7 @@ void CScene::Scene_Update(float fTimeElapsed)
 					return;
 
 				computer.select_Stone = normal_version.first;
-				computer.select_Stone->ChangeMaterial(1);
+				computer.select_Stone->ChangeMaterial(2);
 
 				computer.target_Stone = normal_version.second;
 
@@ -1709,9 +1728,9 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 			if(stone_obj->active)
 			{
 				if (stone_obj == player1.select_Stone)
-					stone_obj->ChangeMaterial(1);
+					stone_obj->ChangeMaterial(2);
 				else
-					stone_obj->ChangeMaterial(0);
+					stone_obj->ChangeMaterial(1);
 			}
 		}
 		break;

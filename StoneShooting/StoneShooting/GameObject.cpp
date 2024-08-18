@@ -152,7 +152,7 @@ void CGameObject::Set_MaterialShader(CShader* pShader, int nMaterial)
 }
 
 
-void CGameObject::SetMaterial(CMaterial* pMaterial)
+void CGameObject::SetMaterial(CMaterial* pMaterial, bool front_insert)
 {
 	bool is_exist = false;
 	for (std::pair<CMaterial*, bool>& material : m_ppMaterials)
@@ -168,14 +168,17 @@ void CGameObject::SetMaterial(CMaterial* pMaterial)
 	
 	if (!is_exist)
 	{
-		m_ppMaterials.push_back(std::make_pair(pMaterial, true));
+		if(front_insert)
+			m_ppMaterials.insert(m_ppMaterials.begin(), std::make_pair(pMaterial, true));
+		else
+			m_ppMaterials.push_back(std::make_pair(pMaterial, true));
 		pMaterial->AddRef();
 	}
 }
 
-void CGameObject::AddMaterial(CMaterial* pMaterial) // 객체에 연결할 새 재질의 포인터를 사용 안함 상태로 저장하고, 참조 카운트 증가시킴
+void CGameObject::AddMaterial(CMaterial* pMaterial, bool active) // 객체에 연결할 새 재질의 포인터를 사용 안함 상태로 저장하고, 참조 카운트 증가시킴
 {
-	m_ppMaterials.push_back(std::make_pair(pMaterial, false));
+	m_ppMaterials.push_back(std::make_pair(pMaterial, active));
 	m_ppMaterials.back().first->AddRef();
 
 }
@@ -186,8 +189,11 @@ void CGameObject::ChangeMaterial(UINT n)
 		return;
 
 	for (std::pair<CMaterial*, bool>& material : m_ppMaterials)
+	{
+		if (material.first->material_shader != NULL && material.first->material_shader->type == Shader_Type::Outline)
+			continue;
 		material.second = false;
-
+	}
 	m_ppMaterials[n].second = true;
 
 }
@@ -353,7 +359,7 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 		{
 			if (m_ppMaterials[i].first->material_shader)
 			{
-				m_ppMaterials[i].first->material_shader->Setting_Render(pd3dCommandList);
+				m_ppMaterials[i].first->material_shader->Setting_Render(pd3dCommandList, type);
 				shader_changed = true;
 			}
 			// 재질 정보 컨테이너 업데이트 :: Mapped_Material_info
@@ -479,18 +485,12 @@ void CGameObject::Move(XMFLOAT3& vDirection, float fSpeed)
 
 void CGameObject::UpdateBoundingBox()
 {
-	// 추후에 계층 구조에 맞춰 업데이트 할 필요 있음
 	if (m_pMesh)
 	{
 		m_pMesh->m_xmBoundingBox.Transform(m_xmOOBB, XMLoadFloat4x4(&m_xmf4x4World));
 		XMStoreFloat4(&m_xmOOBB.Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_xmOOBB.Orientation)));
 	}
 
-	//for (CGameObject* sibling_ptr : m_pSibling)
-	//	sibling_ptr->UpdateBoundingBox();
-
-	//for (CGameObject* child_ptr : m_pChild)
-	//	child_ptr->UpdateBoundingBox();
 }
 
 void CGameObject::UpdateFriction(float fTimeElapsed)
@@ -761,6 +761,8 @@ void CRotatingObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 
 CBoardObject::CBoardObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) : CRotatingObject(pd3dDevice, pd3dCommandList)
 {
+	type = Object_Type::Board;
+
 	SetRotationAxis(XMFLOAT3(0.0f, 1.0f, 0.0f));
 	SetRotationSpeed(30.0f);
 }
@@ -780,6 +782,7 @@ void CBoardObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* p
 StoneObject::StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) 
 	: CRotatingObject(pd3dDevice, pd3dCommandList)
 {	
+	type = Object_Type::Stone;
 }
 
 StoneObject::~StoneObject()

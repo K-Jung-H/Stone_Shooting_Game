@@ -114,10 +114,13 @@ float4 PSLighting(VS_LIGHTING_OUTPUT input) : SV_TARGET
 VS_LIGHTING_OUTPUT VSOutline(VS_LIGHTING_INPUT input)
 {
     VS_LIGHTING_OUTPUT output;
-    // 정점을 확장하여 윤곽선을 생성
-    float4 expandedPosition = float4(input.position * (1.0f + OutlineThickness), 1.0f);
-    // 월드, 뷰, 투영 행렬을 적용하여 최종 위치 계산
-    output.position = mul(mul(expandedPosition, gmtxGameObject), mul(gmtxView, gmtxProjection));
+    
+    // 노멀 벡터를 따라 윤곽선을 확장
+    float4 expandedPosition = float4(input.position + input.normal * OutlineThickness, 1.0f);
+    
+    // 확장된 위치를 변환
+    output.position = mul(mul(mul(expandedPosition, gmtxGameObject), gmtxView), gmtxProjection);
+
     return output;
 }
 

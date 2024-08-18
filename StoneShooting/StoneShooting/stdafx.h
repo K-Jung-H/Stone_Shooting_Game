@@ -78,6 +78,13 @@ using namespace DirectX::PackedVector;
 
 using Microsoft::WRL::ComPtr;
 
+enum class Shader_Type {
+	Outline,
+	Object,
+	UI,
+	ETC
+};
+
 enum class Particle_Type {
 	Explosion,
 	Charge,
@@ -94,6 +101,7 @@ enum class Resource_Buffer_Type
 enum class Object_Type
 {
 	Stone,
+	Board,
 	Item,
 	ETC,
 	None,

@@ -166,8 +166,8 @@ public:
 	
 	void SetMesh(CMesh* pMesh);
 	void Set_MaterialShader(CShader* pShader, int nMaterial = 0);
-	void SetMaterial(CMaterial* pMaterial);
-	void AddMaterial(CMaterial* pMaterial);
+	void SetMaterial(CMaterial* pMaterial, bool front_insert = false);
+	void AddMaterial(CMaterial* pMaterial, bool active = false);
 	void ChangeMaterial(UINT n);
 
 	void Add_Child(CGameObject* pChild, bool bReferenceUpdate = false);

@@ -77,7 +77,6 @@ Item::Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 	outer_frame->SetRotationSpeed(30.0f);
 	outer_frame->SetMaterial(material_color_item_outer);
 	
-	Add_Child(outer_frame);
 
 
 	inner_frame = new CGameObject(pd3dDevice, pd3dCommandList);
@@ -104,6 +103,7 @@ Item::Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 	}
 
 	Add_Child(inner_frame);
+	Add_Child(outer_frame);
 
 
 }

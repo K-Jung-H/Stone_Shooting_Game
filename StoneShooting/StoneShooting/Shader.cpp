@@ -51,11 +51,10 @@ D3D12_DEPTH_STENCIL_DESC CShader::CreateDepthStencilState()
 	::ZeroMemory(&d3dDepthStencilDesc, sizeof(D3D12_DEPTH_STENCIL_DESC));
 
 	//깊이-검사를 하지 않으므로 여러 개의 객체들이 겹쳐지는 것처럼 그려진다.
-	//d3dDepthStencilDesc.DepthEnable = FALSE;
 	d3dDepthStencilDesc.DepthEnable = TRUE;
 	
 	d3dDepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-	d3dDepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+	d3dDepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 	d3dDepthStencilDesc.StencilEnable = FALSE;
 	d3dDepthStencilDesc.StencilReadMask = 0x00;
 	d3dDepthStencilDesc.StencilWriteMask = 0x00;
@@ -205,7 +204,7 @@ void CShader::AnimateObjects(float fTimeElapsed)
 {
 }
 
-void CShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList)
+void CShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type)
 {
 }
 
@@ -277,6 +276,7 @@ void CPlayerShader::ReleaseObjects()
 
 CObjectsShader::CObjectsShader()
 {
+	type = Shader_Type::Object;
 }
 CObjectsShader::~CObjectsShader()
 {
@@ -318,7 +318,7 @@ void CObjectsShader::AnimateObjects(float fTimeElapsed)
 {
 }
 
-void CObjectsShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList)
+void CObjectsShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type)
 {
 	// 파이프라인에 그래픽스 상태 객체를 설정
 	CShader::Setting_PSO(pd3dCommandList, 0);
@@ -330,9 +330,34 @@ void CObjectsShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList)
 
 OutlineShader::OutlineShader()
 {
+	type = Shader_Type::Outline;
 }
 OutlineShader::~OutlineShader()
 {
+}
+
+D3D12_DEPTH_STENCIL_DESC OutlineShader::CreateDepthStencilState()
+{
+	D3D12_DEPTH_STENCIL_DESC d3dDepthStencilDesc;
+	::ZeroMemory(&d3dDepthStencilDesc, sizeof(D3D12_DEPTH_STENCIL_DESC));
+
+	//깊이-검사를 하지 않으므로 여러 개의 객체들이 겹쳐지는 것처럼 그려진다.
+	d3dDepthStencilDesc.DepthEnable = TRUE;
+
+	d3dDepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	d3dDepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+	d3dDepthStencilDesc.StencilEnable = FALSE;
+	d3dDepthStencilDesc.StencilReadMask = 0x00;
+	d3dDepthStencilDesc.StencilWriteMask = 0x00;
+	d3dDepthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	d3dDepthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	d3dDepthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	d3dDepthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
+	d3dDepthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	d3dDepthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	d3dDepthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	d3dDepthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
+	return(d3dDepthStencilDesc);
 }
 
 D3D12_INPUT_LAYOUT_DESC OutlineShader::CreateInputLayout()
@@ -376,10 +401,10 @@ void OutlineShader::Create_Outline_Buffer(ID3D12Device* pd3dDevice, ID3D12Graphi
 	Outline_Constant_Buffer->Map(0, NULL, (void**)&Mapped_Outline_info);
 }
 
-void OutlineShader::Update_Outline_Buffer(ID3D12GraphicsCommandList* pd3dCommandList)
+void OutlineShader::Update_Outline_Buffer(ID3D12GraphicsCommandList* pd3dCommandList, float thickness, XMFLOAT4 color)
 {
-	XMFLOAT4 line_color = { 0.0f,0.0f,0.0f,1.0f };
-	float line_thickness = 2.0f;
+	XMFLOAT4 line_color = color;
+	float line_thickness = thickness;
 
 	CB_Outline_INFO* pbMappedcbOutline = (CB_Outline_INFO*)Mapped_Outline_info;
 	::memcpy(&pbMappedcbOutline->color, &line_color, sizeof(XMFLOAT4));
@@ -394,17 +419,23 @@ void OutlineShader::AnimateObjects(float fTimeElapsed)
 {
 }
 
-void OutlineShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList)
+void OutlineShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type)
 {
 	// 파이프라인에 그래픽스 상태 객체를 설정
 	CShader::Setting_PSO(pd3dCommandList, 0);
-	Update_Outline_Buffer(pd3dCommandList);
+
+	if (o_type == Object_Type::Board)
+		Update_Outline_Buffer(pd3dCommandList, 1.0f);
+	else
+		Update_Outline_Buffer(pd3dCommandList);
+	
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
 
 UIShader::UIShader()
 {
+	type = Shader_Type::UI;
 }
 UIShader::~UIShader()
 {
@@ -443,7 +474,7 @@ void UIShader::AnimateObjects(float fTimeElapsed)
 {
 }
 
-void UIShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList)
+void UIShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type)
 {
 	CShader::Setting_PSO(pd3dCommandList, 0);
 }

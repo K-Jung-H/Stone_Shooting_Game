@@ -10,7 +10,18 @@
 
 class CShader
 {
+private:
+	int m_nReferences = 0;
+
+protected:
+	// 파이프라인 상태 종류
+	ID3D12PipelineState** m_ppd3dPipelineStates = NULL;
+	int m_nPipelineStates = 0;
+
 public:
+	Shader_Type type = Shader_Type::ETC;
+
+
 	CShader();
 	virtual ~CShader();
 
@@ -31,7 +42,7 @@ public:
 
 	virtual void AnimateObjects(float fTimeElapsed);
 
-	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC);
 	virtual void Setting_PSO(ID3D12GraphicsCommandList* pd3dCommandList, int N = 0);
 
 
@@ -40,13 +51,7 @@ public:
 
 
 
-protected:
-	// 파이프라인 상태 종류
-	ID3D12PipelineState** m_ppd3dPipelineStates = NULL;
-	int m_nPipelineStates = 0;
 
-private:
-	int m_nReferences = 0;
 };
 
 class CPlayerShader : public CShader
@@ -79,7 +84,7 @@ public:
 
 
 	virtual void AnimateObjects(float fTimeElapsed);
-	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC);
 
 };
 
@@ -96,19 +101,24 @@ private:
 	CB_Outline_INFO* Mapped_Outline_info = NULL;
 	ID3D12Resource* Outline_Constant_Buffer = NULL;
 
+protected:
+	XMFLOAT4 color;
+	float Thickness;
+
 public:
 	OutlineShader();
 	virtual ~OutlineShader();
 
+	virtual D3D12_DEPTH_STENCIL_DESC CreateDepthStencilState();
 	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
 	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob** ppd3dShaderBlob);
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob** ppd3dShaderBlob);
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	void Create_Outline_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	void Update_Outline_Buffer(ID3D12GraphicsCommandList* pd3dCommandList);
+	void Update_Outline_Buffer(ID3D12GraphicsCommandList* pd3dCommandList, float thickness = 0.5, XMFLOAT4 color = { 0.0f,0.0f,0.0f,1.0f });
 
 	virtual void AnimateObjects(float fTimeElapsed);
-	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC);
 
 };
 
@@ -125,5 +135,5 @@ public:
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	
 	virtual void AnimateObjects(float fTimeElapsed);
-	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC);
 };
