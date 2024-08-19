@@ -214,11 +214,13 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 
 	// 미리 생성하여 준비
 	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material_color_white_particle, Particle_Type::Charge);
+	Charge_Effect->SetMaterial(material_color_none,true);
 	Charge_Effect->AddMaterial(material_color_black_particle);
 	Charge_Effect->active = true;
-	
-	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(30.0f, 10.0f, 0.0f), Item_Type::Double_Power);
-	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 10.0f, 0.0f), Item_Type::Ghost);
+	Charge_Effect->m_ppMaterials[0].second = true;
+	Charge_Effect->m_ppMaterials[1].second = true;
+	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(30.0f, 10.0f, 0.0f), Item_Type::Max_Power);
+	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 10.0f, 0.0f), Item_Type::Frozen_Time);
 
 }
 
@@ -253,7 +255,7 @@ void CScene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		board_line->SetPosition(XMFLOAT3(pos));
 		board_line->SetScale(1.0f, 1.0f, 2.0f);
 		board_line->SetMesh(pboard_line_mesh);
-		board_line->type = Object_Type::ETC;
+		board_line->o_type = Object_Type::Board;
 		board_line->SetMaterial(material_color_black_particle);
 
 		m_pBoards->Add_Child(board_line);
@@ -272,7 +274,7 @@ void CScene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		board_line->SetScale(2.0f/3.0f,1.0f,1.0f);
 		board_line->Rotate(&vertical_angle, 90.0f);
 		board_line->SetMesh(pboard_line_mesh);
-		board_line->type = Object_Type::Board;
+		board_line->o_type = Object_Type::Board;
 		board_line->SetMaterial(material_color_black_particle);
 
 		m_pBoards->Add_Child(board_line);
@@ -286,8 +288,6 @@ void CScene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 
 	pStoneObject = new StoneObject(pd3dDevice, pd3dCommandList);
 	pStoneObject->SetMesh(mesh);
-	pStoneObject->type = Object_Type::Stone;
-	//~~~~~~~~~~~~~~
 	pStoneObject->SetPosition(pos.x, pos.y, pos.z);
 	pStoneObject->SetFriction(2);										// Default
 
@@ -491,14 +491,14 @@ Inventory_UI* CScene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12Graphi
 
 	std::vector <Item_Type> item_type_list
 	{ 
+		Item_Type::Taunt,
+		Item_Type::Fire_Shot,
 		Item_Type::Double_Power, 
+		Item_Type::ETC,
+		Item_Type::ETC,
+		Item_Type::Frozen_Time,
 		Item_Type::Ghost, 
-		Item_Type::ETC,
-		Item_Type::ETC,
-		Item_Type::ETC,
-		Item_Type::ETC,
-		Item_Type::ETC,
-		Item_Type::Double_Power
+		Item_Type::Max_Power
 	};
 
 	std::vector<std::pair<Item_Type, XMFLOAT3>> icon_info;
@@ -613,9 +613,10 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dRootParameters[4].Descriptor.RegisterSpace = 0;
 	pd3dRootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	pd3dRootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	pd3dRootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 	pd3dRootParameters[5].Descriptor.ShaderRegister = 5; // Outline
 	pd3dRootParameters[5].Descriptor.RegisterSpace = 0;
+	pd3dRootParameters[5].Constants.Num32BitValues = 8;
 	pd3dRootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	D3D12_ROOT_SIGNATURE_FLAGS d3dRootSignatureFlags =
@@ -1020,7 +1021,7 @@ void CScene::Change_Turn()
 			player1.select_Stone->ChangeMaterial(1);
 
 		player1.select_Stone = NULL;
-		Charge_Effect->ChangeMaterial(1);
+		Charge_Effect->ChangeMaterial(2);
 	}
 	else if (Com_Turn)
 	{
@@ -1035,9 +1036,9 @@ void CScene::Change_Turn()
 			computer.target_Stone = NULL;
 		
 		}
-		Charge_Effect->ChangeMaterial(0);
+		Charge_Effect->ChangeMaterial(1);
 	}
-
+	Mark_selected_stone();
 	Charge_Effect->Reset();
 }
 
@@ -1095,14 +1096,31 @@ void CScene::Setting_Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	switch (type)
 	{
 	case Item_Type::Double_Power:
-		item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Double_Power); 
+		item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Double_Power);
 	break;
 
 	case Item_Type::Ghost:
 		item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Ghost);
 	break;
 
+	case Item_Type::Taunt:
+		item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Taunt);
+		break;
+
+	case Item_Type::Fire_Shot:
+		item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Fire_Shot);
+		break;
+
+	case Item_Type::Frozen_Time:
+		item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Frozen_Time);
+		break;
+
+	case Item_Type::Max_Power:
+		item = new Item(pd3dDevice, pd3dCommandList, Item_Type::Max_Power);
+		break;
+
 	case Item_Type::ETC:
+	case Item_Type::None:
 	default:
 		break;
 	}
@@ -1123,12 +1141,12 @@ void CScene::Setting_Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	}
 }
 
-void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, CMaterial* material, Particle_Type type)
+void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, CMaterial* material, Particle_Type particle_type)
 {
 	bool Done = false;
 	for (Particle* particle : m_particle)
 	{
-		if (particle->type == type && particle->active == false)
+		if (particle->p_type == particle_type && particle->active == false)
 		{
 			particle->SetPosition(pos);
 			particle->SetActive(true);
@@ -1141,7 +1159,7 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	if (Done == false)
 	{
 		Particle* particle = NULL;
-		switch (type)
+		switch (particle_type)
 		{
 
 		case Particle_Type::Explosion:
@@ -1339,7 +1357,7 @@ void CScene::Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 
 
 	if(power_charge)
-		Charge_Effect->Particle_Render(pd3dCommandList, pCamera);
+		Charge_Effect->Particle_Render(pd3dCommandList, pCamera, &Object_Shader[0]);
 	
 
 	for (Particle* particle : m_particle)
@@ -1621,16 +1639,28 @@ void CScene::Mark_selected_stone()
 		if (stone_obj->active)
 		{
 			if (stone_obj == player1.select_Stone)
-				stone_obj->ChangeMaterial(1);
+			{
+				stone_obj->ChangeMaterial(2);
+				stone_obj->Apply_Item(player1.now_applied_item);
+			}
 			else
-				stone_obj->ChangeMaterial(0);
+			{
+				stone_obj->ChangeMaterial(1);
+				stone_obj->Apply_Item(Item_Type::None);
+			}
 		}
 	}
 }
 
-void CScene::Select_Item()
+void CScene::Select_Item(Item_Type i_type)
 {
-
+	if (i_type != Item_Type::None)
+	{
+		if (player1.Item_Inventory[i_type]) // != 0
+		{
+			player1.Item_Inventory[i_type] -= 1;
+		}
+	}
 }
 
 CGameObject* CScene::Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCamera* pCamera)
@@ -1718,21 +1748,17 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 			if (clientX >= xMin && clientX <= xMax && clientY >= yMin && clientY <= yMax) {
 				//마우스 위치를 기반으로 레이케스팅하여 아이템
 				player1.select_Item = Pick_Item_Pointed_By_Cursor(clientX, clientY, player_inventory);
+				if (player1.select_Item != NULL)
+				{
+					player1.now_applied_item = ((Item*)player1.select_Item)->item_type;
+				}
 			}
 		}
 
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
-		for (StoneObject* stone_obj : player1.stone_list)
-		{
-			if(stone_obj->active)
-			{
-				if (stone_obj == player1.select_Stone)
-					stone_obj->ChangeMaterial(2);
-				else
-					stone_obj->ChangeMaterial(1);
-			}
-		}
+		Mark_selected_stone();
+		Charge_Effect->Apply_Item(player1.now_applied_item);
 		break;
 
 	default:
@@ -1777,7 +1803,7 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			}
 			break;
 
-		case VK_TAB:
+		case VK_OEM_3:
 		{
 			player1.inventory_open = !player1.inventory_open;
 			player_inventory->Set_Visualize(player1.inventory_open);

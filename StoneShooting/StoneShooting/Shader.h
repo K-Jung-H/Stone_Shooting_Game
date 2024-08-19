@@ -42,7 +42,9 @@ public:
 
 	virtual void AnimateObjects(float fTimeElapsed);
 
-	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC);
+	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC, Item_Type i_type = Item_Type::None);
+
+
 	virtual void Setting_PSO(ID3D12GraphicsCommandList* pd3dCommandList, int N = 0);
 
 
@@ -84,23 +86,20 @@ public:
 
 
 	virtual void AnimateObjects(float fTimeElapsed);
-	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC);
+	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC, Item_Type i_type = Item_Type::None);
 
 };
 
 
-struct CB_Outline_INFO
+struct Outline_INFO
 {
 	XMFLOAT4 color;
 	float Outline_Thickness;
+	float padding[3];
 };
 
 class OutlineShader : public CShader
 {
-private:
-	CB_Outline_INFO* Mapped_Outline_info = NULL;
-	ID3D12Resource* Outline_Constant_Buffer = NULL;
-
 protected:
 	XMFLOAT4 color;
 	float Thickness;
@@ -118,7 +117,8 @@ public:
 	void Update_Outline_Buffer(ID3D12GraphicsCommandList* pd3dCommandList, float thickness = 0.5, XMFLOAT4 color = { 0.0f,0.0f,0.0f,1.0f });
 
 	virtual void AnimateObjects(float fTimeElapsed);
-	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC);
+
+	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC, Item_Type i_type = Item_Type::None);
 
 };
 
@@ -135,5 +135,6 @@ public:
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	
 	virtual void AnimateObjects(float fTimeElapsed);
-	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC);
+	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC, Item_Type i_type = Item_Type::None);
+
 };

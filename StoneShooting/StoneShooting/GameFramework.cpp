@@ -12,7 +12,7 @@ CGameFramework::CGameFramework()
 	m_pd3dPipelineState = NULL;
 	m_pd3dCommandList = NULL;
 
-	for (int i = 0; i < m_nSwapChainBuffers; i++)
+	for (int i = 0; i < m_nSwapChainBuffers; ++i)
 		m_ppd3dRenderTargetBuffers[i] = NULL;
 	
 	m_pd3dRtvDescriptorHeap = NULL;
@@ -31,7 +31,7 @@ CGameFramework::CGameFramework()
 	m_nWndClientWidth = FRAME_BUFFER_WIDTH;
 	m_nWndClientHeight = FRAME_BUFFER_HEIGHT;
 
-	for (int i = 0; i < m_nSwapChainBuffers; i++)
+	for (int i = 0; i < m_nSwapChainBuffers; ++i)
 	{
 		m_nFenceValue[i] = 0;
 #ifdef _WITH_DIRECT2D

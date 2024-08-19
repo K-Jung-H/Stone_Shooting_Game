@@ -64,9 +64,10 @@ XMFLOAT3& Get_Random_Normalize_Direction()
 
 //==========================================================
 
-Particle::Particle(Particle_Type p_type)
+Particle::Particle(Particle_Type particle_type)
 {
-	type = p_type;
+	o_type = Object_Type::Particle;
+	p_type = particle_type;
 	active = false;
 }
 
@@ -351,12 +352,13 @@ void Charge_Particle::Animate(float fElapsedTime)
 	}
 
 }
-void Charge_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+void Charge_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
 	//IsVisible(pCamera)
 
 	if (true && active)
 	{
+		bool shader_changed = false;
 		// 위치 정보 업데이트
 		Update_Shader_Resource(pd3dCommandList);
 
@@ -365,19 +367,43 @@ void Charge_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList
 
 		// 활성화된 재질의 정보 업데이트
 		for (int i = 0; i < m_ppMaterials.size(); ++i)
-			if (m_ppMaterials[i].second == true)
+		{
+			if (m_ppMaterials[i].second)
+			{
+				if (m_ppMaterials[i].first->material_shader)
+				{
+					m_ppMaterials[i].first->material_shader->Setting_Render(pd3dCommandList, o_type, used_item);
+					shader_changed = true;
+				}
+				// 재질 정보 컨테이너 업데이트 :: Mapped_Material_info
 				CGameObject::Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info, i);
 
-		if (m_ChargeMesh)
-		{
-			for (int j = 0; j < int(Active_Particle); ++j)
-			{
-				pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * j));
+				if (m_ChargeMesh)
+				{
+					for (int j = 0; j < int(Active_Particle); ++j)
+					{
+						pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * j));
 
-				m_ChargeMesh->Render(pd3dCommandList);
+						m_ChargeMesh->Render(pd3dCommandList);
 
+					}
+				}
 			}
+			if (shader_changed)
+				pShader->Setting_Render(pd3dCommandList);
+
 		}
+
+		//if (m_ChargeMesh)
+		//{
+		//	for (int j = 0; j < int(Active_Particle); ++j)
+		//	{
+		//		pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * j));
+
+		//		m_ChargeMesh->Render(pd3dCommandList);
+
+		//	}
+		//}
 	}
 }
 
@@ -393,6 +419,7 @@ void Charge_Particle::Reset()
 		m_pxmf4x4Transforms[i]._42 = Particle_Start_Position[i].y;
 		m_pxmf4x4Transforms[i]._43 = Particle_Start_Position[i].z;
 	}
+	used_item = Item_Type::None;
 	m_fElapsedTimes = 0.0f;
 	active = false;
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "GameObject.h"
+#include "Shader.h"
 
 inline float RandF(float fMin, float fMax);
 XMVECTOR RandomUnitVectorOnSphere();
@@ -10,7 +11,7 @@ XMVECTOR RotateVector(const XMVECTOR& vec, const XMVECTOR& axis, float angle);
 class Particle : public CRotatingObject
 {
 public:
-	Particle_Type type = Particle_Type::None;
+	Particle_Type p_type = Particle_Type::None;
 
 	float						m_fElapsedTimes = 0.0f;
 	float						m_fDuration = 2.0f;
@@ -100,7 +101,7 @@ public:
 	void Set_Center_Position(XMFLOAT3 pos);
 
 	virtual void Animate(float fElapsedTime);
-	virtual void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
 	virtual void Reset();
 };
 

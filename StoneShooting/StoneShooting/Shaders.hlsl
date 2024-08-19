@@ -18,11 +18,14 @@ cbuffer cbGameObjectInfo : register(b2)
     matrix gmtxGameObject : packoffset(c0);
 };
 
-cbuffer cbOutline : register(b5)
+cbuffer Outline : register(b5)
 {
-    float4 color : packoffset(c0);
+    float4 line_color : packoffset(c0);
     float OutlineThickness : packoffset(c1);
+    float padding[3] : packoffset(c2);
 };
+
+
 //========================================================================
 // 플레이어를 그리는 셰이더 
 
@@ -120,13 +123,13 @@ VS_LIGHTING_OUTPUT VSOutline(VS_LIGHTING_INPUT input)
     
     // 확장된 위치를 변환
     output.position = mul(mul(mul(expandedPosition, gmtxGameObject), gmtxView), gmtxProjection);
-
+    output.color = line_color;
     return output;
 }
 
 // 픽셀 셰이더
 float4 PSOutline(VS_LIGHTING_OUTPUT input) : SV_TARGET
 {
-    // 윤곽선 색상 설정 (검은색)
-    return float4(0.0f, 0.0f, 0.0f, 1.0f);
+    // 윤곽선 색상 설정
+    return input.color;
 }

@@ -204,7 +204,7 @@ void CShader::AnimateObjects(float fTimeElapsed)
 {
 }
 
-void CShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type)
+void CShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type, Item_Type i_type)
 {
 }
 
@@ -318,7 +318,7 @@ void CObjectsShader::AnimateObjects(float fTimeElapsed)
 {
 }
 
-void CObjectsShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type)
+void CObjectsShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type, Item_Type i_type)
 {
 	// 파이프라인에 그래픽스 상태 객체를 설정
 	CShader::Setting_PSO(pd3dCommandList, 0);
@@ -394,42 +394,74 @@ void OutlineShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* 
 
 void OutlineShader::Create_Outline_Buffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	UINT ncbElementBytes = ((sizeof(CB_Outline_INFO) + 255) & ~255); //256의 배수
-	Outline_Constant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes,
-		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
-
-	Outline_Constant_Buffer->Map(0, NULL, (void**)&Mapped_Outline_info);
+	// using 32BitConstant
 }
 
 void OutlineShader::Update_Outline_Buffer(ID3D12GraphicsCommandList* pd3dCommandList, float thickness, XMFLOAT4 color)
 {
 	XMFLOAT4 line_color = color;
 	float line_thickness = thickness;
+	XMFLOAT3 padding_data = { 0.0f,0.0f,0.0f };
 
-	CB_Outline_INFO* pbMappedcbOutline = (CB_Outline_INFO*)Mapped_Outline_info;
-	::memcpy(&pbMappedcbOutline->color, &line_color, sizeof(XMFLOAT4));
-	::memcpy(&pbMappedcbOutline->Outline_Thickness, &line_thickness, sizeof(float));
-
-
-	D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = Outline_Constant_Buffer->GetGPUVirtualAddress();
-	pd3dCommandList->SetGraphicsRootConstantBufferView(5, d3dcbGameObjectGpuVirtualAddress);
+	pd3dCommandList->SetGraphicsRoot32BitConstants(5, 4, &line_color, 0);
+	pd3dCommandList->SetGraphicsRoot32BitConstants(5, 1, &line_thickness, 4);
+	pd3dCommandList->SetGraphicsRoot32BitConstants(5, 3, &padding_data, 5);
 }
 
 void OutlineShader::AnimateObjects(float fTimeElapsed)
 {
 }
 
-void OutlineShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type)
+void OutlineShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type, Item_Type i_type)
 {
 	// 파이프라인에 그래픽스 상태 객체를 설정
 	CShader::Setting_PSO(pd3dCommandList, 0);
 
 	if (o_type == Object_Type::Board)
 		Update_Outline_Buffer(pd3dCommandList, 1.0f);
+	else if (o_type == Object_Type::Stone || o_type == Object_Type::Particle)
+	{
+		XMFLOAT4 line_color = { 0.0f,0.0f,0.0f,1.0f };
+		float line_thickness = 0.5f;
+
+		switch (i_type)
+		{
+		case Item_Type::Double_Power:
+			line_color = { 0.0f, 0.8f, 0.0f, 1.0f };
+			break;
+		case Item_Type::Fire_Shot:
+			line_color = { 1.0f, 0.5f, 0.0f, 1.0f };
+			break;
+		case Item_Type::Ghost:
+			line_color = { 0.6f, 0.6f, 0.6f, 1.0f };
+			break;
+		case Item_Type::Taunt:
+			line_color = { 1.0f, 0.0f, 0.0f, 1.0f };
+			break;
+		case Item_Type::Frozen_Time:
+			line_color = { 0.3f, 1.5f, 1.8f, 1.0f };
+			break;
+		case Item_Type::Max_Power:
+			line_color = { 0.4f, 0.1f, 1.5f, 1.0f };
+			break;
+		case Item_Type::ETC:
+			line_color = { 0.8f, 0.8f, 0.0f, 1.0f };
+			break;
+		case Item_Type::None:
+			line_color = { 0.0f,0.0f,0.0f,1.0f };
+			break;
+
+		default:
+			line_color = { 0.0f,0.0f,0.0f,1.0f };
+			break;
+		}
+
+		Update_Outline_Buffer(pd3dCommandList, line_thickness, line_color);
+
+	}
 	else
-		Update_Outline_Buffer(pd3dCommandList);
-	
-}
+		Update_Outline_Buffer(pd3dCommandList, 0.5f, XMFLOAT4(0.0f,0.0f,0.0f,1.0f));
+}	
 
 //////////////////////////////////////////////////////////////////////////////////////
 
@@ -474,7 +506,7 @@ void UIShader::AnimateObjects(float fTimeElapsed)
 {
 }
 
-void UIShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type)
+void UIShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type, Item_Type i_type)
 {
 	CShader::Setting_PSO(pd3dCommandList, 0);
 }

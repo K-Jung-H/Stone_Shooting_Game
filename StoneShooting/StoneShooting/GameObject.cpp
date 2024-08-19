@@ -359,7 +359,7 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 		{
 			if (m_ppMaterials[i].first->material_shader)
 			{
-				m_ppMaterials[i].first->material_shader->Setting_Render(pd3dCommandList, type);
+				m_ppMaterials[i].first->material_shader->Setting_Render(pd3dCommandList, o_type, used_item);
 				shader_changed = true;
 			}
 			// 재질 정보 컨테이너 업데이트 :: Mapped_Material_info
@@ -732,6 +732,11 @@ int CGameObject::Pick_Object_By_Ray_Intersection_Projection(XMFLOAT3& xmf3PickPo
 	return nIntersected;
 }
 
+void CGameObject::Apply_Item(Item_Type type)
+{
+	used_item = type;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CRotatingObject::CRotatingObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) : CGameObject(pd3dDevice, pd3dCommandList)
@@ -761,7 +766,7 @@ void CRotatingObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 
 CBoardObject::CBoardObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) : CRotatingObject(pd3dDevice, pd3dCommandList)
 {
-	type = Object_Type::Board;
+	o_type = Object_Type::Board;
 
 	SetRotationAxis(XMFLOAT3(0.0f, 1.0f, 0.0f));
 	SetRotationSpeed(30.0f);
@@ -782,7 +787,7 @@ void CBoardObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* p
 StoneObject::StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) 
 	: CRotatingObject(pd3dDevice, pd3dCommandList)
 {	
-	type = Object_Type::Stone;
+	o_type = Object_Type::Stone;
 }
 
 StoneObject::~StoneObject()

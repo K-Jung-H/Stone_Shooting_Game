@@ -102,6 +102,7 @@ enum class Object_Type
 {
 	Stone,
 	Board,
+	Particle,
 	Item,
 	ETC,
 	None,
@@ -109,9 +110,14 @@ enum class Object_Type
 
 enum class Item_Type
 {
+	Taunt,
+	Fire_Shot,
 	Double_Power,
+	Frozen_Time,
+	Max_Power,
 	Ghost,
 	ETC,
+	None,
 
 };
 

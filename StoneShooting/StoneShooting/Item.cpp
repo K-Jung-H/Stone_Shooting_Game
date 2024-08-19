@@ -10,8 +10,9 @@ CMaterial* material_color_item_inner_red = NULL;
 CMaterial* material_color_item_inner_green = NULL;
 CMaterial* material_color_item_inner_blue = NULL;
 CMaterial* material_color_item_inner_gray = NULL;
-
-
+CMaterial* material_color_item_inner_purple = NULL;
+CMaterial* material_color_item_inner_icy = NULL;
+CMaterial* material_color_item_inner_orange = NULL;
 
 
 void Item::Prepare_Item(ID3D12Device * pd3dDevice, ID3D12GraphicsCommandList * pd3dCommandList)
@@ -23,52 +24,75 @@ void Item::Prepare_Item(ID3D12Device * pd3dDevice, ID3D12GraphicsCommandList * p
 	}
 
 	CMaterialColors yellow_color = {
-		XMFLOAT4(0.5f, 0.5f, 0.0f, 1.0f),
+		XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
 		XMFLOAT4(0.5f, 0.5f, 0.0f, 1.0f),
 		XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f),
 		XMFLOAT4(0.3f, 0.3f, 0.0f, 1.0f)
 	};
 
 	CMaterialColors red_color = {
-	XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f),
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
 	XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f),
 	XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f),
 	XMFLOAT4(0.3f, 0.0f, 0.0f, 1.0f)
 	};
 
 	CMaterialColors green_color = {
-	XMFLOAT4(0.0f, 0.5f, 0.0f, 1.0f),
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
 	XMFLOAT4(0.0f, 0.5f, 0.0f, 1.0f),
 	XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f),
 	XMFLOAT4(0.0f, 0.3f, 0.0f, 1.0f)
 	};
 
 	CMaterialColors blue_color = {
-	XMFLOAT4(0.0f, 0.0f, 0.3f, 1.0f),
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
 	XMFLOAT4(0.0f, 0.0f, 0.3f, 1.0f),
 	XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f),
 	XMFLOAT4(0.0f, 0.0f, 0.3f, 1.0f)
 	};
 
 	CMaterialColors gray_color = {
-		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f),
+		XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
 		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f),
 		XMFLOAT4(0.1f, 0.1f, 0.1f, 30.0f),
 		XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f)
 	};
 
-	material_color_item_outer = new CMaterial(&yellow_color);
-	material_color_item_inner_red = new CMaterial(&red_color);
-	material_color_item_inner_green = new CMaterial(&green_color);
-	material_color_item_inner_blue = new CMaterial(&blue_color);
-	material_color_item_inner_gray = new CMaterial(&gray_color);
+	CMaterialColors purple_color = {
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 30.0f),
+	XMFLOAT4(0.15f, 0.1f, 0.8f, 1.0f)
+	};
 
+	CMaterialColors icy_color = {
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 30.0f),
+	XMFLOAT4(0.05f, 0.7f, 1.0f, 1.0f),
+	};
+
+	CMaterialColors orange_color = {
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+	XMFLOAT4(2.0f, 0.5f, 0.0f, 1.0f),
+	XMFLOAT4(0.1f, 0.1f, 0.1f, 30.0f),
+	XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f)
+	};
+
+	material_color_item_inner_red = new CMaterial(&red_color);
+	material_color_item_inner_orange = new CMaterial(&orange_color);
+	material_color_item_outer = new CMaterial(&yellow_color);
+	material_color_item_inner_green = new CMaterial(&green_color);
+	material_color_item_inner_icy = new CMaterial(&icy_color);
+	material_color_item_inner_blue = new CMaterial(&blue_color);
+	material_color_item_inner_purple = new CMaterial(&purple_color);
+	material_color_item_inner_gray = new CMaterial(&gray_color);
 }
 
 Item::Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, Item_Type i_type)
 	: CRotatingObject(pd3dDevice, pd3dCommandList)
 {
-	CGameObject::type = Object_Type::Item;
+	o_type = Object_Type::Item;
 	item_type = i_type;
 
 	outer_frame = new CRotatingObject(pd3dDevice, pd3dCommandList);	
@@ -88,11 +112,25 @@ Item::Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 		inner_frame->SetMaterial(material_color_item_inner_green);
 		break;
 
+	case Item_Type::Fire_Shot:
+		inner_frame->SetMaterial(material_color_item_inner_orange);
+		break;
 
 	case Item_Type::Ghost:
 		inner_frame->SetMaterial(material_color_item_inner_gray);
 		break;
 
+	case Item_Type::Max_Power:
+		inner_frame->SetMaterial(material_color_item_inner_purple);
+		break;
+
+	case Item_Type::Frozen_Time:
+		inner_frame->SetMaterial(material_color_item_inner_icy);
+		break;
+
+	case Item_Type::Taunt:
+		inner_frame->SetMaterial(material_color_item_inner_red);
+		break;
 
 	case Item_Type::ETC:
 		inner_frame->SetMaterial(material_color_item_outer);

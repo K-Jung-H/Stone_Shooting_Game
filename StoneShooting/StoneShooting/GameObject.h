@@ -139,7 +139,9 @@ public:
 
 	bool						active = true;
 	bool						player_team = false;
-	Object_Type					type = Object_Type::None;
+	Object_Type					o_type = Object_Type::None;
+	Item_Type					used_item = Item_Type::None;
+
 
 	BoundingOrientedBox			m_xmOOBB = BoundingOrientedBox();
 	BoundingSphere				m_xmOOSP = BoundingSphere();
@@ -245,6 +247,8 @@ public:
 	void UpdateBoundingBox();
 
 	void UpdateFriction(float fTimeElapsed);
+
+	void Apply_Item(Item_Type type);
 };
 
 class CRotatingObject : public CGameObject

@@ -87,7 +87,7 @@ public:
 	std::pair<StoneObject*, StoneObject*> Find_Nearest_Enemy_Stone();
 
 	void Mark_selected_stone();
-	void Select_Item();
+	void Select_Item(Item_Type i_type);
 
 	void Change_Turn();
 	bool Check_Turn();
@@ -184,6 +184,7 @@ public:
 		std::vector<StoneObject*> stone_list; 
 		StoneObject* select_Stone; // 피킹된 것
 		CGameObject* select_Item; // 피킹된 것
+		Item_Type now_applied_item = Item_Type::None;
 		bool inventory_open = false;
 	}player1;
 
