@@ -801,9 +801,27 @@ void StoneObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 
 void StoneObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 {
-	// 돌 객체들이 해야할 기본 애니메이션 == 이동
-	if (m_fMovingSpeed != 0.0f)
-		Move(m_xmf3MovingDirection, m_fMovingSpeed * fTimeElapsed);
+	switch (used_item)
+	{
+	case Item_Type::Double_Power:
+	{
+		if (m_fMovingSpeed != 0.0f)
+			Move(m_xmf3MovingDirection, m_fMovingSpeed/2 * fTimeElapsed);
+	}
+	break;
+
+	case Item_Type::Taunt:
+	case Item_Type::Fire_Shot:
+	case Item_Type::Frozen_Time:
+	case Item_Type::Max_Power:
+	case Item_Type::Ghost:
+	case Item_Type::ETC:
+	case Item_Type::None:
+	default:
+		if (m_fMovingSpeed != 0.0f)
+			Move(m_xmf3MovingDirection, m_fMovingSpeed * fTimeElapsed);
+		break;
+	}
 
 	// 이동한 위치를 기반으로 돌의 충돌체 업데이트
 	XMVECTOR center = XMLoadFloat3(&m_pMesh->m_xmBoundingSphere.Center);

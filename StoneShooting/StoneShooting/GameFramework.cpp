@@ -456,10 +456,10 @@ void CGameFramework::BuildObjects()
 	
 	CAirplanePlayer* pAirplanePlayer = new CAirplanePlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
 
-	m_pPlayer = pAirplanePlayer;
-	pMainCamera = m_pPlayer->GetCamera();
-	m_pScene->m_pPlayer = m_pPlayer;
+	m_pPlayer = m_pScene->m_pPlayer = pAirplanePlayer;
 
+	pMainCamera = m_pPlayer->GetCamera();
+	m_pScene->Set_MainCamera(pMainCamera);
 	//===================================================
 
 	m_pd3dCommandList->Close();
@@ -495,6 +495,7 @@ void CGameFramework::AnimateObjects()
 	if (m_pScene)
 		m_pScene->AnimateObjects(Elapsed_Time);
 	
+
 	// 턴 종료 체크
 	if (Limit_time > TURN_MAX_TIME)
 		Need_to_change_turn = true;
@@ -517,13 +518,16 @@ void CGameFramework::AnimateObjects()
 		Limit_time += Elapsed_Time;
 	}
 
+
+
 	m_pScene->Scene_Update(Elapsed_Time);
 	m_pScene->Check_Item_and_Stone_Collisions(m_pd3dDevice, m_pd3dCommandList);
 	m_pScene->Check_Board_and_Stone_Collisions(m_pd3dDevice, m_pd3dCommandList);
 	m_pScene->Check_Stones_Collisions();
 	m_pScene->Defend_Overlap();
 
-
+	// 씬에서 카메라를 변경하면, 여기서 반영되야 함.
+	pMainCamera = m_pScene->Get_MainCamera();
 }
 
 void CGameFramework::WaitForGpuComplete()
@@ -588,6 +592,8 @@ void CGameFramework::FrameAdvance()
 	
 
 	// D3D12 그리기 동작 시작
+	if (pMainCamera)
+		int a = 2;
 	if (m_pScene) 
 		m_pScene->Render(m_pd3dDevice, m_pd3dCommandList, pMainCamera);
 
@@ -759,14 +765,17 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		if (m_pScene->is_Player_Turn())
 		{
 			//마우스 위치를 기반으로 레이케스팅하여 돌 선택
-			m_pSelectedObject = m_pScene->Pick_Stone_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
-			
+			CGameObject* picked_obj = m_pScene->Pick_Stone_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
+
+			if (picked_obj)
+				m_pSelectedObject = picked_obj;
+
 			if (m_pScene->is_Object_Selectable(m_pSelectedObject))
 			{
 				m_pScene->player1.select_Stone = ((StoneObject*)m_pSelectedObject);
 				m_pPlayer->SetPosition(m_pSelectedObject->GetPosition());
 
-				pMainCamera = m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed());
+				m_pScene->Set_MainCamera(m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed()));
 			}
 		}
 		::SetCapture(hWnd);
@@ -800,32 +809,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	case WM_KEYUP:
 		switch (wParam)
 		{
-		case VK_SPACE:
-			if (m_pScene->is_Player_Turn())
-			{
-				if (m_pScene->player1.select_Stone != NULL)
-				{
-					
-					pMainCamera = m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, m_GameTimer.GetTimeElapsed());
-				}
-			}
-			break;
-
 		case VK_TAB:
-			if (m_pScene->player1.select_Stone)
-			{
-				Camera_First_Person_View = !Camera_First_Person_View;
-				if (Camera_First_Person_View)
-				{
-					if (m_pPlayer)
-						pMainCamera = m_pPlayer->ChangeCamera(STONE_CAMERA, m_GameTimer.GetTimeElapsed());
-				}
-				else
-				{
-					if (m_pPlayer)
-						pMainCamera = m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed());
-				}
-			}
 			break;
 
 		case VK_F9:

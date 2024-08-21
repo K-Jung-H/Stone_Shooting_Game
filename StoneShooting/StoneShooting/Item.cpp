@@ -176,3 +176,119 @@ void Item::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 
 
 }
+
+
+//===============================================================================
+
+void Item_Manager::Add_Stone_Item_Applied(StoneObject* stone)
+{
+	switch (stone->used_item)
+	{	
+	case Item_Type::Taunt:
+		Taunt_obj.push_back(stone);
+		break;
+
+	case Item_Type::Frozen_Time:
+		Frozen_Time_obj.push_back(stone);
+		break;
+
+	case Item_Type::Ghost:
+		Ghost_obj.push_back(stone);
+		break;
+	case Item_Type::Fire_Shot:
+		Fire_Shot_obj = stone;
+		break;
+	case Item_Type::Double_Power:
+		Double_Power_obj = stone;
+		break;
+
+	case Item_Type::Max_Power:
+		Max_Power_obj = stone;
+		break;
+
+	default:
+		break;
+	}
+
+}
+
+std::vector<StoneObject*>* Item_Manager::Get_Stone_List(Item_Type type)
+{
+	switch (type)
+	{
+	case Item_Type::Taunt:
+		return &Taunt_obj;
+		break;
+
+	case Item_Type::Frozen_Time:
+		return &Frozen_Time_obj;
+		break;
+
+	case Item_Type::Ghost:
+		return &Ghost_obj;
+		break;
+
+	default:
+		break;
+	}
+
+	return NULL;
+}
+
+StoneObject* Item_Manager::Get_Stone(Item_Type type)
+{
+	switch (type)
+	{
+	case Item_Type::Fire_Shot:
+		return Fire_Shot_obj;
+		break;
+
+	case Item_Type::Double_Power:
+		return Double_Power_obj;
+		break;
+
+	case Item_Type::Max_Power:
+		return Max_Power_obj;
+		break;
+
+	default:
+		break;
+	}
+
+	return NULL;
+}
+
+void Item_Manager::Set_Clear(Item_Type type)
+{
+	switch (type)
+	{
+	case Item_Type::Fire_Shot:
+
+		Fire_Shot_obj = NULL;
+		break;
+	case Item_Type::Double_Power:
+
+		Double_Power_obj = NULL;
+		break;
+	case Item_Type::Max_Power:
+		Max_Power_obj = NULL;
+		break;
+
+	case Item_Type::Taunt:
+		Taunt_obj.clear();
+		break;
+
+	case Item_Type::Frozen_Time:
+		Frozen_Time_obj.clear();
+		break;
+
+	case Item_Type::Ghost:
+		Ghost_obj.clear();
+		break;
+
+	case Item_Type::ETC:
+	case Item_Type::None:
+	default:
+		break;
+	}
+}

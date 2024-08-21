@@ -67,7 +67,7 @@ public:
 
 
 
-#define CHARGE_DEBRISES 360
+#define CHARGE_DEBRISES 160
 
 class Charge_Particle : public Particle
 {

@@ -13,6 +13,9 @@ public:
 	CScene();
 	~CScene();
 
+	void Set_MainCamera(CCamera* p_camera) { pMainCamera = p_camera; }
+	CCamera* Get_MainCamera() { return pMainCamera; }
+
 	//씬에서 마우스와 키보드 메시지를 처리한다. 
 	bool OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	bool OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
@@ -49,7 +52,6 @@ public:
 	//=============================================
 	
 	CGameObject* Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCamera* pCamera);
-	CGameObject* Pick_Item_By_RayIntersection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, float* pfNearHitDistance);
 
 	CGameObject* Pick_Item_By_RayIntersection(XMFLOAT3& xmf3PickPosition, CCamera* pCamera, float* pfNearHitDistance);
 
@@ -89,7 +91,7 @@ public:
 	void Mark_selected_stone();
 	void Select_Item(Item_Type i_type);
 
-	void Change_Turn();
+	bool Change_Turn();
 	bool Check_Turn();
 	bool Check_GameOver();
 
@@ -102,8 +104,6 @@ public:
 	//=============================================
 private:
 	CCamera* pMainCamera = NULL;
-
-
 
 protected:
 	CShader* Object_Shader = NULL;
@@ -121,6 +121,7 @@ protected:
 //==========================================
 
 	LIGHTS* m_pLights = NULL; // 씬의 조명
+	LIGHT* Frozen_Light = NULL;
 
 	ID3D12Resource* m_pd3dcbLights = NULL; // 조명을 나타내는 리소스
 	LIGHTS* m_pcbMappedLights = NULL; // 조명 리소스에 대한 포인터
@@ -153,11 +154,14 @@ public:
 	CPlayer* m_pPlayer = NULL;
 
 	CBoardObject* m_pBoards = NULL;
+
 	UI* ui_player_power;
 	UI* ui_com_power;
 	Inventory_UI* player_inventory;
+
 	Charge_Particle* Charge_Effect = NULL;
 
+	Item_Manager* item_manager = NULL;
 
 	// 그려질 모든 게임 객체들
 	std::vector<CGameObject*> GameObject_Stone;
@@ -166,6 +170,8 @@ public:
 
 
 	float m_fElapsedTime = 0.0f;
+
+	bool Camera_First_Person_View = false;
 
 	bool Com_Turn = false;
 	bool Com_Shot = false;
@@ -183,8 +189,7 @@ public:
 		std::unordered_map<Item_Type, int> Item_Inventory;
 		std::vector<StoneObject*> stone_list; 
 		StoneObject* select_Stone; // 피킹된 것
-		CGameObject* select_Item; // 피킹된 것
-		Item_Type now_applied_item = Item_Type::None;
+		Item_Type selected_Item_Type = Item_Type::None; // 피킹된 아이템의 타입
 		bool inventory_open = false;
 	}player1;
 

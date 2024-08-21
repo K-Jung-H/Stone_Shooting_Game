@@ -87,6 +87,20 @@ void CScene::Build_Lights_and_Materials()
 	m_pLights->m_pLights[2].m_fPhi = (float)cos(XMConvertToRadians(90.0f));
 	m_pLights->m_pLights[2].m_fTheta = (float)cos(XMConvertToRadians(30.0f));
 
+	Frozen_Light = &m_pLights->m_pLights[3];
+
+	m_pLights->m_pLights[3].m_bEnable = true;
+	m_pLights->m_pLights[3].m_nType = POINT_LIGHT;
+	m_pLights->m_pLights[3].m_fRange = 50.0f;
+	m_pLights->m_pLights[3].m_xmf4Ambient = XMFLOAT4(-0.3f, 0.1f, 1.0f, 1.0f);
+	m_pLights->m_pLights[3].m_xmf4Diffuse = XMFLOAT4(-0.0f, 0.0f, 1.0f, 1.0f);
+	m_pLights->m_pLights[3].m_xmf4Specular = XMFLOAT4(0.1f, 0.1f, 1.0f, 0.0f);
+	m_pLights->m_pLights[3].m_xmf3Position = XMFLOAT3(0.0f, 5.0f, 0.0f);
+	m_pLights->m_pLights[3].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	m_pLights->m_pLights[3].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.005f);
+
+	
+
 	//=====================================================
 	CMaterialColors white_stone_color = {
 		XMFLOAT4(0.5f, 0.5, 0.5f, 1.0f),
@@ -101,7 +115,6 @@ void CScene::Build_Lights_and_Materials()
 		XMFLOAT4(0.1f, 0.1f, 0.1f, 20.0f),
 		XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f)
 	};
-
 
 	CMaterialColors white_particle_color = {
 		XMFLOAT4(0.0f, 0.0, 0.0f, 1.0f),
@@ -213,6 +226,8 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 
 
 	// 미리 생성하여 준비
+	item_manager = new Item_Manager();
+
 	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material_color_white_particle, Particle_Type::Charge);
 	Charge_Effect->SetMaterial(material_color_none,true);
 	Charge_Effect->AddMaterial(material_color_black_particle);
@@ -336,7 +351,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	Create_Board(pd3dDevice, pd3dCommandList, 200, 600);
 
 	//===========================================================
-
 
 	CSphereMeshIlluminated* StoneMesh = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 8.0f, 20, 20, 0.5f);
 	std::vector<XMFLOAT3> w_stone_pos_list;
@@ -1009,8 +1023,28 @@ void CScene::Check_Item_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12Gra
 }
 
 
-void CScene::Change_Turn()
+bool CScene::Change_Turn()
 {
+	if (item_manager->Get_Stone(Item_Type::Double_Power))
+	{
+		Player_Shot = false;
+		if (item_manager->Double_Power_count < 1)
+		{
+			item_manager->Double_Power_count++;	
+			m_pPlayer->SetPosition(player1.select_Stone->GetPosition());
+
+			// 두번째 차례이므로, 다시 카메라 변경
+			Set_MainCamera(m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, 0.005f));
+			return false;
+		}
+		else
+		{
+			item_manager->Double_Power_count = 0;
+			item_manager->Set_Clear(Item_Type::Double_Power);
+		}
+	}
+
+
 	if (Player_Turn)
 	{
 		Player_Turn = false;
@@ -1021,6 +1055,7 @@ void CScene::Change_Turn()
 			player1.select_Stone->ChangeMaterial(1);
 
 		player1.select_Stone = NULL;
+		player1.selected_Item_Type = Item_Type::None;
 		Charge_Effect->ChangeMaterial(2);
 	}
 	else if (Com_Turn)
@@ -1040,6 +1075,8 @@ void CScene::Change_Turn()
 	}
 	Mark_selected_stone();
 	Charge_Effect->Reset();
+
+	return true;
 }
 
 bool CScene::Check_Turn()
@@ -1237,6 +1274,18 @@ void CScene::AnimateObjects(float fTimeElapsed)
 			m_pLights->m_pLights[2].m_xmf3Position = computer.select_Stone->GetPosition();
 		else
 			m_pLights->m_pLights[2].m_bEnable = false;
+
+		if (player1.select_Stone != NULL)
+		{
+			Frozen_Light->m_xmf3Position = player1.select_Stone->GetPosition();
+
+		}
+		if (Com_Turn)
+		{
+			Frozen_Light->m_fRange += 1;
+			Frozen_Light->m_xmf4Ambient.x -= 0.1f;
+			Frozen_Light->m_xmf4Diffuse.x -= 0.1f;
+		}
 	}
 
 }
@@ -1282,7 +1331,7 @@ void CScene::Scene_Update(float fTimeElapsed)
 				// 차징 시간 결정
 				power_charge = true;
 				((BAR_UI*)ui_com_power)->Set_Bar_Charge_Mode(true);
-				computer.random_time = 3.0f + (uid(dre) / 1200);
+				computer.random_time = 0.5f + (uid(dre) / 1200);
 			}
 			else
 			{
@@ -1458,6 +1507,12 @@ bool CScene::is_Object_Selectable(CGameObject* now_picked)
 	if (now_picked->player_team == false)
 		return false;
 	
+	if (power_charge)
+		return false;
+
+	if (item_manager->Double_Power_count == 1)
+		return false;
+
 	return true;
 }
 
@@ -1641,7 +1696,7 @@ void CScene::Mark_selected_stone()
 			if (stone_obj == player1.select_Stone)
 			{
 				stone_obj->ChangeMaterial(2);
-				stone_obj->Apply_Item(player1.now_applied_item);
+				stone_obj->Apply_Item(player1.selected_Item_Type);
 			}
 			else
 			{
@@ -1734,7 +1789,7 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 	{
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
-		if (player1.inventory_open)
+		if (player1.inventory_open && !power_charge)
 		{
 			int clientX = LOWORD(lParam);
 			int clientY = HIWORD(lParam);
@@ -1746,19 +1801,19 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 
 			// 좌표가 영역 내에 있는지 확인하는 조건문
 			if (clientX >= xMin && clientX <= xMax && clientY >= yMin && clientY <= yMax) {
-				//마우스 위치를 기반으로 레이케스팅하여 아이템
-				player1.select_Item = Pick_Item_Pointed_By_Cursor(clientX, clientY, player_inventory);
-				if (player1.select_Item != NULL)
-				{
-					player1.now_applied_item = ((Item*)player1.select_Item)->item_type;
-				}
+
+				//마우스 위치를 기반으로 레이케스팅하여 아이템 선택
+				CGameObject* selected_item = Pick_Item_Pointed_By_Cursor(clientX, clientY, player_inventory);
+
+				if (selected_item != NULL)
+					player1.selected_Item_Type = ((Item*)selected_item)->item_type;
 			}
 		}
 
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
 		Mark_selected_stone();
-		Charge_Effect->Apply_Item(player1.now_applied_item);
+		Charge_Effect->Apply_Item(player1.selected_Item_Type);
 		break;
 
 	default:
@@ -1782,6 +1837,9 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			}
 			break;
 
+		case VK_UP:
+			Set_MainCamera(m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, 0.01f));
+			break;
 		default:
 			break;
 		}
@@ -1796,12 +1854,39 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			if (is_Player_Turn()) {
 				power_charge = false;
 				((BAR_UI*)ui_player_power)->Set_Bar_Charge_Mode(false);
+				
 				Shoot_Stone(power_degree);
 
+				item_manager->Add_Stone_Item_Applied(player1.select_Stone);
+				Set_MainCamera(m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, 0.005f));
+
+				Charge_Effect->Reset();
 				ui_player_power->Reset();
 				ui_com_power->Reset();
 			}
 			break;
+
+		case VK_TAB:
+			if (player1.select_Stone)
+			{
+				Camera_First_Person_View = !Camera_First_Person_View;
+				if (Camera_First_Person_View)
+				{
+					if (m_pPlayer)
+					{
+						Set_MainCamera(m_pPlayer->ChangeCamera(STONE_CAMERA, 0.05f));
+					}
+				}
+				else
+				{
+					if (m_pPlayer)
+					{
+						Set_MainCamera(m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, 0.05f));
+					}
+				}
+			}
+			break;
+
 
 		case VK_OEM_3:
 		{

@@ -24,3 +24,36 @@ public:
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
 };
+
+
+/*
+	Taunt,
+	Fire_Shot,
+	Double_Power,
+	Frozen_Time,
+	Max_Power,
+	Ghost,
+	ETC,
+	None,
+
+*/
+class Item_Manager
+{
+	StoneObject* Double_Power_obj = NULL;
+	StoneObject* Max_Power_obj = NULL;
+	StoneObject* Fire_Shot_obj = NULL;
+
+	std::vector<StoneObject*> Frozen_Time_obj;
+	std::vector<StoneObject*> Ghost_obj;
+	std::vector<StoneObject*> Taunt_obj;
+
+public:
+	int Double_Power_count = 0;
+	
+	
+	void Add_Stone_Item_Applied(StoneObject* stone);
+	std::vector<StoneObject*>* Get_Stone_List(Item_Type type);
+
+	StoneObject* Get_Stone(Item_Type type);
+	void Set_Clear(Item_Type type);
+};
