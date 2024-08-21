@@ -6,6 +6,16 @@ inline float RandF(float fMin, float fMax)
 	return(fMin + ((float)rand() / (float)RAND_MAX) * (fMax - fMin));
 }
 
+inline XMFLOAT3 Random_In_Circle()
+{
+	float theta = RandF(0.0f, 2.0f * 3.14159265358979323846f); // 2π
+
+	float r = sqrt(RandF(0.0f, 1.0f));
+	float x = r * cosf(theta);
+	float z = r * sinf(theta);
+	return XMFLOAT3(x, 0.0f, z);
+}
+
 XMVECTOR RandomUnitVectorOnSphere()
 {
 	XMVECTOR xmvOne = XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
@@ -394,16 +404,6 @@ void Charge_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList
 
 		}
 
-		//if (m_ChargeMesh)
-		//{
-		//	for (int j = 0; j < int(Active_Particle); ++j)
-		//	{
-		//		pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * j));
-
-		//		m_ChargeMesh->Render(pd3dCommandList);
-
-		//	}
-		//}
 	}
 }
 
@@ -431,8 +431,8 @@ XMFLOAT3 Firework_Particle::Firework_Vectors[Firework_DEBRISES];
 CMesh* Firework_Particle::m_FireworkMesh = NULL;
 bool Firework_Particle::Setting = false;
 
-Firework_Particle::Firework_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList
-	, float cycle_time, CMaterial* material, Particle_Type p_type) : Particle(p_type)
+Firework_Particle::Firework_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
+	float cycle_time, CMaterial* material, Particle_Type p_type) : Particle(p_type)
 {
 	m_fDuration = cycle_time;
 	Particle_Rotation = 300.0f;
@@ -626,3 +626,184 @@ void Firework_Particle::Reset()
 }
 
 
+//==================================================================================
+
+CMesh* Snow_Particle::m_SnowMesh = NULL;
+bool Snow_Particle::Setting = false;
+XMFLOAT3 Snow_Particle::Particle_Pos_XZ[Snow_DEBRISES];
+XMFLOAT3 Snow_Particle::Particle_Rotation_Vector[Snow_DEBRISES];
+
+Snow_Particle::Snow_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
+	XMFLOAT3 start_pos, float c_range, CMaterial* material, Particle_Type p_type) : Particle(p_type)
+{
+	Set_Center(start_pos);
+	range = c_range;
+
+	
+	m_fDuration = 10.0f;
+	Particle_Rotation = 300.0f;
+	Reset();
+	active = true;
+
+
+	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
+
+	SetMaterial(material);	
+}
+
+Snow_Particle::~Snow_Particle()
+{
+}
+
+void Snow_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	if (Setting == false)
+	{
+		for (int i = 0; i < Snow_DEBRISES; ++i)
+		{
+			Particle_Pos_XZ[i] = Random_In_Circle();
+			XMStoreFloat3(&Particle_Rotation_Vector[i], RandomUnitVectorOnSphere());
+		}
+		m_SnowMesh = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 3.0f, 20.0f, 20.0f);// new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 1.0f, 1.0f, 1.0f);
+		Setting = true;
+	}
+}
+
+void Snow_Particle::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	UINT ncbElementBytes1 = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
+	m_pConstant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes1 * Snow_DEBRISES,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+
+	m_pConstant_Buffer->Map(0, NULL, (void**)&particles_info);
+
+	//-------------------------------------------------------------------
+
+	// 눈 재질은 하나로 통일
+	UINT ncbElementBytes2 = ((sizeof(CB_MATERIAL_INFO) + 255) & ~255); //256의 배수
+	Snow_Constant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes2,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+
+	Snow_Constant_Buffer->Map(0, NULL, (void**)&snow_material_info);
+
+
+}
+
+void Snow_Particle::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
+	UINT ncbMaterialBytes = ((sizeof(CB_MATERIAL_INFO) + 255) & ~255);
+
+	XMFLOAT4X4 xmf4x4World;
+	for (int i = 0; i < Snow_DEBRISES; ++i)
+	{
+		XMStoreFloat4x4(&xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_pxmf4x4Transforms[i])));
+
+		CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)(particles_info + (i * ncbGameObjectBytes));
+		::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
+
+		//-------------------------------------------------------------------
+	}
+
+	CMaterialColors* colors = m_ppMaterials[0].first->Material_Colors;
+	CB_MATERIAL_INFO* pbMappedMaterial = (CB_MATERIAL_INFO*)(snow_material_info);
+	::memcpy(&pbMappedMaterial->m_cAmbient, &colors->m_xmf4Ambient, sizeof(XMFLOAT4));
+	::memcpy(&pbMappedMaterial->m_cDiffuse, &colors->m_xmf4Diffuse, sizeof(XMFLOAT4));
+	::memcpy(&pbMappedMaterial->m_cSpecular, &colors->m_xmf4Specular, sizeof(XMFLOAT4));
+	::memcpy(&pbMappedMaterial->m_cEmissive, &colors->m_xmf4Emissive, sizeof(XMFLOAT4));
+}
+
+void Snow_Particle::Release_Shader_Resource()
+{
+	if (m_pConstant_Buffer)
+	{
+		m_pConstant_Buffer->Unmap(0, NULL);
+		m_pConstant_Buffer->Release();
+	}
+}
+
+void Snow_Particle::Set_Center(XMFLOAT3 pos)
+{
+	center_pos = pos;
+	Max_Move_Y = pos.y;
+	SetPosition(pos);
+}
+
+void Snow_Particle::Animate(float fElapsedTime)
+{
+	if (active)
+	{
+		if (Active_Particle < Snow_DEBRISES)
+			Active_Particle += 0.2;
+
+		m_fElapsedTimes += fElapsedTime;
+
+		XMFLOAT3 xmf3Position = GetPosition();
+
+		for (int i = 0; i < int(Active_Particle); ++i)
+		{
+			// 입자의 높이y 업데이트
+			float move_distance = Particle_Speed[i] * Particle_ElapsedTime[i];
+			Particle_ElapsedTime[i] += fElapsedTime;
+
+			// 원점에 도달한 입자는 다시 시작 위치로 돌아감
+			if (move_distance > Max_Move_Y)
+			{
+				Particle_ElapsedTime[i] = 0.0f;
+				Particle_Speed[i] = ((rand() % 10 + 1) * 0.5f) + 10.0f; // 10.5f ~ 15.0f
+			}
+
+			m_pxmf4x4Transforms[i] = Matrix4x4::Identity();
+			m_pxmf4x4Transforms[i]._41 = xmf3Position.x + (Particle_Pos_XZ[i].x * range) + Default_Direction.x * Particle_Speed[i] * Particle_ElapsedTime[i];
+			m_pxmf4x4Transforms[i]._42 = xmf3Position.y + Particle_Pos_XZ[i].y + Default_Direction.y * move_distance;
+			m_pxmf4x4Transforms[i]._43 = xmf3Position.z + (Particle_Pos_XZ[i].z * range) + Default_Direction.z * Particle_Speed[i] * Particle_ElapsedTime[i];
+
+			// 회전 적용
+			m_pxmf4x4Transforms[i] = Matrix4x4::Multiply(Matrix4x4::RotationAxis(Particle_Rotation_Vector[i], Particle_Rotation * Particle_ElapsedTime[i]), m_pxmf4x4Transforms[i]);
+		}
+	}
+	//if (m_fDuration < m_fElapsedTimes)
+	//	Reset();
+
+}
+void Snow_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	//IsVisible(pCamera)
+	if (true && active)
+	{
+		// 위치 + 재질 정보 업데이트
+		Update_Shader_Resource(pd3dCommandList);
+
+		UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255);
+
+		D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
+		D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialGpuVirtualAddress = Snow_Constant_Buffer->GetGPUVirtualAddress();
+		
+		pd3dCommandList->SetGraphicsRootConstantBufferView(3, d3dcbMaterialGpuVirtualAddress);;
+
+		if (m_SnowMesh)
+		{
+			for (int i = 0; i < int(Active_Particle); ++i)
+			{
+				pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * i));
+				m_SnowMesh->Render(pd3dCommandList);
+			}
+		}
+	}
+}
+
+void Snow_Particle::Reset()
+{
+	Particle_Speed.resize(Snow_DEBRISES);
+	Particle_ElapsedTime.resize(Snow_DEBRISES);
+
+	for (int i = 0; i < Snow_DEBRISES; ++i)
+	{
+		Particle_ElapsedTime[i] = 0.0f;
+		Particle_Speed[i] = ((rand() % 10 + 1) * 0.5f) + 10.0f; // 10.5f ~ 15.0f
+	}
+
+	Active_Particle = 0;
+	m_fElapsedTimes = 0.0f;
+	active = false;
+}

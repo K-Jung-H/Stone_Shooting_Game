@@ -89,6 +89,7 @@ enum class Particle_Type {
 	Explosion,
 	Charge,
 	Firework,
+	Snow,
 	None,
 };
 

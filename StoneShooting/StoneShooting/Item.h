@@ -49,11 +49,14 @@ class Item_Manager
 
 public:
 	int Double_Power_count = 0;
-	
-	
+	LIGHT* Frozen_Light = NULL;
+
+
 	void Add_Stone_Item_Applied(StoneObject* stone);
 	std::vector<StoneObject*>* Get_Stone_List(Item_Type type);
 
 	StoneObject* Get_Stone(Item_Type type);
 	void Set_Clear(Item_Type type);
+	
+	void Animate(float fTimeElapsed);
 };

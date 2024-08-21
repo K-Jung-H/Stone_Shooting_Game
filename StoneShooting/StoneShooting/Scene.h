@@ -121,7 +121,6 @@ protected:
 //==========================================
 
 	LIGHTS* m_pLights = NULL; // 씬의 조명
-	LIGHT* Frozen_Light = NULL;
 
 	ID3D12Resource* m_pd3dcbLights = NULL; // 조명을 나타내는 리소스
 	LIGHTS* m_pcbMappedLights = NULL; // 조명 리소스에 대한 포인터
@@ -160,6 +159,7 @@ public:
 	Inventory_UI* player_inventory;
 
 	Charge_Particle* Charge_Effect = NULL;
+	Snow_Particle* Snow_Effect = NULL;
 
 	Item_Manager* item_manager = NULL;
 

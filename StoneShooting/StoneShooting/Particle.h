@@ -151,3 +151,53 @@ public:
 
 	virtual void Reset();
 };
+
+
+#define Snow_DEBRISES 100
+
+class Snow_Particle : public Particle
+{
+	UINT8* snow_material_info = NULL;
+	ID3D12Resource* Snow_Constant_Buffer;
+
+
+	static bool Setting;
+	static XMFLOAT3 Particle_Pos_XZ[Snow_DEBRISES]; // 각 입자의 시작 좌표
+	static XMFLOAT3 Particle_Rotation_Vector[Snow_DEBRISES]; // 입자마다 회전하는 각도
+	static CMesh* m_SnowMesh;
+
+	XMFLOAT4X4					m_pxmf4x4Transforms[Snow_DEBRISES];
+
+	std::vector<float>			Particle_ElapsedTime; // 각 입자의 경과 시간
+	std::vector<float>			Particle_Speed; // 눈이 내리는 속도는 모두 다를 것
+
+
+	float						Active_Particle = 0;
+	float						range = 10.0f;
+	XMFLOAT3					center_pos = { 0.0f,0.0f,0.0f };
+	XMFLOAT3					Default_Direction = { 0.0f,-1.0f,0.0f };
+	float						Max_Move_Y = 40.0f;
+
+
+public:
+	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+
+	Snow_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
+		XMFLOAT3 start_pos, float range, CMaterial* material, Particle_Type p_type = Particle_Type::Snow);
+
+	virtual ~Snow_Particle();
+
+
+	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Release_Shader_Resource();
+
+
+	void Set_Center(XMFLOAT3 Direction);
+
+	virtual void Animate(float fElapsedTime);
+
+	virtual void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+
+	virtual void Reset();
+};

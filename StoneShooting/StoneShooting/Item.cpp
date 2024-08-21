@@ -292,3 +292,16 @@ void Item_Manager::Set_Clear(Item_Type type)
 		break;
 	}
 }
+
+
+void Item_Manager::Animate(float fTimeElapsed)
+{
+	StoneObject* Double_Power_obj = NULL;
+	StoneObject* Max_Power_obj = NULL;
+	StoneObject* Fire_Shot_obj = NULL;
+
+	std::vector<StoneObject*> Frozen_Time_obj;
+	std::vector<StoneObject*> Ghost_obj;
+	std::vector<StoneObject*> Taunt_obj;
+
+}

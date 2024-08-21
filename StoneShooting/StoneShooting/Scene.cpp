@@ -87,8 +87,6 @@ void CScene::Build_Lights_and_Materials()
 	m_pLights->m_pLights[2].m_fPhi = (float)cos(XMConvertToRadians(90.0f));
 	m_pLights->m_pLights[2].m_fTheta = (float)cos(XMConvertToRadians(30.0f));
 
-	Frozen_Light = &m_pLights->m_pLights[3];
-
 	m_pLights->m_pLights[3].m_bEnable = true;
 	m_pLights->m_pLights[3].m_nType = POINT_LIGHT;
 	m_pLights->m_pLights[3].m_fRange = 50.0f;
@@ -208,7 +206,7 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 	Explosion_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
 	Charge_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
 	Firework_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
-
+	Snow_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
 	Item::Prepare_Item(pd3dDevice, pd3dCommandList);
 	Build_Lights_and_Materials();
 
@@ -227,6 +225,7 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 
 	// 미리 생성하여 준비
 	item_manager = new Item_Manager();
+	item_manager->Frozen_Light = &m_pLights->m_pLights[3];
 
 	Charge_Effect = new Charge_Particle(pd3dDevice, pd3dCommandList, 50.0f, 5.0f, material_color_white_particle, Particle_Type::Charge);
 	Charge_Effect->SetMaterial(material_color_none,true);
@@ -236,6 +235,10 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 	Charge_Effect->m_ppMaterials[1].second = true;
 	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(30.0f, 10.0f, 0.0f), Item_Type::Max_Power);
 	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 10.0f, 0.0f), Item_Type::Frozen_Time);
+
+	Snow_Effect = new Snow_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 50.0f, 0.0f), 100.0f, material_color_white_stone, Particle_Type::Snow);
+
+	//Setting_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 50.0f, 0.0f), material_color_white_stone, Particle_Type::Snow);
 
 }
 
@@ -1234,6 +1237,14 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		}
 		break;
 
+		case Particle_Type::Snow:
+			particle = new Snow_Particle(pd3dDevice, pd3dCommandList, pos, 250.0f, material, Particle_Type::Snow);
+			particle->SetActive(true);
+			particle->SetPosition(pos);
+			((Snow_Particle*)particle)->Set_Center(pos);
+			m_particle.push_back(particle);
+			break;
+
 		case Particle_Type::None:
 		default:
 			break;
@@ -1263,6 +1274,9 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	if (Charge_Effect)
 		Charge_Effect->Animate(fTimeElapsed);
 
+	if (Snow_Effect->active)
+		Snow_Effect->Animate(fTimeElapsed);
+
 	if (m_pLights)
 	{
 		m_pLights->m_pLights[2].m_bEnable = true;
@@ -1275,17 +1289,17 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		else
 			m_pLights->m_pLights[2].m_bEnable = false;
 
-		if (player1.select_Stone != NULL)
-		{
-			Frozen_Light->m_xmf3Position = player1.select_Stone->GetPosition();
+		//if (player1.select_Stone != NULL)
+		//{
+		//	Frozen_Light->m_xmf3Position = player1.select_Stone->GetPosition();
 
-		}
-		if (Com_Turn)
-		{
-			Frozen_Light->m_fRange += 1;
-			Frozen_Light->m_xmf4Ambient.x -= 0.1f;
-			Frozen_Light->m_xmf4Diffuse.x -= 0.1f;
-		}
+		//}
+		//if (Com_Turn)
+		//{
+		//	Frozen_Light->m_fRange += 1;
+		//	Frozen_Light->m_xmf4Ambient.x -= 0.1f;
+		//	Frozen_Light->m_xmf4Diffuse.x -= 0.1f;
+		//}
 	}
 
 }
@@ -1408,6 +1422,9 @@ void CScene::Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	if(power_charge)
 		Charge_Effect->Particle_Render(pd3dCommandList, pCamera, &Object_Shader[0]);
 	
+	if(Snow_Effect->active)
+		Snow_Effect->Particle_Render(pd3dCommandList, pCamera);
+
 
 	for (Particle* particle : m_particle)
 		particle->Particle_Render(pd3dCommandList, pCamera);
@@ -1838,8 +1855,8 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			break;
 
 		case VK_UP:
-			Set_MainCamera(m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, 0.01f));
-			break;
+			Snow_Effect->active = !Snow_Effect->active;
+
 		default:
 			break;
 		}
