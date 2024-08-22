@@ -504,10 +504,15 @@ void CGameFramework::AnimateObjects()
 	{
 		if (Delay_time >= TURN_DELAY)
 		{
-			Limit_time = 0.0f;
-			Delay_time = 0.0f;
-			Need_to_change_turn = false;
-			m_pScene->Change_Turn();
+			if (m_pScene->Update_Item_Manager(m_pd3dDevice, m_pd3dCommandList))
+			{
+				Limit_time = 0.0f;
+				Delay_time = 0.0f;
+				Need_to_change_turn = false;
+				m_pScene->Change_Turn();
+			}
+			else
+				Need_to_change_turn = false;
 		}
 		else
 			Delay_time += Elapsed_Time;
@@ -764,18 +769,30 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	case WM_RBUTTONDOWN:
 		if (m_pScene->is_Player_Turn())
 		{
-			//마우스 위치를 기반으로 레이케스팅하여 돌 선택
-			CGameObject* picked_obj = m_pScene->Pick_Stone_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
+			int clientX = LOWORD(lParam);
+			int clientY = HIWORD(lParam);
 
-			if (picked_obj)
-				m_pSelectedObject = picked_obj;
+			const int xMin = 0;
+			const int xMax = 800;
+			const int yMin = 0;
+			const int yMax = 500;
 
-			if (m_pScene->is_Object_Selectable(m_pSelectedObject))
+			// 좌표가 영역 내에 있는지 확인하는 조건문
+			if (clientX >= xMin && clientX <= xMax && clientY >= yMin && clientY <= yMax)
 			{
-				m_pScene->player1.select_Stone = ((StoneObject*)m_pSelectedObject);
-				m_pPlayer->SetPosition(m_pSelectedObject->GetPosition());
+				//마우스 위치를 기반으로 레이케스팅하여 돌 선택
+				CGameObject* picked_obj = m_pScene->Pick_Stone_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
 
-				m_pScene->Set_MainCamera(m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed()));
+				if (picked_obj)
+					m_pSelectedObject = picked_obj;
+
+				if (m_pScene->is_Object_Selectable(m_pSelectedObject))
+				{
+					m_pScene->player1.select_Stone = ((StoneObject*)m_pSelectedObject);
+					m_pPlayer->SetPosition(m_pSelectedObject->GetPosition());
+
+					m_pScene->Set_MainCamera(m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed()));
+				}
 			}
 		}
 		::SetCapture(hWnd);

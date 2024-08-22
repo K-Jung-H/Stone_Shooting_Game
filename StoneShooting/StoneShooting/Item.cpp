@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "Item.h"
 #include "Mesh.h"
-
 CMesh* Item::outer_Mesh = NULL;
 CMesh* Item::inner_Mesh = NULL;
 
@@ -182,28 +181,44 @@ void Item::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 
 void Item_Manager::Add_Stone_Item_Applied(StoneObject* stone)
 {
+	Stone_Item_Info* stone_info = new Stone_Item_Info{ stone, NULL, 0 };
 	switch (stone->used_item)
-	{	
+	{
 	case Item_Type::Taunt:
-		Taunt_obj.push_back(stone);
+		Taunt_obj.push_back(stone_info);
 		break;
 
 	case Item_Type::Frozen_Time:
-		Frozen_Time_obj.push_back(stone);
-		break;
+	{
+		auto empty_space = std::find_if(Frozen_Time_obj.begin(), Frozen_Time_obj.end(), [](Stone_Item_Info* existing_stone)
+			{return (existing_stone->stone == NULL && existing_stone->particle == NULL); });
+
+		// 컨테이너에 비활성화 된 빈 공간이 있다면 대체
+		if (empty_space != Frozen_Time_obj.end())
+		{
+			// 기존의 포인터가 가리키는 메모리를 해제
+			delete* empty_space;
+
+			// 새 포인터로 대체
+			*empty_space = stone_info; 
+		}
+		else
+			Frozen_Time_obj.push_back(stone_info);
+	}
+	break;
 
 	case Item_Type::Ghost:
-		Ghost_obj.push_back(stone);
+		Ghost_obj.push_back(stone_info);
 		break;
 	case Item_Type::Fire_Shot:
-		Fire_Shot_obj = stone;
+		Fire_Shot_obj = stone_info;
 		break;
 	case Item_Type::Double_Power:
-		Double_Power_obj = stone;
+		Double_Power_obj = stone_info;
 		break;
 
 	case Item_Type::Max_Power:
-		Max_Power_obj = stone;
+		Max_Power_obj = stone_info;
 		break;
 
 	default:
@@ -212,7 +227,27 @@ void Item_Manager::Add_Stone_Item_Applied(StoneObject* stone)
 
 }
 
-std::vector<StoneObject*>* Item_Manager::Get_Stone_List(Item_Type type)
+Stone_Item_Info* Item_Manager::Get_Stone(Item_Type type)
+{
+	switch (type)
+	{
+	case Item_Type::Fire_Shot:
+		return Fire_Shot_obj;
+		break;
+
+	case Item_Type::Double_Power:
+		return Double_Power_obj;
+		break;
+
+	case Item_Type::Max_Power:
+		return Max_Power_obj;
+		break;
+
+	default:
+		break;
+	}
+}
+std::vector<Stone_Item_Info*>* Item_Manager::Get_Stone_Iist(Item_Type type)
 {
 	switch (type)
 	{
@@ -235,27 +270,27 @@ std::vector<StoneObject*>* Item_Manager::Get_Stone_List(Item_Type type)
 	return NULL;
 }
 
-StoneObject* Item_Manager::Get_Stone(Item_Type type)
+int Item_Manager::Get_Active_Stone_Num(Item_Type type)
 {
 	switch (type)
 	{
-	case Item_Type::Fire_Shot:
-		return Fire_Shot_obj;
+	case Item_Type::Taunt:
+		return std::count_if(Taunt_obj.begin(), Taunt_obj.end(), [](Stone_Item_Info* stone_info) {return (stone_info->stone != NULL); });
 		break;
 
-	case Item_Type::Double_Power:
-		return Double_Power_obj;
+	case Item_Type::Frozen_Time:
+		return std::count_if(Frozen_Time_obj.begin(), Frozen_Time_obj.end(), [](Stone_Item_Info* stone_info) {return (stone_info != NULL); });
 		break;
-
-	case Item_Type::Max_Power:
-		return Max_Power_obj;
+		
+	case Item_Type::Ghost:
+		return std::count_if(Ghost_obj.begin(), Ghost_obj.end(), [](Stone_Item_Info* stone_info) {return (stone_info->stone != NULL); });
 		break;
 
 	default:
 		break;
 	}
 
-	return NULL;
+	return 0;
 }
 
 void Item_Manager::Set_Clear(Item_Type type)
@@ -294,14 +329,81 @@ void Item_Manager::Set_Clear(Item_Type type)
 }
 
 
+
+void Item_Manager::Update_Frozen_Time(float fTimeElapsed)
+{
+	if (Frozen_Light == NULL)
+		return;
+
+	bool Exist_Frozen_Stone = std::any_of(Frozen_Time_obj.begin(), Frozen_Time_obj.end(), [](Stone_Item_Info* info) {return (info->stone != NULL && info->stone->active); });
+	if (Exist_Frozen_Stone)
+	{
+		
+		if (Frozen_Light->m_fRange < 300.0f)
+		{
+			Frozen_Light->m_bEnable = true;
+			Frozen_Light->m_fRange += 0.5f;
+			Frozen_Light->m_xmf4Ambient.x -= 0.01f;
+			Frozen_Light->m_xmf4Diffuse.x -= 0.01f;
+		}
+	}
+	else
+	{
+		if (Frozen_Light->m_fRange > 300.0f)
+		{
+			Frozen_Light->m_xmf4Ambient.x += 0.01f;
+			Frozen_Light->m_xmf4Diffuse.x += 0.01f;
+			Frozen_Light->m_fRange -= 0.5f;
+		}
+		else
+		{
+		
+			Frozen_Light->m_bEnable = false;
+			Frozen_Light->m_xmf4Ambient = XMFLOAT4(-0.3f, 0.1f, 1.0f, 1.0f);
+			Frozen_Light->m_xmf4Diffuse = XMFLOAT4(-0.0f, 0.0f, 1.0f, 1.0f);
+		}
+	}
+
+	for (Stone_Item_Info* info : Frozen_Time_obj)
+	{
+		// 유지 턴이 끝나면
+		if (info->turn == 3)
+		{
+			delete info->particle;
+			info->particle = NULL;
+			info->stone = NULL;
+		}
+		else 
+		{
+			// 턴은 남았는데, 연결된 돌이 탈락했다면
+			if (info->stone == NULL || info->stone->active == false)
+			{
+				if (info->particle != NULL)
+				{
+					delete info->particle;
+					info->particle = NULL;
+					info->stone = NULL;
+				}
+			}
+		}
+		
+		// 위의 조건문을 통과했다면
+		if (info->particle != NULL)
+			info->particle->Animate(fTimeElapsed);
+	}
+
+}
 void Item_Manager::Animate(float fTimeElapsed)
 {
-	StoneObject* Double_Power_obj = NULL;
-	StoneObject* Max_Power_obj = NULL;
-	StoneObject* Fire_Shot_obj = NULL;
+	Update_Frozen_Time(fTimeElapsed);
+}
 
-	std::vector<StoneObject*> Frozen_Time_obj;
-	std::vector<StoneObject*> Ghost_obj;
-	std::vector<StoneObject*> Taunt_obj;
+void Item_Manager::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	for (Stone_Item_Info* info : Frozen_Time_obj)
+	{
+		if (info->particle != NULL)
+			info->particle->Particle_Render(pd3dCommandList, pCamera);
+	}
 
 }

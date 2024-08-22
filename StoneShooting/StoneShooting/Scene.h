@@ -93,6 +93,8 @@ public:
 
 	bool Change_Turn();
 	bool Check_Turn();
+	bool Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+
 	bool Check_GameOver();
 
 	void Defend_Overlap();

@@ -1,6 +1,6 @@
 #pragma once
 #include "GameObject.h"
-
+#include "Particle.h"
 extern CMaterial* material_color_item_outer;
 extern CMaterial* material_color_item_inner_red;
 extern CMaterial* material_color_item_inner_green;
@@ -26,37 +26,39 @@ public:
 };
 
 
-/*
-	Taunt,
-	Fire_Shot,
-	Double_Power,
-	Frozen_Time,
-	Max_Power,
-	Ghost,
-	ETC,
-	None,
+struct Stone_Item_Info
+{
+	StoneObject*	stone		= NULL;
+	Particle*		particle	= NULL;
+	int				turn		= 0;
 
-*/
+	Stone_Item_Info(StoneObject* s, Particle* p, int t) { stone = s; particle = p; turn = t; };
+};
+
+
 class Item_Manager
 {
-	StoneObject* Double_Power_obj = NULL;
-	StoneObject* Max_Power_obj = NULL;
-	StoneObject* Fire_Shot_obj = NULL;
+	Stone_Item_Info* Double_Power_obj = NULL;
+	Stone_Item_Info* Max_Power_obj = NULL;
+	Stone_Item_Info* Fire_Shot_obj = NULL;
 
-	std::vector<StoneObject*> Frozen_Time_obj;
-	std::vector<StoneObject*> Ghost_obj;
-	std::vector<StoneObject*> Taunt_obj;
+	std::vector<Stone_Item_Info*> Frozen_Time_obj;
+	std::vector<Stone_Item_Info*> Ghost_obj;
+	std::vector<Stone_Item_Info*> Taunt_obj;
 
 public:
-	int Double_Power_count = 0;
 	LIGHT* Frozen_Light = NULL;
 
 
 	void Add_Stone_Item_Applied(StoneObject* stone);
-	std::vector<StoneObject*>* Get_Stone_List(Item_Type type);
 
-	StoneObject* Get_Stone(Item_Type type);
+	Stone_Item_Info* Get_Stone(Item_Type type);
+	std::vector<Stone_Item_Info*>* Get_Stone_Iist(Item_Type type);
+	int Get_Active_Stone_Num(Item_Type type);
+
 	void Set_Clear(Item_Type type);
 	
+	void Update_Frozen_Time(float fTimeElapsed);
 	void Animate(float fTimeElapsed);
+	void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 };

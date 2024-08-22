@@ -806,7 +806,7 @@ void StoneObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 	case Item_Type::Double_Power:
 	{
 		if (m_fMovingSpeed != 0.0f)
-			Move(m_xmf3MovingDirection, m_fMovingSpeed/2 * fTimeElapsed);
+			Move(m_xmf3MovingDirection, m_fMovingSpeed/5 * fTimeElapsed);
 	}
 	break;
 

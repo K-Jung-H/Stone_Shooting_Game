@@ -70,6 +70,8 @@
 //=======================C++================
 #include <random>
 #include <vector>
+#include <tuple>
+#include <variant>
 #include <algorithm>
 #include <unordered_map>
 

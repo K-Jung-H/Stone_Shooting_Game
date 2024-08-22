@@ -4,21 +4,12 @@
 
 /*
 추가 할  내용:
-우클릭으로 선택한 돌에 윤곽선이 생겼으면 좋겠음
 
-보드에서 우클릭으로 돌을 골라 해당 돌이 사용할 아이템을 미리 정하도록 하고, 우클릭은 시점 변화가 안 일어나야 함
-			+
-돌 시점에서, 특정 키를 누르면 현재 돌이 사용할 아이템 선택 할 수 있도록 하기
-
-돌 객체에 현재 돌에 적용된 아이템을 변수로 저장하도록 할 것
 
 
 셰이더마다 타입을 추가하여 구별하는 중
 
 윤곽선 셰이더가 연결된 재질은 active가 변경되지 않도록 조건을 부분마다 추가하는 중
-
-현재, 마우스로 선택한 돌의 색상이 바뀐 후,
-다른 돌로 갈아타면, 이전 돌의 색상이 안바뀌는 중-> 원인 찾기!!!!!!!!!!
 
 //=============================================
 
@@ -89,7 +80,7 @@ void CScene::Build_Lights_and_Materials()
 
 	m_pLights->m_pLights[3].m_bEnable = true;
 	m_pLights->m_pLights[3].m_nType = POINT_LIGHT;
-	m_pLights->m_pLights[3].m_fRange = 50.0f;
+	m_pLights->m_pLights[3].m_fRange = 0.0f;
 	m_pLights->m_pLights[3].m_xmf4Ambient = XMFLOAT4(-0.3f, 0.1f, 1.0f, 1.0f);
 	m_pLights->m_pLights[3].m_xmf4Diffuse = XMFLOAT4(-0.0f, 0.0f, 1.0f, 1.0f);
 	m_pLights->m_pLights[3].m_xmf4Specular = XMFLOAT4(0.1f, 0.1f, 1.0f, 0.0f);
@@ -235,10 +226,6 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 	Charge_Effect->m_ppMaterials[1].second = true;
 	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(30.0f, 10.0f, 0.0f), Item_Type::Max_Power);
 	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 10.0f, 0.0f), Item_Type::Frozen_Time);
-
-	Snow_Effect = new Snow_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 50.0f, 0.0f), 100.0f, material_color_white_stone, Particle_Type::Snow);
-
-	//Setting_Particle(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 50.0f, 0.0f), material_color_white_stone, Particle_Type::Snow);
 
 }
 
@@ -1026,28 +1013,63 @@ void CScene::Check_Item_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12Gra
 }
 
 
-bool CScene::Change_Turn()
+bool CScene::Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
+	// 컴퓨터 턴에는 검사할 필요 없음
+	if (Com_Turn)
+		return true;
+
+
+	bool Change_Turn = true;
+
+	// Double Shot
 	if (item_manager->Get_Stone(Item_Type::Double_Power))
 	{
 		Player_Shot = false;
-		if (item_manager->Double_Power_count < 1)
+		if (item_manager->Get_Stone(Item_Type::Double_Power)->turn == 0)
 		{
-			item_manager->Double_Power_count++;	
+			item_manager->Get_Stone(Item_Type::Double_Power)->turn += 1;
 			m_pPlayer->SetPosition(player1.select_Stone->GetPosition());
 
 			// 두번째 차례이므로, 다시 카메라 변경
 			Set_MainCamera(m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, 0.005f));
-			return false;
+			player1.selected_Item_Type = Item_Type::None;
+			Mark_selected_stone();
+			Change_Turn = false;
 		}
 		else
 		{
-			item_manager->Double_Power_count = 0;
 			item_manager->Set_Clear(Item_Type::Double_Power);
 		}
 	}
 
+	// Frozen Time
+	if (item_manager->Get_Active_Stone_Num(Item_Type::Frozen_Time))
+	{
+		std::vector<Stone_Item_Info*>* frozen_stones = item_manager->Get_Stone_Iist(Item_Type::Frozen_Time);
+		for (Stone_Item_Info* stone_info : *frozen_stones)
+		{
+			if (stone_info->turn < 3)
+			{
+				if (stone_info->turn == 0)
+				{
+					XMFLOAT3 pos = stone_info->stone->GetPosition();
+					pos.y = 30.0f;
+					stone_info->particle = new Snow_Particle(pd3dDevice, pd3dCommandList, pos, 30.0f, material_color_white_stone, Particle_Type::Snow);
+					stone_info->particle->SetActive(true);
+					((Snow_Particle*)stone_info->particle)->Set_Center(pos);
+				}
+				stone_info->turn += 1;
+			}
+		}
+	}
 
+
+	return Change_Turn;
+}
+
+bool CScene::Change_Turn()
+{
 	if (Player_Turn)
 	{
 		Player_Turn = false;
@@ -1188,8 +1210,8 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	{
 		if (particle->p_type == particle_type && particle->active == false)
 		{
-			particle->SetPosition(pos);
 			particle->SetActive(true);
+			particle->SetPosition(pos);
 			particle->SetMaterial(material);
 			Done = true;
 			break;
@@ -1238,7 +1260,7 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		break;
 
 		case Particle_Type::Snow:
-			particle = new Snow_Particle(pd3dDevice, pd3dCommandList, pos, 250.0f, material, Particle_Type::Snow);
+			particle = new Snow_Particle(pd3dDevice, pd3dCommandList, pos, 30.0f, material_color_white_stone, Particle_Type::Snow);
 			particle->SetActive(true);
 			particle->SetPosition(pos);
 			((Snow_Particle*)particle)->Set_Center(pos);
@@ -1274,8 +1296,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	if (Charge_Effect)
 		Charge_Effect->Animate(fTimeElapsed);
 
-	if (Snow_Effect->active)
-		Snow_Effect->Animate(fTimeElapsed);
+
 
 	if (m_pLights)
 	{
@@ -1288,19 +1309,10 @@ void CScene::AnimateObjects(float fTimeElapsed)
 			m_pLights->m_pLights[2].m_xmf3Position = computer.select_Stone->GetPosition();
 		else
 			m_pLights->m_pLights[2].m_bEnable = false;
-
-		//if (player1.select_Stone != NULL)
-		//{
-		//	Frozen_Light->m_xmf3Position = player1.select_Stone->GetPosition();
-
-		//}
-		//if (Com_Turn)
-		//{
-		//	Frozen_Light->m_fRange += 1;
-		//	Frozen_Light->m_xmf4Ambient.x -= 0.1f;
-		//	Frozen_Light->m_xmf4Diffuse.x -= 0.1f;
-		//}
 	}
+
+	item_manager->Animate(fTimeElapsed);
+
 
 }
 
@@ -1406,6 +1418,8 @@ void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCom
 
 	Particle_Render(pd3dDevice, pd3dCommandList, pCamera);
 
+
+
 	UI_Render(pd3dDevice, pd3dCommandList);
 }
 void CScene::Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
@@ -1422,12 +1436,10 @@ void CScene::Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	if(power_charge)
 		Charge_Effect->Particle_Render(pd3dCommandList, pCamera, &Object_Shader[0]);
 	
-	if(Snow_Effect->active)
-		Snow_Effect->Particle_Render(pd3dCommandList, pCamera);
-
-
 	for (Particle* particle : m_particle)
 		particle->Particle_Render(pd3dCommandList, pCamera);
+
+	item_manager->Particle_Render(pd3dCommandList, pCamera);
 }
 void CScene::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
@@ -1527,8 +1539,9 @@ bool CScene::is_Object_Selectable(CGameObject* now_picked)
 	if (power_charge)
 		return false;
 
-	if (item_manager->Double_Power_count == 1)
-		return false;
+	if (item_manager->Get_Stone(Item_Type::Double_Power) != NULL)
+		if(item_manager->Get_Stone(Item_Type::Double_Power)->turn == 1)
+			return false;
 
 	return true;
 }
@@ -1540,6 +1553,8 @@ bool CScene::is_Player_Turn()
 
 void CScene::Shoot_Stone(float power)
 {
+	if (player1.select_Stone->used_item == Item_Type::Max_Power)
+		power = 1000;
 	if (player1.select_Stone != NULL)
 	{
 		XMFLOAT3 direction = m_pPlayer->GetLookVector();
@@ -1856,6 +1871,7 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 		case VK_UP:
 			Snow_Effect->active = !Snow_Effect->active;
+			break;
 
 		default:
 			break;

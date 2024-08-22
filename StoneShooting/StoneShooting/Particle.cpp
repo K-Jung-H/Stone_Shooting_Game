@@ -664,7 +664,8 @@ void Snow_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 			Particle_Pos_XZ[i] = Random_In_Circle();
 			XMStoreFloat3(&Particle_Rotation_Vector[i], RandomUnitVectorOnSphere());
 		}
-		m_SnowMesh = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 3.0f, 20.0f, 20.0f);// new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 1.0f, 1.0f, 1.0f);
+		//new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 3.0f, 20.0f, 20.0f);
+		m_SnowMesh =  new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 1.0f, 1.0f, 1.0f);
 		Setting = true;
 	}
 }
