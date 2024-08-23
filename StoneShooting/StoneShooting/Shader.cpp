@@ -210,7 +210,7 @@ void CShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_
 
 void CShader::Setting_PSO(ID3D12GraphicsCommandList* pd3dCommandList, int N)
 {
-	pd3dCommandList->SetPipelineState(m_ppd3dPipelineStates[0]);
+	pd3dCommandList->SetPipelineState(m_ppd3dPipelineStates[N]);
 }
 
 
@@ -320,8 +320,11 @@ void CObjectsShader::AnimateObjects(float fTimeElapsed)
 
 void CObjectsShader::Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type, Item_Type i_type)
 {
-	// 파이프라인에 그래픽스 상태 객체를 설정
-	CShader::Setting_PSO(pd3dCommandList, 0);
+	if(o_type == Object_Type::Stone && i_type == Item_Type::Ghost)
+		CShader::Setting_PSO(pd3dCommandList, 1);
+	else
+		// 파이프라인에 그래픽스 상태 객체를 설정
+		CShader::Setting_PSO(pd3dCommandList, 0);
 
 
 }

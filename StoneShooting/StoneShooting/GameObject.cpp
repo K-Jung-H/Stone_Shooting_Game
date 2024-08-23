@@ -346,6 +346,7 @@ void CGameObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
 	pd3dCommandList->SetGraphicsRootSignature(Object_GraphicsRootSignature_ptr);
+
 	if (!active)
 		return;
 
@@ -353,6 +354,7 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 	
 	// 객체 정보 컨테이너 업데이트 :: Mapped_Object_info
 	Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::GameObject_info);
+
 	for (int i = 0; i < m_ppMaterials.size(); ++i)
 	{
 		if (m_ppMaterials[i].second)
@@ -362,6 +364,9 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 				m_ppMaterials[i].first->material_shader->Setting_Render(pd3dCommandList, o_type, used_item);
 				shader_changed = true;
 			}
+			else // Ghost는 선으로 그리기
+				pShader->Setting_Render(pd3dCommandList, o_type, used_item);
+
 			// 재질 정보 컨테이너 업데이트 :: Mapped_Material_info
 			Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info, i);
 			
@@ -796,7 +801,7 @@ StoneObject::~StoneObject()
 
 void StoneObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
-	CGameObject::Render(pd3dCommandList, pCamera, pShader);
+		CGameObject::Render(pd3dCommandList, pCamera, pShader);
 }
 
 void StoneObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)

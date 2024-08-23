@@ -154,7 +154,6 @@ void Item::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, 
 
 void Item::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 {
-
 	if (outer_frame)
 	{
 		outer_frame->Animate(fTimeElapsed, pxmf4x4Parent);
@@ -215,8 +214,24 @@ void Item_Manager::Add_Stone_Item_Applied(StoneObject* stone)
 	break;
 
 	case Item_Type::Ghost:
-		Ghost_obj.push_back(stone_info);
+		{
+			auto empty_space = std::find_if(Ghost_obj.begin(), Ghost_obj.end(), [](Stone_Item_Info* existing_stone)
+				{return (existing_stone->stone == NULL && existing_stone->particle == NULL); });
+
+			// 컨테이너에 비활성화 된 빈 공간이 있다면 대체
+			if (empty_space != Ghost_obj.end())
+			{
+				// 기존의 포인터가 가리키는 메모리를 해제
+				delete* empty_space;
+
+				// 새 포인터로 대체
+				*empty_space = stone_info;
+			}
+			else
+				Ghost_obj.push_back(stone_info);
+		}
 		break;
+
 	case Item_Type::Fire_Shot:
 		Fire_Shot_obj = stone_info;
 		break;
@@ -397,6 +412,31 @@ void Item_Manager::Update_Frozen_Time(float fTimeElapsed)
 	}
 
 }
+void Item_Manager::Update_Ghost(float fTimeElapsed)
+{
+	bool Exist_Ghost_Stone = std::any_of(Ghost_obj.begin(), Ghost_obj.end(), [](Stone_Item_Info* info) {return (info->stone != NULL && info->stone->active); });
+	if (Exist_Ghost_Stone)
+	{
+		for (Stone_Item_Info* info : Ghost_obj)
+		{
+			// 유지 턴이 끝나면
+			if (info->turn == 2)
+			{
+				info->stone->used_item = Item_Type::None;
+				info->stone = NULL;
+			}
+			else
+			{
+				// 턴은 남았는데, 연결된 돌이 탈락했다면
+				if (info->stone == NULL || info->stone->active == false)
+					info->stone = NULL;
+			}
+		}
+	}
+
+
+
+}
 
 void Item_Manager::Check_Stone_Frozen_Time_Effect(std::vector<StoneObject*>* stonelist)
 {
@@ -439,6 +479,7 @@ void Item_Manager::Check_Stone_Item_Effect(std::vector<StoneObject*>* stonelist)
 void Item_Manager::Animate(float fTimeElapsed)
 {
 	Update_Frozen_Time(fTimeElapsed);
+	Update_Ghost(fTimeElapsed);
 }
 
 void Item_Manager::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)

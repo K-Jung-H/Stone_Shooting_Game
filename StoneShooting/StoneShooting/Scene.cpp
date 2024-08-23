@@ -876,12 +876,20 @@ void CScene::Check_Stones_Collisions()
 	{
 		if (GameObject_Stone[i]->active)
 		{
+			// Ghost Stone은 충돌 연산 배제
+			if (GameObject_Stone[i]->used_item == Item_Type::Ghost)
+				continue;
+
 			for (int j = (i + 1); j < objs_N; ++j)
 			{
+				// Ghost Stone은 충돌 연산 배제
+				if (GameObject_Stone[j]->used_item == Item_Type::Ghost)
+					continue;
+
 				if (GameObject_Stone[j]->active)
 				{
 					if (GameObject_Stone[i]->m_xmOOSP.Intersects(GameObject_Stone[j]->m_xmOOSP))
-					{
+					{						
 						GameObject_Stone[i]->m_pObjectCollided = GameObject_Stone[j];
 						GameObject_Stone[j]->m_pObjectCollided = GameObject_Stone[i];
 					}
@@ -1064,6 +1072,16 @@ bool CScene::Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 		}
 	}
 
+	//Ghost
+	if (item_manager->Get_Active_Stone_Num(Item_Type::Ghost))
+	{
+		std::vector<Stone_Item_Info*>* ghost_stones = item_manager->Get_Stone_Iist(Item_Type::Ghost);
+		std::transform(ghost_stones->begin(), ghost_stones->end(), ghost_stones->begin(), [](Stone_Item_Info* ghost_info) {
+			if (ghost_info->stone != NULL && ghost_info->stone->active)
+				ghost_info->turn += 1;
+
+			return ghost_info; });
+	}
 
 	return Change_Turn;
 }
@@ -1396,7 +1414,7 @@ void CScene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCom
 {
 	// 커멘드 리스트에 PSO 연결, 루트 시그니처는 PSO에 이미 바인딩 되어 있음 == 따로 커멘드 리스트에서 바인딩 안해도 되지만, 안정성 문제
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
-	Object_Shader[0].Setting_PSO(pd3dCommandList); 
+	Object_Shader[0].Setting_PSO(pd3dCommandList, 1); 
 
 	// 카메라 영역 및 정보 업데이트
 	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
@@ -1737,6 +1755,16 @@ void CScene::Mark_selected_stone()
 			}
 		}
 	}
+	
+	// 이전에 설정된 Ghost stone은 변경되면 안됨
+	std::vector<Stone_Item_Info*>* ghost_stones = item_manager->Get_Stone_Iist(Item_Type::Ghost);
+	std::transform(ghost_stones->begin(), ghost_stones->end(), ghost_stones->begin(), [](Stone_Item_Info* ghost_info) {
+		if (ghost_info->stone != NULL && ghost_info->stone->active)
+		{
+			ghost_info->turn += 1;
+			ghost_info->stone->used_item = Item_Type::Ghost;
+		}
+		return ghost_info; });
 }
 
 void CScene::Select_Item(Item_Type i_type)
@@ -1870,7 +1898,6 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			break;
 
 		case VK_UP:
-			Snow_Effect->active = !Snow_Effect->active;
 			break;
 
 		default:

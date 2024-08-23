@@ -49,6 +49,7 @@ class Item_Manager
 	BoundingSphere Snow_Area;
 
 	void Update_Frozen_Time(float fTimeElapsed);
+	void Update_Ghost(float fTimeElapsed);
 	void Check_Stone_Frozen_Time_Effect(std::vector<StoneObject*>* stones);
 
 public:
