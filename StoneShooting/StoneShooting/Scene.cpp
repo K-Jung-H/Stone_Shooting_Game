@@ -1055,7 +1055,7 @@ bool CScene::Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 				{
 					XMFLOAT3 pos = stone_info->stone->GetPosition();
 					pos.y = 30.0f;
-					stone_info->particle = new Snow_Particle(pd3dDevice, pd3dCommandList, pos, 30.0f, material_color_white_stone, Particle_Type::Snow);
+					stone_info->particle = new Snow_Particle(pd3dDevice, pd3dCommandList, pos, Snow_Area_Radius, material_color_white_stone, Particle_Type::Snow);
 					stone_info->particle->SetActive(true);
 					((Snow_Particle*)stone_info->particle)->Set_Center(pos);
 				}
@@ -1260,7 +1260,7 @@ void CScene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		break;
 
 		case Particle_Type::Snow:
-			particle = new Snow_Particle(pd3dDevice, pd3dCommandList, pos, 30.0f, material_color_white_stone, Particle_Type::Snow);
+			particle = new Snow_Particle(pd3dDevice, pd3dCommandList, pos, Snow_Area_Radius, material_color_white_stone, Particle_Type::Snow);
 			particle->SetActive(true);
 			particle->SetPosition(pos);
 			((Snow_Particle*)particle)->Set_Center(pos);
@@ -1312,7 +1312,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	}
 
 	item_manager->Animate(fTimeElapsed);
-
+	item_manager->Check_Stone_Item_Effect(&GameObject_Stone);
 
 }
 

@@ -166,7 +166,7 @@ public:
 	Item_Manager* item_manager = NULL;
 
 	// 그려질 모든 게임 객체들
-	std::vector<CGameObject*> GameObject_Stone;
+	std::vector<StoneObject*> GameObject_Stone;
 	std::vector<Item*> Game_Items;
 	std::vector<Particle*>m_particle;
 

@@ -141,8 +141,6 @@ Item::Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 
 	Add_Child(inner_frame);
 	Add_Child(outer_frame);
-
-
 }
 
 Item::~Item()
@@ -178,6 +176,15 @@ void Item::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 
 
 //===============================================================================
+
+Item_Manager::Item_Manager()
+{
+	Snow_Area = BoundingSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), Snow_Area_Radius);
+}
+
+Item_Manager::~Item_Manager()
+{
+}
 
 void Item_Manager::Add_Stone_Item_Applied(StoneObject* stone)
 {
@@ -328,8 +335,6 @@ void Item_Manager::Set_Clear(Item_Type type)
 	}
 }
 
-
-
 void Item_Manager::Update_Frozen_Time(float fTimeElapsed)
 {
 	if (Frozen_Light == NULL)
@@ -349,15 +354,14 @@ void Item_Manager::Update_Frozen_Time(float fTimeElapsed)
 	}
 	else
 	{
-		if (Frozen_Light->m_fRange > 300.0f)
+		if (Frozen_Light->m_fRange > 30.0f)
 		{
 			Frozen_Light->m_xmf4Ambient.x += 0.01f;
 			Frozen_Light->m_xmf4Diffuse.x += 0.01f;
 			Frozen_Light->m_fRange -= 0.5f;
 		}
 		else
-		{
-		
+		{		
 			Frozen_Light->m_bEnable = false;
 			Frozen_Light->m_xmf4Ambient = XMFLOAT4(-0.3f, 0.1f, 1.0f, 1.0f);
 			Frozen_Light->m_xmf4Diffuse = XMFLOAT4(-0.0f, 0.0f, 1.0f, 1.0f);
@@ -393,6 +397,45 @@ void Item_Manager::Update_Frozen_Time(float fTimeElapsed)
 	}
 
 }
+
+void Item_Manager::Check_Stone_Frozen_Time_Effect(std::vector<StoneObject*>* stonelist)
+{
+	std::vector<StoneObject*> stones_to_apply_snow;
+
+	if (Get_Active_Stone_Num(Item_Type::Frozen_Time))
+	{
+		for (const Stone_Item_Info* frozen_info : Frozen_Time_obj)
+		{
+			if (frozen_info->particle != NULL)
+			{
+				XMFLOAT3 frozen_pos = frozen_info->particle->GetPosition();
+				frozen_pos.y = 0.0f;
+
+				// 위치 변화를 적용한 임시 충돌체 생성
+				BoundingSphere moved_Snow_Area = Snow_Area;
+				moved_Snow_Area.Center = frozen_pos;
+
+				for (StoneObject* stone : *stonelist)
+				{
+					if (moved_Snow_Area.Intersects(stone->m_xmOOSP))
+						stones_to_apply_snow.push_back(stone); // 저장해뒀다가 마지막에 적용할 객체들 한번에 적용하기
+				}
+			}
+		}
+
+		std::transform(stonelist->begin(), stonelist->end(), stonelist->begin(), [](StoneObject* stone_ptr) {
+			stone_ptr->SetFriction(2.0f);
+			return stone_ptr; });
+		for (StoneObject* froze_stone : stones_to_apply_snow)
+			froze_stone->SetFriction(10.0f);
+	}
+}
+
+void Item_Manager::Check_Stone_Item_Effect(std::vector<StoneObject*>* stonelist)
+{
+	Check_Stone_Frozen_Time_Effect(stonelist);
+}
+
 void Item_Manager::Animate(float fTimeElapsed)
 {
 	Update_Frozen_Time(fTimeElapsed);

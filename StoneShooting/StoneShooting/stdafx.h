@@ -131,6 +131,8 @@ enum class UI_Type
 
 };
 
+#define Snow_Area_Radius 30.0f
+
 extern std::default_random_engine dre;
 extern std::uniform_int_distribution<int> uid;
 
