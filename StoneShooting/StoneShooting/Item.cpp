@@ -362,18 +362,18 @@ void Item_Manager::Update_Frozen_Time(float fTimeElapsed)
 		if (Frozen_Light->m_fRange < 300.0f)
 		{
 			Frozen_Light->m_bEnable = true;
-			Frozen_Light->m_fRange += 0.5f;
-			Frozen_Light->m_xmf4Ambient.x -= 0.01f;
-			Frozen_Light->m_xmf4Diffuse.x -= 0.01f;
+			Frozen_Light->m_fRange += 4.0f;
+			Frozen_Light->m_xmf4Ambient.x -= 0.25f;
+			Frozen_Light->m_xmf4Diffuse.x -= 0.25f;
 		}
 	}
 	else
 	{
 		if (Frozen_Light->m_fRange > 30.0f)
 		{
-			Frozen_Light->m_xmf4Ambient.x += 0.01f;
-			Frozen_Light->m_xmf4Diffuse.x += 0.01f;
-			Frozen_Light->m_fRange -= 0.5f;
+			Frozen_Light->m_xmf4Ambient.x += 0.25f;
+			Frozen_Light->m_xmf4Diffuse.x += 0.25f;
+			Frozen_Light->m_fRange -= 4.0f;
 		}
 		else
 		{		

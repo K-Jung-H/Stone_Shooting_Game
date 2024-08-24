@@ -136,22 +136,22 @@ void BAR_UI_Object::Animate(float fElapsedTime)
 		if (Degree_increase) 
 		{
 			if (Degree < 300)
-				Degree += 4;
+				Degree += 8;
 			else if (Degree < 500)
-				Degree += 2;
+				Degree += 6;
 			else if (Degree < 600)
-				Degree += 1;
+				Degree += 4;
 			else 
 				Degree_increase = false;
 		}
 		else 
 		{
 			if (Degree > 500)
-				Degree -= 1;
-			else if (Degree > 300)
 				Degree -= 2;
+			else if (Degree > 300)
+				Degree -= 4;
 			else if (Degree > 100)
-				Degree -= 3;
+				Degree -= 6;
 			else
 				Degree = 100;
 		}
@@ -321,11 +321,10 @@ void Inventory_UI::AnimateObjects(float fTimeElapsed)
 			{
 				if (board_pos.y > 0)
 				{
-					inventory_board_obj->SetPosition(0.0f, 0.0f, board_pos.z);
+					inventory_board_obj->SetPosition(0.0f, 0.1f, board_pos.z);
 					hold = true;
 				}
 				else
-
 					inventory_board_obj->Move(Drag_Direction, 180.0f * fTimeElapsed);
 			}
 			else if (Drag_up == false)

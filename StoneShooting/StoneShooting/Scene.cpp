@@ -1023,9 +1023,20 @@ void CScene::Check_Item_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12Gra
 
 bool CScene::Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	// 컴퓨터 턴에는 검사할 필요 없음
+	// 컴퓨터 턴에는 ghost만 검사하기
 	if (Com_Turn)
+	{
+		if (item_manager->Get_Active_Stone_Num(Item_Type::Ghost))
+		{
+			std::vector<Stone_Item_Info*>* ghost_stones = item_manager->Get_Stone_Iist(Item_Type::Ghost);
+			std::transform(ghost_stones->begin(), ghost_stones->end(), ghost_stones->begin(), [](Stone_Item_Info* ghost_info) {
+				if (ghost_info->stone != NULL && ghost_info->stone->active)
+					ghost_info->turn += 1;
+				return ghost_info; });
+		}
 		return true;
+	}
+
 
 
 	bool Change_Turn = true;
@@ -1079,7 +1090,6 @@ bool CScene::Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 		std::transform(ghost_stones->begin(), ghost_stones->end(), ghost_stones->begin(), [](Stone_Item_Info* ghost_info) {
 			if (ghost_info->stone != NULL && ghost_info->stone->active)
 				ghost_info->turn += 1;
-
 			return ghost_info; });
 	}
 
@@ -1117,8 +1127,14 @@ bool CScene::Change_Turn()
 		Charge_Effect->ChangeMaterial(1);
 	}
 	Mark_selected_stone();
-	Charge_Effect->Reset();
 
+	power_charge = false;
+	((BAR_UI*)ui_player_power)->Set_Bar_Charge_Mode(false);
+	Charge_Effect->Reset();
+	ui_player_power->Reset();
+	ui_com_power->Reset();
+
+	Set_MainCamera(m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, 0.005f));
 	return true;
 }
 
@@ -1557,6 +1573,9 @@ bool CScene::is_Object_Selectable(CGameObject* now_picked)
 	if (power_charge)
 		return false;
 
+	if (now_picked->used_item == Item_Type::Ghost)
+		return false;
+
 	if (item_manager->Get_Stone(Item_Type::Double_Power) != NULL)
 		if(item_manager->Get_Stone(Item_Type::Double_Power)->turn == 1)
 			return false;
@@ -1570,11 +1589,11 @@ bool CScene::is_Player_Turn()
 }
 
 void CScene::Shoot_Stone(float power)
-{
-	if (player1.select_Stone->used_item == Item_Type::Max_Power)
-		power = 1000;
+{ 
 	if (player1.select_Stone != NULL)
 	{
+		if (player1.select_Stone->used_item == Item_Type::Max_Power)
+			power = 1000;
 		XMFLOAT3 direction = m_pPlayer->GetLookVector();
 		player1.select_Stone->SetMovingDirection(direction);
 		player1.select_Stone->SetMovingSpeed(power);
@@ -1739,6 +1758,9 @@ std::pair<StoneObject*, StoneObject*> CScene::Find_Nearest_Enemy_Stone()
 
 void CScene::Mark_selected_stone()
 {
+	// 이전에 설정된 Ghost stone은 변경되면 안됨
+	std::vector<Stone_Item_Info*>* ghost_stones = item_manager->Get_Stone_Iist(Item_Type::Ghost);
+
 	for (StoneObject* stone_obj : player1.stone_list)
 	{
 		if (stone_obj->active)
@@ -1750,21 +1772,21 @@ void CScene::Mark_selected_stone()
 			}
 			else
 			{
-				stone_obj->ChangeMaterial(1);
-				stone_obj->Apply_Item(Item_Type::None);
+				auto iter = std::find_if(ghost_stones->begin(), ghost_stones->end(), [stone_obj](Stone_Item_Info* info)
+					{ return (info->stone != NULL && info->stone == stone_obj); });
+				if (iter == ghost_stones->end()) // ghost 객체가 아니라면
+				{
+					stone_obj->ChangeMaterial(1);
+					stone_obj->Apply_Item(Item_Type::None);
+				}
+				else // ghost 객체라면
+				{
+					stone_obj->ChangeMaterial(1);
+				}
 			}
 		}
 	}
 	
-	// 이전에 설정된 Ghost stone은 변경되면 안됨
-	std::vector<Stone_Item_Info*>* ghost_stones = item_manager->Get_Stone_Iist(Item_Type::Ghost);
-	std::transform(ghost_stones->begin(), ghost_stones->end(), ghost_stones->begin(), [](Stone_Item_Info* ghost_info) {
-		if (ghost_info->stone != NULL && ghost_info->stone->active)
-		{
-			ghost_info->turn += 1;
-			ghost_info->stone->used_item = Item_Type::Ghost;
-		}
-		return ghost_info; });
 }
 
 void CScene::Select_Item(Item_Type i_type)
@@ -1891,7 +1913,7 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		switch (wParam)
 		{
 		case VK_SPACE:
-			if (is_Player_Turn()) {
+			if (is_Player_Turn() && player1.select_Stone != NULL) {
 				power_charge = true;
 				((BAR_UI*)ui_player_power)->Set_Bar_Charge_Mode(true);
 			}
@@ -1910,16 +1932,30 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	case WM_KEYUP:
 		switch (wParam)
 		{
+		case 'Q':
+		case 'q':
+			if (player1.select_Stone && power_charge == false)
+			{
+				Set_MainCamera(m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, 0.005f));
+				player1.select_Stone = NULL;
+				player1.selected_Item_Type = Item_Type::None;
+				Mark_selected_stone();
+
+				player1.inventory_open = false;
+				player_inventory->Set_Visualize(player1.inventory_open);
+			}
+			break;
+
 		case VK_SPACE:
-			if (is_Player_Turn()) {
+			if (is_Player_Turn() && player1.select_Stone != NULL) {
 				power_charge = false;
 				((BAR_UI*)ui_player_power)->Set_Bar_Charge_Mode(false);
 				
-				Shoot_Stone(power_degree);
 
+				Shoot_Stone(power_degree);
 				item_manager->Add_Stone_Item_Applied(player1.select_Stone);
 				Set_MainCamera(m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, 0.005f));
-
+				
 				Charge_Effect->Reset();
 				ui_player_power->Reset();
 				ui_com_power->Reset();

@@ -549,7 +549,7 @@ void CGameFramework::WaitForGpuComplete()
 
 void CGameFramework::FrameAdvance()
 {
-	m_GameTimer.Tick(0.0f);
+	m_GameTimer.Tick(60.0f); // 60프레임으로 고정하기
 	
 	ProcessInput();
 	
@@ -784,14 +784,16 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 				CGameObject* picked_obj = m_pScene->Pick_Stone_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
 
 				if (picked_obj)
+				{
 					m_pSelectedObject = picked_obj;
 
-				if (m_pScene->is_Object_Selectable(m_pSelectedObject))
-				{
-					m_pScene->player1.select_Stone = ((StoneObject*)m_pSelectedObject);
-					m_pPlayer->SetPosition(m_pSelectedObject->GetPosition());
+					if (m_pScene->is_Object_Selectable(m_pSelectedObject))
+					{
+						m_pScene->player1.select_Stone = ((StoneObject*)m_pSelectedObject);
+						m_pPlayer->SetPosition(m_pSelectedObject->GetPosition());
 
-					m_pScene->Set_MainCamera(m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed()));
+						m_pScene->Set_MainCamera(m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed()));
+					}
 				}
 			}
 		}
