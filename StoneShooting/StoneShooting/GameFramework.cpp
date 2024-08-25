@@ -529,7 +529,6 @@ void CGameFramework::AnimateObjects()
 	m_pScene->Check_Item_and_Stone_Collisions(m_pd3dDevice, m_pd3dCommandList);
 	m_pScene->Check_Board_and_Stone_Collisions(m_pd3dDevice, m_pd3dCommandList);
 	m_pScene->Check_Stones_Collisions();
-	m_pScene->Defend_Overlap();
 
 	// 씬에서 카메라를 변경하면, 여기서 반영되야 함.
 	pMainCamera = m_pScene->Get_MainCamera();

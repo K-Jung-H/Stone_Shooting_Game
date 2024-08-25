@@ -5,20 +5,11 @@
 /*
 추가 할  내용:
 
-
-
-셰이더마다 타입을 추가하여 구별하는 중
-
-윤곽선 셰이더가 연결된 재질은 active가 변경되지 않도록 조건을 부분마다 추가하는 중
+컴퓨터의 턴이 종료될 때마다, 아이템이 하늘에서 무작위 타입이 무작위 위치로 하나 떨어지게 하기
 
 //=============================================
-
--------------------추가 희망 사항-------------
-
-Scene에 player1로 빼놓은 객체를 최대한 활용하면 좋을 듯
-
-특정 연산에서는 해당 객체에 저장된 돌들만 사용해서 연산 하도록.
-
+--추가 희망 사항--
+아이템이 떨어질 때, 컷씬 처럼, 보드 측면에서 아이템이 떨어지는걸 줌 인 하여 바라보게 하면 좋을 듯
 
 */
 //=========================================================================================
@@ -224,8 +215,9 @@ void CScene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3
 	Charge_Effect->active = true;
 	Charge_Effect->m_ppMaterials[0].second = true;
 	Charge_Effect->m_ppMaterials[1].second = true;
+
 	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(30.0f, 10.0f, 0.0f), Item_Type::Max_Power);
-	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 10.0f, 0.0f), Item_Type::Frozen_Time);
+	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 10.0f, 0.0f), Item_Type::Double_Power);
 
 }
 
@@ -368,7 +360,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	for (XMFLOAT3& b_stone_pos : b_stone_pos_list)
 		Setting_Stone(pd3dDevice, pd3dCommandList, StoneMesh, b_stone_pos, false);
-
 
 	//===========================================================
 
@@ -581,7 +572,6 @@ void CScene::ReleaseUploadBuffers()
 		Object_Shader[j].ReleaseUploadBuffers();
 }
 
-
 ID3D12RootSignature* CScene::GetGraphicsRootSignature()
 {
 	return(m_pd3dGraphicsRootSignature);
@@ -777,76 +767,6 @@ void CScene::CreateGraphicsPipelineState(ID3D12Device* pd3dDevice)
 	if (pd3dPixelShaderBlob) pd3dPixelShaderBlob->Release();
 }
 
-
-void CScene::Defend_Overlap()
-{
-	int objs_N = GameObject_Stone.size();
-
-	// 충돌 체크 및 overlaped 상태 설정
-	for (int i = 0; i < objs_N; ++i)
-	{
-		auto* stone_1 = static_cast<StoneObject*>(GameObject_Stone[i]);
-		if (!stone_1->active || stone_1->m_fMovingSpeed > 1.0f)
-			continue;
-
-		for (int j = i + 1; j < objs_N; ++j)
-		{
-			auto* stone_2 = static_cast<StoneObject*>(GameObject_Stone[j]);
-			if (!stone_2->active || stone_2->m_fMovingSpeed > 1.0f)
-				continue;
-
-			if (stone_1->m_xmOOSP.Intersects(stone_2->m_xmOOSP) != DISJOINT)
-			{
-				// 객체를 overlaped 상태로 설정
-				if (stone_1->Overlaped == NULL)
-				{
-					stone_1->Overlaped = stone_2;
-					stone_2->Overlaped = stone_1;
-				}
-			}
-		}
-	}
-
-	// 충돌 처리
-	for (int i = 0; i < objs_N; ++i)
-	{
-		auto* stone_1 = static_cast<StoneObject*>(GameObject_Stone[i]);
-		if (stone_1->Overlaped)
-		{
-			auto* stone_2 = stone_1->Overlaped;
-
-			// 충돌 방향 계산
-			XMFLOAT3 Diff_Pos = XMFLOAT3(
-				stone_2->GetPosition().x - stone_1->GetPosition().x,
-				stone_2->GetPosition().y - stone_1->GetPosition().y,
-				stone_2->GetPosition().z - stone_1->GetPosition().z);
-			XMVECTOR Diff_Vec = XMLoadFloat3(&Diff_Pos);
-			Diff_Vec = XMVector3Normalize(Diff_Vec);
-
-			// 새 이동 방향 설정
-			XMVECTOR New_Speed1 = -Diff_Vec;
-			XMVECTOR New_Speed2 = Diff_Vec;
-
-			stone_1->m_xmf3MovingDirection = XMFLOAT3(XMVectorGetX(New_Speed1), XMVectorGetY(New_Speed1), XMVectorGetZ(New_Speed1));
-			stone_2->m_xmf3MovingDirection = XMFLOAT3(XMVectorGetX(New_Speed2), XMVectorGetY(New_Speed2), XMVectorGetZ(New_Speed2));
-
-			stone_1->m_fMovingSpeed = 5.0f; // 밀어내는 속도
-			stone_2->m_fMovingSpeed = 5.0f; // 밀어내는 속도
-		}
-	}
-
-	// overlaped 상태 정리
-	for (int i = 0; i < objs_N; ++i)
-	{
-		auto* stone_1 = static_cast<StoneObject*>(GameObject_Stone[i]);
-		if (stone_1->Overlaped && stone_1->m_xmOOSP.Intersects(stone_1->Overlaped->m_xmOOSP) == DISJOINT)
-		{
-			stone_1->Overlaped->Overlaped = NULL;
-			stone_1->Overlaped = NULL;
-		}
-	}
-}
-
 void CScene::Remove_Unnecessary_Objects()
 {
 	// 자식 객체만 사라져야 하는 일이 발생하는 경우 오류 발생 중
@@ -861,100 +781,97 @@ void CScene::Remove_Unnecessary_Objects()
 }
 
 
+// 충돌 쌍 찾기
+std::vector<std::pair<int, int>> CScene::FindCollisionPairs(const std::vector<StoneObject*>& stones_list)
+{
+	std::vector<std::pair<int, int>> collision_Pairs;
+	int size = stones_list.size();
+
+	for (int i = 0; i < size; ++i)
+	{
+		StoneObject* stone1 = stones_list[i];
+		if (!stone1->active || stone1->used_item == Item_Type::Ghost)
+			continue;
+
+		for (int j = i + 1; j < size; ++j)
+		{
+			StoneObject* stone2 = stones_list[j];
+			if (!stone2->active || stone2->used_item == Item_Type::Ghost)
+				continue;
+
+			if (stone1->m_xmOOSP.Intersects(stone2->m_xmOOSP))
+				collision_Pairs.push_back(std::make_pair(i, j));
+
+		}
+	}
+
+	return collision_Pairs;
+}
+
+// 속도 업데이트
+void CScene::UpdateVelocities(CGameObject* stone1, CGameObject* stone2, XMVECTOR vel1, XMVECTOR vel2)
+{
+	XMFLOAT3 pos1 = stone1->GetPosition();
+	XMFLOAT3 pos2 = stone2->GetPosition();
+
+	XMVECTOR posVec1 = XMLoadFloat3(&pos1);
+	XMVECTOR posVec2 = XMLoadFloat3(&pos2);
+
+	XMVECTOR diffVec = XMVector3Normalize(posVec2 - posVec1);
+
+	//-------------------------------------------------------------
+
+	float overlapDistance = (stone1->m_xmOOSP.Radius + stone2->m_xmOOSP.Radius) - XMVectorGetX(XMVector3Length(posVec2 - posVec1));
+
+	if (overlapDistance > 0)
+	{
+		XMVECTOR separationVec = diffVec * (overlapDistance / 2.0f);
+		posVec1 -= separationVec;
+		posVec2 += separationVec;
+
+		XMStoreFloat3(&pos1, posVec1);
+		XMStoreFloat3(&pos2, posVec2);
+
+		stone1->SetPosition(pos1);
+		stone2->SetPosition(pos2);
+	}
+
+	//-------------------------------------------------------------
+
+	XMVECTOR velDiffVec = vel2 - vel1;
+	float power = XMVectorGetX(XMVector3Dot(velDiffVec, diffVec));
+	XMVECTOR bumpVec = power * diffVec;
+
+
+	auto update_velocity = [](CGameObject* stone, XMVECTOR newVel)
+		{
+			XMFLOAT3 finalVel_f;
+			XMStoreFloat3(&finalVel_f, XMVector3Normalize(newVel));
+			XMStoreFloat3(&stone->m_xmf3MovingDirection, newVel);
+			stone->m_fMovingSpeed = sqrtf(finalVel_f.x * finalVel_f.x + finalVel_f.y * finalVel_f.y + finalVel_f.z * finalVel_f.z);
+		};
+
+	update_velocity(stone1, vel1 + bumpVec);
+	update_velocity(stone2, vel2 - bumpVec);
+}
 
 void CScene::Check_Stones_Collisions()
 {
-	// CShader 벡터의 참조를 임시 변수에 저장
-	int objs_N = GameObject_Stone.size();
+	std::vector<std::pair<int, int>> collision_Pairs = FindCollisionPairs(GameObject_Stone);
 
-	// 충돌 객체 초기화
-	for (CGameObject* stone_ptr : GameObject_Stone)
-		stone_ptr->m_pObjectCollided = NULL;
-
-	// 충돌 체크 및 충돌 객체 설정
-	for (int i = 0; i < objs_N; ++i)
+	// 충돌 페어에 대해 직접 반복문을 사용하여 처리
+	for (const std::pair<int, int>& pair : collision_Pairs)
 	{
-		if (GameObject_Stone[i]->active)
-		{
-			// Ghost Stone은 충돌 연산 배제
-			if (GameObject_Stone[i]->used_item == Item_Type::Ghost)
-				continue;
+		StoneObject* stone1 = GameObject_Stone[pair.first];
+		StoneObject* stone2 = GameObject_Stone[pair.second];
 
-			for (int j = (i + 1); j < objs_N; ++j)
-			{
-				// Ghost Stone은 충돌 연산 배제
-				if (GameObject_Stone[j]->used_item == Item_Type::Ghost)
-					continue;
+		XMVECTOR vel1 = XMLoadFloat3(&stone1->m_xmf3MovingDirection) * stone1->m_fMovingSpeed;
+		XMVECTOR vel2 = XMLoadFloat3(&stone2->m_xmf3MovingDirection) * stone2->m_fMovingSpeed;
 
-				if (GameObject_Stone[j]->active)
-				{
-					if (GameObject_Stone[i]->m_xmOOSP.Intersects(GameObject_Stone[j]->m_xmOOSP))
-					{						
-						GameObject_Stone[i]->m_pObjectCollided = GameObject_Stone[j];
-						GameObject_Stone[j]->m_pObjectCollided = GameObject_Stone[i];
-					}
-				}
-			}
-		}
-	}
-
-	// 충돌 처리
-	for (int i = 0; i < objs_N; i++)
-	{
-		if (GameObject_Stone[i]->m_pObjectCollided)
-		{
-			auto* bumped_stone1 = GameObject_Stone[i];
-			auto* bumped_stone2 = bumped_stone1->m_pObjectCollided;
-
-			XMFLOAT3 pos1 = bumped_stone1->GetPosition();
-			XMFLOAT3 pos2 = bumped_stone2->GetPosition();
-
-			XMVECTOR vel1 = XMLoadFloat3(&bumped_stone1->m_xmf3MovingDirection) * bumped_stone1->m_fMovingSpeed;
-			XMVECTOR vel2 = XMLoadFloat3(&bumped_stone2->m_xmf3MovingDirection) * bumped_stone2->m_fMovingSpeed;
-
-			// 충돌 방향 계산
-			XMFLOAT3 Diff_Pos = XMFLOAT3(pos2.x - pos1.x, pos2.y - pos1.y, pos2.z - pos1.z);
-			XMVECTOR Diff_Vec = XMLoadFloat3(&Diff_Pos);
-			Diff_Vec = XMVector3Normalize(Diff_Vec); // 충돌 방향 정규화
-
-			// 속도 차이 계산
-			XMVECTOR vel_Diff_Vec = vel2 - vel1;
-
-			// 충격량 계산
-			float Power = XMVectorGetX(XMVector3Dot(vel_Diff_Vec, Diff_Vec));
-			XMVECTOR Bump_Vec = Power * Diff_Vec;
-
-
-			XMVECTOR New_Speed1 = vel1 + Bump_Vec;
-			XMVECTOR New_Speed2 = vel2 - Bump_Vec;
-
-
-			XMVECTOR Final_Vel1 = (New_Speed1 + vel2) / 2.0f;
-			XMVECTOR Final_Vel2 = (New_Speed2 + vel1) / 2.0f;
-
-			XMFLOAT3 Final_Vel1_f, Final_Vel2_f;
-			XMStoreFloat3(&Final_Vel1_f, Final_Vel1);
-			XMStoreFloat3(&Final_Vel2_f, Final_Vel2);
-
-			// 속도 업뎃
-			XMVECTOR Final_Vel1_v = XMLoadFloat3(&Final_Vel1_f);
-			XMVECTOR Final_Vel2_v = XMLoadFloat3(&Final_Vel2_f);
-
-			Final_Vel1_v = XMVector3Normalize(Final_Vel1_v);
-			Final_Vel2_v = XMVector3Normalize(Final_Vel2_v);
-
-			XMStoreFloat3(&bumped_stone1->m_xmf3MovingDirection, Final_Vel1_v);
-			XMStoreFloat3(&bumped_stone2->m_xmf3MovingDirection, Final_Vel2_v);
-
-			bumped_stone1->m_fMovingSpeed = sqrt(Final_Vel1_f.x * Final_Vel1_f.x + Final_Vel1_f.y * Final_Vel1_f.y + Final_Vel1_f.z * Final_Vel1_f.z);
-			bumped_stone2->m_fMovingSpeed = sqrt(Final_Vel2_f.x * Final_Vel2_f.x + Final_Vel2_f.y * Final_Vel2_f.y + Final_Vel2_f.z * Final_Vel2_f.z);
-
-
-			bumped_stone1->m_pObjectCollided = NULL;
-			bumped_stone2->m_pObjectCollided = NULL;
-		}
+		UpdateVelocities(stone1, stone2, vel1, vel2);
 	}
 }
+
 void CScene::Check_Board_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	// 충돌 객체 초기화
@@ -962,7 +879,11 @@ void CScene::Check_Board_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12Gr
 	{
 		if (!stone_ptr->active)
 			continue;
-		ContainmentType containType = m_pBoards->m_xmOOBB.Contains(stone_ptr->m_xmOOSP);
+
+		XMFLOAT3 stone_pos = stone_ptr->GetPosition();
+		XMVECTOR pos_xz = XMVectorSet(stone_pos.x, 0.0f, stone_pos.z, 0.0f);
+		ContainmentType containType = m_pBoards->m_xmOOBB.Contains(pos_xz);
+
 		switch (containType)
 		{
 		case DISJOINT:
@@ -1003,18 +924,9 @@ void CScene::Check_Item_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12Gra
 
 			if (stone_ptr->m_xmOOSP.Intersects(item->m_xmOOBB))
 			{
-				player1.Item_Inventory[item->item_type] += 1;
-				Setting_Particle(pd3dDevice, pd3dCommandList, item->GetPosition(), material_color_black_particle, Particle_Type::Firework);
 				item->SetActive(false);
-
-				if (player_inventory != NULL)
-				{
-					for (std::pair<Item_Type, int> &info : player_inventory->item_list)
-					{
-						if (info.first == item->item_type)
-							info.second += 1;					
-					}
-				}
+				Setting_Particle(pd3dDevice, pd3dCommandList, item->GetPosition(), material_color_black_particle, Particle_Type::Firework);
+				player1.Item_Inventory[item->item_type] += 1;
 			}
 		}
 	}
@@ -1126,7 +1038,9 @@ bool CScene::Change_Turn()
 		}
 		Charge_Effect->ChangeMaterial(1);
 	}
+	
 	Mark_selected_stone();
+	Update_Item_Inventory();
 
 	power_charge = false;
 	((BAR_UI*)ui_player_power)->Set_Bar_Charge_Mode(false);
@@ -1768,12 +1682,16 @@ void CScene::Mark_selected_stone()
 			if (stone_obj == player1.select_Stone)
 			{
 				stone_obj->ChangeMaterial(2);
-				stone_obj->Apply_Item(player1.selected_Item_Type);
+				if(player1.Item_Inventory[player1.selected_Item_Type]
+					|| player1.selected_Item_Type == Item_Type::ETC 
+					|| player1.selected_Item_Type == Item_Type::None)
+					stone_obj->Apply_Item(player1.selected_Item_Type);
 			}
 			else
 			{
 				auto iter = std::find_if(ghost_stones->begin(), ghost_stones->end(), [stone_obj](Stone_Item_Info* info)
 					{ return (info->stone != NULL && info->stone == stone_obj); });
+
 				if (iter == ghost_stones->end()) // ghost 객체가 아니라면
 				{
 					stone_obj->ChangeMaterial(1);
@@ -1786,20 +1704,26 @@ void CScene::Mark_selected_stone()
 			}
 		}
 	}
-	
 }
 
-void CScene::Select_Item(Item_Type i_type)
+bool CScene::Check_Item(Item_Type i_type)
 {
-	if (i_type != Item_Type::None)
-	{
-		if (player1.Item_Inventory[i_type]) // != 0
-		{
-			player1.Item_Inventory[i_type] -= 1;
-		}
-	}
-}
+	if (player1.selected_Item_Type == Item_Type::ETC || player1.selected_Item_Type == Item_Type::None)
+		return false;
 
+	// 플레이어가 해당 아이템을 보유하고 있다면
+	if (player1.Item_Inventory[i_type])
+		return true;
+
+	else
+		return false;
+}
+void CScene::Update_Item_Inventory()
+{
+	for (std::pair<Item_Type, int>& info : player_inventory->item_list)
+		info.second = player1.Item_Inventory[info.first];
+
+}
 CGameObject* CScene::Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCamera* pCamera)
 {
 	if (!pCamera)
@@ -1953,9 +1877,14 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 				
 
 				Shoot_Stone(power_degree);
-				item_manager->Add_Stone_Item_Applied(player1.select_Stone);
-				Set_MainCamera(m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, 0.005f));
+
+				if (Check_Item(player1.selected_Item_Type))
+				{
+					player1.Item_Inventory[player1.selected_Item_Type] -= 1;
+					item_manager->Add_Stone_Item_Applied(player1.select_Stone);
+				}
 				
+				Set_MainCamera(m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, 0.005f));
 				Charge_Effect->Reset();
 				ui_player_power->Reset();
 				ui_com_power->Reset();
@@ -2007,7 +1936,7 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	return(false);
 }
 
-bool ProcessInput(UCHAR* pKeysBuffer)
+bool CScene::ProcessInput(UCHAR * pKeysBuffer)
 {
 	return(false);
 }

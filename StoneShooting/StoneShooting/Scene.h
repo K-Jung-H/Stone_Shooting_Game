@@ -9,6 +9,10 @@
 
 class CScene
 {
+private:
+	std::vector<std::pair<int, int>> FindCollisionPairs(const std::vector<StoneObject*>& gameObjects);
+	void UpdateVelocities(CGameObject* stone1, CGameObject* stone2, XMVECTOR vel1, XMVECTOR vel2);
+
 public:
 	CScene();
 	~CScene();
@@ -42,7 +46,6 @@ public:
 
 
 	void CreateGraphicsPipelineState(ID3D12Device* pd3dDevice);
-
 	ID3D12RootSignature* GetGraphicsRootSignature();
 
 	//씬의 모든 게임 객체들에 대한 마우스 픽킹을 수행한다. 
@@ -52,7 +55,6 @@ public:
 	//=============================================
 	
 	CGameObject* Pick_Item_Pointed_By_Cursor(int xClient, int yClient, CCamera* pCamera);
-
 	CGameObject* Pick_Item_By_RayIntersection(XMFLOAT3& xmf3PickPosition, CCamera* pCamera, float* pfNearHitDistance);
 
 
@@ -75,29 +77,34 @@ public:
 
 	void Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team);
 
+
+	// 돌 & 돌 충돌 검사
 	void Check_Stones_Collisions();
+
+	// 돌 & 보드 충돌 검사
 	void Check_Board_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+
+	// 돌 & 아이템 충돌 검사
 	void Check_Item_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
-	void Shoot_Stone(float power);
 
 	std::pair<StoneObject*, StoneObject*> Select_Stone_Com();
+	std::pair<StoneObject*, StoneObject*> Find_Nearest_Enemy_Stone();
 	void Shoot_Stone_Com(float power);
 	
 	bool is_Player_Turn();
+	void Shoot_Stone(float power);
 
-	std::pair<StoneObject*, StoneObject*> Find_Nearest_Enemy_Stone();
 
 	void Mark_selected_stone();
-	void Select_Item(Item_Type i_type);
+	bool Check_Item(Item_Type i_type);
+	void Update_Item_Inventory();
+	bool Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	bool Change_Turn();
 	bool Check_Turn();
-	bool Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-
 	bool Check_GameOver();
 
-	void Defend_Overlap();
 	void Remove_Unnecessary_Objects();
 
 	void Setting_Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, Item_Type type);
@@ -190,7 +197,7 @@ public:
 	{
 		std::unordered_map<Item_Type, int> Item_Inventory;
 		std::vector<StoneObject*> stone_list; 
-		StoneObject* select_Stone; // 피킹된 것
+		StoneObject* select_Stone = NULL; // 피킹된 것
 		Item_Type selected_Item_Type = Item_Type::None; // 피킹된 아이템의 타입
 		bool inventory_open = false;
 	}player1;
@@ -199,8 +206,8 @@ public:
 	struct Computer
 	{
 		std::vector<StoneObject*> stone_list;
-		StoneObject* select_Stone;
-		StoneObject* target_Stone;
+		StoneObject* select_Stone = NULL;
+		StoneObject* target_Stone = NULL;
 		float random_time = -1;
 		float sum_time = 0;
 

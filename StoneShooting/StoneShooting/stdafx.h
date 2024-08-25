@@ -133,7 +133,7 @@ enum class UI_Type
 
 #define Snow_Area_Radius 30.0f
 
-#define TURN_MAX_TIME 3
+#define TURN_MAX_TIME 30
 #define TURN_DELAY 0
 
 extern std::default_random_engine dre;
