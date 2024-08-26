@@ -132,7 +132,7 @@ enum class UI_Type
 };
 
 #define Snow_Area_Radius 30.0f
-
+#define Item_Type_Num 8
 #define TURN_MAX_TIME 30
 #define TURN_DELAY 0
 

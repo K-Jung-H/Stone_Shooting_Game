@@ -133,5 +133,8 @@ public:
 	UI_Object* Get_Inventory_board_obj() { return inventory_board_obj; }
 	void Set_Visualize(bool Bool);
 	bool Get_Visualize() { return visualize; }
+
+	void Get_Info();
+	bool Is_Num_Render();
 	void Reset();
 };

@@ -232,6 +232,17 @@ void Explosion_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandL
 	}
 }
 
+void Explosion_Particle::Reset()
+{
+	for (XMFLOAT4X4& transform_matrix : m_pxmf4x4Transforms)
+	{
+		transform_matrix._41 = 0.0f;
+		transform_matrix._42 = 0.0f;
+		transform_matrix._43 = 0.0f;
+	}
+	m_fElapsedTimes = 0.0f;
+	active = false;
+}
 //===========================================================================
 
 XMFLOAT3 Charge_Particle::Charge_Sphere_Vectors[CHARGE_DEBRISES];

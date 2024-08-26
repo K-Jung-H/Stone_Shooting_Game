@@ -448,7 +448,7 @@ void CGameFramework::BuildObjects()
 {
 	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
 
-	m_pScene = new CScene();
+	m_pScene = new Playing_Scene();
 	
 	if (m_pScene)
 		m_pScene->BuildScene(m_pd3dDevice, m_pd3dCommandList);
@@ -493,42 +493,7 @@ void CGameFramework::AnimateObjects()
 	float Elapsed_Time = m_GameTimer.GetTimeElapsed();
 
 	if (m_pScene)
-		m_pScene->AnimateObjects(Elapsed_Time);
-	
-
-	// 턴 종료 체크
-	if (Limit_time > TURN_MAX_TIME)
-		Need_to_change_turn = true;
-
-	if (Need_to_change_turn)
-	{
-		if (Delay_time >= TURN_DELAY)
-		{
-			if (m_pScene->Update_Item_Manager(m_pd3dDevice, m_pd3dCommandList))
-			{
-				Limit_time = 0.0f;
-				Delay_time = 0.0f;
-				Need_to_change_turn = false;
-				m_pScene->Change_Turn();
-			}
-			else
-				Need_to_change_turn = false;
-		}
-		else
-			Delay_time += Elapsed_Time;
-	}
-	else
-	{
-		Need_to_change_turn = m_pScene->Check_Turn();
-		Limit_time += Elapsed_Time;
-	}
-
-
-
-	m_pScene->Scene_Update(Elapsed_Time);
-	m_pScene->Check_Item_and_Stone_Collisions(m_pd3dDevice, m_pd3dCommandList);
-	m_pScene->Check_Board_and_Stone_Collisions(m_pd3dDevice, m_pd3dCommandList);
-	m_pScene->Check_Stones_Collisions();
+		m_pScene->AnimateObjects(m_pd3dDevice, m_pd3dCommandList, Elapsed_Time);
 
 	// 씬에서 카메라를 변경하면, 여기서 반영되야 함.
 	pMainCamera = m_pScene->Get_MainCamera();
@@ -572,18 +537,7 @@ void CGameFramework::FrameAdvance()
 	d3dResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	m_pd3dCommandList->ResourceBarrier(1, &d3dResourceBarrier);
 
-	float* pfClearColor = new float[4] { 0.0f, 0.125f, 0.3f, 1.0f };
-	
-	if (m_pScene->Com_Turn) {
-		delete[] pfClearColor;  
-		pfClearColor = new float[4] { 0.2f, 0.2f, 0.2f, 0.0f };
-	}
-	else if (m_pScene->Player_Turn)
-	{
-		delete[] pfClearColor;
-		pfClearColor = new float[4] { 0.8f, 0.8f, 0.8f, 0.0f };
-	}
-
+	float* pfClearColor = m_pScene->Get_BackGround_Color();
 
 	// 렌더 타겟 뷰, 깊이 버퍼 뷰 초기화
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_pd3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
@@ -596,8 +550,6 @@ void CGameFramework::FrameAdvance()
 	
 
 	// D3D12 그리기 동작 시작
-	if (pMainCamera)
-		int a = 2;
 	if (m_pScene) 
 		m_pScene->Render(m_pd3dDevice, m_pd3dCommandList, pMainCamera);
 
@@ -635,36 +587,17 @@ void CGameFramework::FrameAdvance()
 	// 출력 화면 크기
 	D2D1_SIZE_F szRenderTarget = m_ppd2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
 
-	//// 플레이어 모은 파워 출력
-	//if (pUI_list[0]->Active)
-	//{
-	//	std::wstring wsPower = std::to_wstring(power_degree);
-	//	D2D1_RECT_F player_shooting_power = D2D1::RectF(500, 0, 600, 90);
-	//	m_pd2dDeviceContext->DrawTextW(wsPower.c_str(), (UINT32)wcslen(wsPower.c_str()), m_pdwFont, &player_shooting_power, m_pd2dbrText);
-	//}
-
-	//// COM의 모은 파워 출력
-	//if (pUI_list[1]->Active)
-	//{
-	//	std::wstring ws_COM_Power = std::to_wstring(power_degree);
-	//	D2D1_RECT_F COM_shooting_power = D2D1::RectF(200, 0, 300, 90);
-	//	m_pd2dDeviceContext->DrawTextW(ws_COM_Power.c_str(), (UINT32)wcslen(ws_COM_Power.c_str()), m_pdwFont, &COM_shooting_power, m_pd2dbrText);
-	//}
-	
-	// 	m_pd2dDeviceContext->DrawTextW(L"한글 테스트", (UINT32)wcslen(L"한글 테스트"), m_pdwFont, &rcLowerText, m_pd2dbrText);
-
 	// 시간 제한 출력
-	std::wstring wsTimeLimit = std::to_wstring(TURN_MAX_TIME - static_cast<int>(Limit_time));
+	std::wstring wsTimeLimit = std::to_wstring(TURN_MAX_TIME - static_cast<int>(((Playing_Scene*)m_pScene)->Limit_time));
 	D2D1_RECT_F player_Time_Limit = D2D1::RectF(350, 0, 450, 100);
 	m_pd2dDeviceContext->DrawTextW(wsTimeLimit.c_str(), (UINT32)wcslen(wsTimeLimit.c_str()), m_pdw_Timer_Font, &player_Time_Limit, m_pd2dbrText);
 	
 
-	Inventory_UI* inven_ptr = m_pScene->player_inventory;
-	if(inven_ptr->Get_Visualize() && inven_ptr->hold)
+	// 씬 분할 하면, 해당 씬 렌더링 중에만 동작하도록 하기
+	Inventory_UI* inven_ptr = ((Playing_Scene*)m_pScene)->player_inventory;
+	if(inven_ptr->Is_Num_Render())
 	{
-		int item_list_n = inven_ptr->text_area.size();
-
-		for (int i = 0; i < item_list_n; ++i)
+		for (int i = 0; i < Item_Type_Num; ++i)
 		{
 			std::wstring item_n = std::to_wstring(inven_ptr->item_list[i].second);
 			m_pd2dDeviceContext->DrawTextW(item_n.c_str(), (UINT32)wcslen(item_n.c_str()), m_pdw_Inventory_Font, &inven_ptr->text_area[i], m_pd2dbrText);
@@ -744,20 +677,6 @@ void CGameFramework::MoveToNextFrame()
 
 void CGameFramework::ProcessSelectedObject(DWORD dwDirection, float cxDelta, float cyDelta)
 {
-	//픽킹으로 선택한 게임 객체가 있으면 키보드를 누르거나 마우스를 움직이면 게임 개체를 이동 또는 회전한다. 
-	if (dwDirection != 0)
-	{
-		if (dwDirection & DIR_FORWARD) m_pSelectedObject->MoveForward(+1.0f);
-		if (dwDirection & DIR_BACKWARD) m_pSelectedObject->MoveForward(-1.0f);
-		if (dwDirection & DIR_LEFT) m_pSelectedObject->MoveStrafe(+1.0f);
-		if (dwDirection & DIR_RIGHT) m_pSelectedObject->MoveStrafe(-1.0f);
-		if (dwDirection & DIR_UP) m_pSelectedObject->MoveUp(+1.0f);
-		if (dwDirection & DIR_DOWN) m_pSelectedObject->MoveUp(-1.0f);
-	}
-	else if ((cxDelta != 0.0f) || (cyDelta != 0.0f))
-	{
-		m_pSelectedObject->Rotate(cyDelta, cxDelta, 0.0f);
-	}
 }
 
 void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
@@ -766,36 +685,6 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	{
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
-		if (m_pScene->is_Player_Turn())
-		{
-			int clientX = LOWORD(lParam);
-			int clientY = HIWORD(lParam);
-
-			const int xMin = 0;
-			const int xMax = 800;
-			const int yMin = 0;
-			const int yMax = 500;
-
-			// 좌표가 영역 내에 있는지 확인하는 조건문
-			if (clientX >= xMin && clientX <= xMax && clientY >= yMin && clientY <= yMax)
-			{
-				//마우스 위치를 기반으로 레이케스팅하여 돌 선택
-				CGameObject* picked_obj = m_pScene->Pick_Stone_Pointed_By_Cursor(LOWORD(lParam), HIWORD(lParam), pMainCamera);
-
-				if (picked_obj)
-				{
-					m_pSelectedObject = picked_obj;
-
-					if (m_pScene->is_Object_Selectable(m_pSelectedObject))
-					{
-						m_pScene->player1.select_Stone = ((StoneObject*)m_pSelectedObject);
-						m_pPlayer->SetPosition(m_pSelectedObject->GetPosition());
-
-						m_pScene->Set_MainCamera(m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed()));
-					}
-				}
-			}
-		}
 		::SetCapture(hWnd);
 		::GetCursorPos(&m_ptOldCursorPos);
 		break;
@@ -875,19 +764,7 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 
 void CGameFramework::ProcessInput()
 {
-	static UCHAR pKeyBuffer[256];
 	DWORD dwDirection = 0;
-	/*키보드의 상태 정보를 반환한다. 화살표 키(‘→’, ‘←’, ‘↑’, ‘↓’)를 누르면 플레이어를 오른쪽/왼쪽(로컬 x-축), 앞/
-	뒤(로컬 z-축)로 이동한다. ‘Page Up’과 ‘Page Down’ 키를 누르면 플레이어를 위/아래(로컬 y-축)로 이동한다.*/
-	if (::GetKeyboardState(pKeyBuffer))
-	{
-		if (pKeyBuffer[VK_UP] & 0xF0) dwDirection |= DIR_FORWARD;
-		if (pKeyBuffer[VK_DOWN] & 0xF0) dwDirection |= DIR_BACKWARD;
-		if (pKeyBuffer[VK_LEFT] & 0xF0) dwDirection |= DIR_LEFT;
-		if (pKeyBuffer[VK_RIGHT] & 0xF0) dwDirection |= DIR_RIGHT;
-		if (pKeyBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
-		if (pKeyBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
-	}
 	float cxDelta = 0.0f, cyDelta = 0.0f;
 	POINT ptCursorPos;
 	/*마우스를 캡쳐했으면 마우스가 얼마만큼 이동하였는 가를 계산한다.
@@ -907,18 +784,12 @@ void CGameFramework::ProcessInput()
 		::SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
 	}
 	//마우스 또는 키 입력이 있으면 플레이어를 이동하거나(dwDirection) 회전한다(cxDelta 또는 cyDelta).
-	if ((dwDirection != 0) || (cxDelta != 0.0f) || (cyDelta != 0.0f))
+	if ((cxDelta != 0.0f) || (cyDelta != 0.0f))
 	{
 		if (cxDelta || cyDelta)
 		{
-			if (pKeyBuffer[VK_RBUTTON] & 0xF0)
-				m_pPlayer->Rotate(cyDelta, 0.0f, -cxDelta);
-			else
-				m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
+			m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 		}
-		if (dwDirection)
-			m_pPlayer->Move(dwDirection, 500.0f * m_GameTimer.GetTimeElapsed(), true);
-
 	}
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 }

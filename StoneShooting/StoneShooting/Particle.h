@@ -63,6 +63,7 @@ public:
 
 	virtual void Animate(float fElapsedTime);
 	virtual void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	virtual void Reset();
 };
 
 
@@ -113,16 +114,16 @@ class Firework_Particle : public Particle
 	ID3D12Resource* firework_Constant_Buffer;
 
 
-	static bool Setting;
-	static CMesh* m_FireworkMesh;
+	static bool					Setting;
+	static CMesh*				m_FireworkMesh;
 	static XMFLOAT3				Firework_Vectors[Firework_DEBRISES];
 	XMFLOAT4X4					m_pxmf4x4Transforms[Firework_DEBRISES];
 
-	std::vector<float> Particle_Speed; // 입자별 속도 == 시간이 지나갈수록 점점 느려지고, 최고점을 찍으면 점점 빨라져야 함
-	std::vector<XMFLOAT3>Particle_Direction; // 입자는 시간이 지날수록 방향이 아래로 향해야 함
-	std::vector<float> Particle_ElapsedTime; // 각 입자의 경과 시간
+	std::vector<float>			Particle_Speed; // 입자별 속도 == 시간이 지나갈수록 점점 느려지고, 최고점을 찍으면 점점 빨라져야 함
+	std::vector<XMFLOAT3>		Particle_Direction; // 입자는 시간이 지날수록 방향이 아래로 향해야 함
+	std::vector<float>			Particle_ElapsedTime; // 각 입자의 경과 시간
 
-	float							Active_Particle = 0;
+	float						Active_Particle = 0;
 
 	XMFLOAT3					Default_Direction = { 0.0f,1.0f,0.0f };
 	float						Max_Height = 60.0f;

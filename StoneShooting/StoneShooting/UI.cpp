@@ -364,6 +364,15 @@ void Inventory_UI::Set_Visualize(bool Bool)
 	}
 }
 
+void Inventory_UI::Get_Info()
+{
+}
+
+bool Inventory_UI::Is_Num_Render()
+{
+	return (visualize && hold);
+}
+
 void Inventory_UI::Reset()
 {
 
