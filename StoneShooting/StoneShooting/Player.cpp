@@ -297,11 +297,8 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamer
 
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
-CAirplanePlayer::CAirplanePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+Moving_Player::Moving_Player(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	//비행기 메쉬를 생성한다.
-	CMesh* pAirplaneMesh = new CAirplaneMeshDiffused(pd3dDevice, pd3dCommandList, 20.0f, 20.0f, 4.0f, XMFLOAT4(0.0f, 0.5f, 0.0f, 0.0f));
-	SetMesh(pAirplaneMesh);
 
 	//플레이어의 카메라를 스페이스-쉽 카메라로 변경(생성)한다.
 	m_pCamera = new CCamera();
@@ -312,19 +309,14 @@ CAirplanePlayer::CAirplanePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	//플레이어의 위치를 설정한다.
 	SetPosition(XMFLOAT3(0.0f, 0.0f, -50.0f));
 
-	//플레이어(비행기) 메쉬를 렌더링할 때 사용할 셰이더를 생성한다.
-	CPlayerShader* pShader = new CPlayerShader();
-	pShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature);
-	//SetShader(pShader);
-
 	m_pCamera = ChangeCamera(TOP_VIEW_CAMERA, 0.0f);
 
 }
-CAirplanePlayer::~CAirplanePlayer()
+Moving_Player::~Moving_Player()
 {
 }
 
-void CAirplanePlayer::OnPrepareRender()
+void Moving_Player::OnPrepareRender()
 {
 	CPlayer::OnPrepareRender();
 	//비행기 모델을 그리기 전에 x-축으로 90도 회전한다.
@@ -338,7 +330,7 @@ void CAirplanePlayer::OnPrepareRender()
 그리고 이 메쉬를 카메라의 z-축 방향으로 향하도록 그릴 것이기 때문이다.*/
 
 //카메라를 변경할 때 호출되는 함수이다. nNewCameraMode는 새로 설정할 카메라 모드이다.
-CCamera* CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
+CCamera* Moving_Player::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 {
 	DWORD nCurrentCameraMode = (m_pCamera) ? m_pCamera->GetMode() : 0x00;
 	if (nCurrentCameraMode == nNewCameraMode) 
@@ -400,14 +392,14 @@ CCamera* CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 
 
 
-void CAirplanePlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+void Moving_Player::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
 	CPlayer::Render(pd3dCommandList, pCamera);
 }
 
 
 
-void CAirplanePlayer::Animate(float fElapsedTime)
+void Moving_Player::Animate(float fElapsedTime)
 {
 	CPlayer::Animate(fElapsedTime, NULL);
 

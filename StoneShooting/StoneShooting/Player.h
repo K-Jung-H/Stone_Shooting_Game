@@ -123,17 +123,17 @@ public:
 };
 
 
-class CAirplanePlayer : public CPlayer
+class Moving_Player : public CPlayer
 {
 
 public:
-	CAirplanePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
-	virtual ~CAirplanePlayer();
+	Moving_Player(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual ~Moving_Player();
 	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed);
 	virtual void OnPrepareRender();
 
 
-	virtual void CAirplanePlayer::Animate(float fElapsedTime);
+	virtual void Moving_Player::Animate(float fElapsedTime);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
 
 

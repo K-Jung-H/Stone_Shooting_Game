@@ -81,21 +81,25 @@ private:
 
 	ID2D1SolidColorBrush* m_pd2dbrBackground = NULL;
 	ID2D1SolidColorBrush* m_pd2dbrBorder = NULL;
+	ID2D1SolidColorBrush* m_pd2dbrText = NULL;
 
 	IDWriteTextFormat* m_pdw_Timer_Font = NULL;
 	IDWriteTextFormat* m_pdw_Inventory_Font = NULL;
 
 	IDWriteTextLayout* m_pdwTextLayout = NULL;
-	ID2D1SolidColorBrush* m_pd2dbrText = NULL;
 #endif
 
 
 public:
-	CScene* m_pScene;
-	CCamera* pMainCamera = NULL;
+	std::vector<CScene*> scene_list;
+
+	Playing_Scene* Scene_Playing = NULL;
+	Start_Scene* Scene_Beginning = NULL;
+	CScene* rendering_scene = NULL;
 
 	//플레이어 객체에 대한 포인터이다.
-	CPlayer* m_pPlayer = NULL;
+	std::vector<CPlayer*> player_list;
+	CPlayer* rendering_player = NULL;
 
 	//마지막으로 마우스 버튼을 클릭할 때의 마우스 커서의 위치이다.
 	POINT m_ptOldCursorPos;
@@ -128,7 +132,7 @@ public:
 	//핵심 부분
 	//////////
 	void ProcessInput();
-	void AnimateObjects();
+	void Animate_Scene_Objects();
 	void FrameAdvance();
 	//프레임워크의 핵심(사용자 입력, 애니메이션, 렌더링)을 구성하는 함수이다.
 

@@ -14,8 +14,6 @@ public:
 	~CScene();
 
 	ID3D12RootSignature* GetGraphicsRootSignature();
-	CCamera* Get_MainCamera() { return pMainCamera; }
-	void Set_MainCamera(CCamera* p_camera) { pMainCamera = p_camera; }
 
 	//씬에서 마우스와 키보드 메시지를 처리
 	virtual bool OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
@@ -34,6 +32,7 @@ public:
 	virtual void Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 	virtual void Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 	virtual void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Message_Render(ID2D1DeviceContext2* pd2dDevicecontext);
 
 	virtual void ReleaseUploadBuffers();
 
@@ -52,16 +51,19 @@ public:
 	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void Release_Shader_Resource();
 
-
 	virtual void Update_Lights(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	void Set_BackGround_Color(XMFLOAT4 color);
 	float* Get_BackGround_Color();
+
+	void SetPlayer(CPlayer* pPlayer) { m_pPlayer = pPlayer; }
+	CPlayer* GetPlayer() { return(m_pPlayer); }
+
+	void Add_Font(IDWriteTextFormat* pfont) { write_font_list.push_back(pfont); }
+	void Add_Brush(ID2D1SolidColorBrush* pbrush) { brush_list.push_back(pbrush); }
 	//=============================================
 
 protected:
-	CCamera* pMainCamera = NULL;
-
 	CShader* Object_Shader = NULL;
 	int N_Object_Shader = 1;
 
@@ -71,6 +73,7 @@ protected:
 	std::vector<UI*> UI_list;
 	int ui_num = 0;
 
+	CPlayer* m_pPlayer = NULL;
 	//==========================================
 
 	LIGHTS* m_pLights = NULL; // 씬의 조명
@@ -90,31 +93,61 @@ public:
 	ID3D12PipelineState* m_pd3dPipelineState = NULL;
 
 public:
-	CPlayer* m_pPlayer = NULL;
-
 	// 그려질 모든 게임 객체들
-	std::vector<CGameObject*> game_object;
+	std::vector<CGameObject*> game_objects;
 
 	float m_fElapsedTime = 0.0f;
 
 	float background_color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+	std::vector<IDWriteTextFormat*> write_font_list;
+	std::vector< ID2D1SolidColorBrush*> brush_list;
 };
 
 class Start_Scene : public CScene
 {
 public:
+	Start_Scene();
+	~Start_Scene();
+
+
 	bool OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam) override;
 	bool OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam) override;
+
+	ID3D12RootSignature* CreateGraphicsRootSignature(ID3D12Device* pd3dDevice) override;
+	ID3D12RootSignature* Create_UI_GraphicsRootSignature(ID3D12Device* pd3dDevice) override;
+
+	void CreateGraphicsPipelineState(ID3D12Device* pd3dDevice) override;
 
 	void BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
 	void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
 	void BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
+
+	void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
+	void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList) override;
+	void Release_Shader_Resource() override;
+
+	void Update_Lights(ID3D12GraphicsCommandList* pd3dCommandList) override;
+
 	void ReleaseObjects() override;
 	void ReleaseUploadBuffers() override;
 
 	void Build_Lights_and_Materials() override;
 
+	void Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera) override;
+	void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
+	void Message_Render(ID2D1DeviceContext2* pd2dDevicecontext) override;
 
+	//-----------------------------------------------------
+
+	void Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float Board_Width, float Board_Depth);
+
+
+
+	static CMaterial* material_color_white_stone;
+	static CMaterial* material_color_black_stone;
+	static CMaterial* material_color_board;
+	static CMaterial* material_color_none;
 };
 
 
@@ -146,6 +179,7 @@ public:
 	void Particle_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera) override;
 	void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
 	void Item_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	void Message_Render(ID2D1DeviceContext2* pd2dDevicecontext) override;
 
 
 	//그래픽 루트 시그너쳐를 생성한다. 
@@ -252,7 +286,7 @@ public:
 
 public:
 	CBoardObject* m_pBoards = NULL;
-
+	
 	UI* ui_player_power;
 	UI* ui_com_power;
 	Inventory_UI* player_inventory;

@@ -39,7 +39,8 @@ CGameFramework::CGameFramework()
 		m_ppd2dRenderTargets[i] = NULL;
 #endif
 	}
-	m_pScene = NULL;
+
+	Scene_Playing = NULL;
 
 	_tcscpy_s(m_pszFrameRate, _T("LapProject ("));
 }
@@ -447,19 +448,35 @@ void CGameFramework::CreateDepthStencilView()
 void CGameFramework::BuildObjects()
 {
 	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
-
-	m_pScene = new Playing_Scene();
 	
-	if (m_pScene)
-		m_pScene->BuildScene(m_pd3dDevice, m_pd3dCommandList);
+	Moving_Player* player = new Moving_Player(m_pd3dDevice, m_pd3dCommandList);
+	player_list.push_back(player);
+
+	Scene_Playing = new Playing_Scene();
+	Scene_Playing->SetPlayer(player);
+	Scene_Playing->Add_Font(m_pdw_Timer_Font);
+	Scene_Playing->Add_Font(m_pdw_Inventory_Font);
+	Scene_Playing->Add_Brush(m_pd2dbrText);
+	scene_list.push_back(Scene_Playing);
+
+	Scene_Beginning = new Start_Scene();
+	Scene_Beginning->SetPlayer(player);
+	Scene_Beginning->Add_Font(m_pdw_Timer_Font);
+	Scene_Beginning->Add_Brush(m_pd2dbrText);
+
+	scene_list.push_back(Scene_Beginning);
+
+
+	for (CScene* scene : scene_list)
+		scene->BuildScene(m_pd3dDevice, m_pd3dCommandList);
 
 	
-	CAirplanePlayer* pAirplanePlayer = new CAirplanePlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	
 
-	m_pPlayer = m_pScene->m_pPlayer = pAirplanePlayer;
+	rendering_player = player;
+	rendering_scene = Scene_Beginning;
+	
 
-	pMainCamera = m_pPlayer->GetCamera();
-	m_pScene->Set_MainCamera(pMainCamera);
 	//===================================================
 
 	m_pd3dCommandList->Close();
@@ -468,35 +485,27 @@ void CGameFramework::BuildObjects()
 
 	WaitForGpuComplete();
 
-	if (m_pScene) 
-		m_pScene->ReleaseUploadBuffers();
+	for (CScene* scene : scene_list)
+		scene->ReleaseUploadBuffers();
 
 	m_GameTimer.Reset();
 }
 
-
 void CGameFramework::ReleaseObjects()
 {
-	if (m_pScene) 
-		m_pScene->ReleaseObjects();
-	if (m_pScene) 
-		delete m_pScene;
+	for (CScene* scene : scene_list)
+		scene->ReleaseObjects();
+
+	for (CScene* scene : scene_list)
+		delete scene;
+
+	scene_list.clear();
 }
 
-
-
-void CGameFramework::AnimateObjects()
+void CGameFramework::Animate_Scene_Objects()
 {
-	//if (m_pScene->Check_GameOver())
-	//	::PostQuitMessage(0);
-
-	float Elapsed_Time = m_GameTimer.GetTimeElapsed();
-
-	if (m_pScene)
-		m_pScene->AnimateObjects(m_pd3dDevice, m_pd3dCommandList, Elapsed_Time);
-
-	// 씬에서 카메라를 변경하면, 여기서 반영되야 함.
-	pMainCamera = m_pScene->Get_MainCamera();
+	if (rendering_scene)
+		rendering_scene->AnimateObjects(m_pd3dDevice, m_pd3dCommandList, m_GameTimer.GetTimeElapsed());
 }
 
 void CGameFramework::WaitForGpuComplete()
@@ -517,7 +526,7 @@ void CGameFramework::FrameAdvance()
 	
 	ProcessInput();
 	
-	AnimateObjects();
+	Animate_Scene_Objects();
 	
 	HRESULT hResult = m_pd3dCommandAllocator->Reset();
 	hResult = m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
@@ -537,7 +546,7 @@ void CGameFramework::FrameAdvance()
 	d3dResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	m_pd3dCommandList->ResourceBarrier(1, &d3dResourceBarrier);
 
-	float* pfClearColor = m_pScene->Get_BackGround_Color();
+	float* pfClearColor = rendering_scene->Get_BackGround_Color();
 
 	// 렌더 타겟 뷰, 깊이 버퍼 뷰 초기화
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_pd3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
@@ -550,8 +559,8 @@ void CGameFramework::FrameAdvance()
 	
 
 	// D3D12 그리기 동작 시작
-	if (m_pScene) 
-		m_pScene->Render(m_pd3dDevice, m_pd3dCommandList, pMainCamera);
+	if (rendering_scene)
+		rendering_scene->Render(m_pd3dDevice, m_pd3dCommandList, rendering_player->GetCamera());
 
 	// D3D12 그리기 동작 끝
 
@@ -587,22 +596,9 @@ void CGameFramework::FrameAdvance()
 	// 출력 화면 크기
 	D2D1_SIZE_F szRenderTarget = m_ppd2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
 
-	// 시간 제한 출력
-	std::wstring wsTimeLimit = std::to_wstring(TURN_MAX_TIME - static_cast<int>(((Playing_Scene*)m_pScene)->Limit_time));
-	D2D1_RECT_F player_Time_Limit = D2D1::RectF(350, 0, 450, 100);
-	m_pd2dDeviceContext->DrawTextW(wsTimeLimit.c_str(), (UINT32)wcslen(wsTimeLimit.c_str()), m_pdw_Timer_Font, &player_Time_Limit, m_pd2dbrText);
-	
-
-	// 씬 분할 하면, 해당 씬 렌더링 중에만 동작하도록 하기
-	Inventory_UI* inven_ptr = ((Playing_Scene*)m_pScene)->player_inventory;
-	if(inven_ptr->Is_Num_Render())
-	{
-		for (int i = 0; i < Item_Type_Num; ++i)
-		{
-			std::wstring item_n = std::to_wstring(inven_ptr->item_list[i].second);
-			m_pd2dDeviceContext->DrawTextW(item_n.c_str(), (UINT32)wcslen(item_n.c_str()), m_pdw_Inventory_Font, &inven_ptr->text_area[i], m_pd2dbrText);
-		}
-	}
+	// 2D 문구 출력
+	if (rendering_scene)
+		rendering_scene->Message_Render(m_pd2dDeviceContext);
 	
 	m_pd2dDeviceContext->EndDraw();
 
@@ -750,13 +746,15 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
 	case WM_MOUSEMOVE:
+	case WM_MOUSEWHEEL:
 		OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
-		m_pScene->OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
+		rendering_scene->OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam); 
 		break;
+
 	case WM_KEYDOWN:
 	case WM_KEYUP:
 		OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
-		m_pScene->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
+		rendering_scene->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 		break;
 	}
 	return(0);
@@ -764,6 +762,9 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 
 void CGameFramework::ProcessInput()
 {
+	if (rendering_player == NULL)
+		return;
+
 	DWORD dwDirection = 0;
 	float cxDelta = 0.0f, cyDelta = 0.0f;
 	POINT ptCursorPos;
@@ -788,9 +789,9 @@ void CGameFramework::ProcessInput()
 	{
 		if (cxDelta || cyDelta)
 		{
-			m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
+			rendering_player->Rotate(cyDelta, cxDelta, 0.0f);
 		}
 	}
-	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
+	rendering_player->Update(m_GameTimer.GetTimeElapsed());
 }
 
