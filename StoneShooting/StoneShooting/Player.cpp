@@ -91,8 +91,7 @@ void CPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
 		if (dwDirection & DIR_UP) 
 			xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Up, fDistance);
 		if (dwDirection & DIR_DOWN) 
-			xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Up,
-			-fDistance);
+			xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Up, -fDistance);
 		//플레이어를 현재 위치 벡터에서 xmf3Shift 벡터만큼 이동한다.
 		Move(xmf3Shift, bUpdateVelocity);
 	}
@@ -201,11 +200,13 @@ void CPlayer::Update(float fTimeElapsed)
 	if (nCameraMode == THIRD_PERSON_CAMERA) 
 		m_pCamera->SetLookAt(m_xmf3Position);
 
-	if(nCameraMode == TOP_VIEW_CAMERA)
-		m_pCamera->SetLookAt(XMFLOAT3(0.1f, 0.1f, 0.1f));
+	if (nCameraMode == TOP_VIEW_CAMERA)
+		m_pCamera->SetLookAt(m_pCamera->camera_focus);
+
 	//카메라의 카메라 변환 행렬을 다시 생성한다.
 	
 	m_pCamera->RegenerateViewMatrix();
+
 	/*플레이어의 속도 벡터가 마찰력 때문에 감속이 되어야 한다면 감속 벡터를 생성한다. 
 	속도 벡터의 반대 방향 벡터를 구하고 단위 벡터로 만든다. 마찰 계수를 시간에 비례하도록 하여 마찰력을 구한다. 
 	단위 벡터에 마찰력을 곱하여 감속 벡터를 구한다. 
@@ -325,9 +326,6 @@ void Moving_Player::OnPrepareRender()
 	m_xmf4x4World = Matrix4x4::Multiply(mtxRotate, m_xmf4x4World);
 }
 
-/*3인칭 카메라일 때 플레이어 메쉬를 로컬 x-축을 중심으로 +90도 회전하고 렌더링한다. 
-왜냐하면 비행기 모델 메쉬는 다음 그림과 같이 y-축 방향이 비행기의 앞쪽이 되도록 모델링이 되었기 때문이다. 
-그리고 이 메쉬를 카메라의 z-축 방향으로 향하도록 그릴 것이기 때문이다.*/
 
 //카메라를 변경할 때 호출되는 함수이다. nNewCameraMode는 새로 설정할 카메라 모드이다.
 CCamera* Moving_Player::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
@@ -341,8 +339,8 @@ CCamera* Moving_Player::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		//플레이어의 특성을 1인칭 카메라 모드에 맞게 변경한다. 중력은 적용하지 않는다.
 		SetFriction(0);
 		SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-		SetMaxVelocityXZ(0);
-		SetMaxVelocityY(0);
+		SetMaxVelocityXZ(2000);
+		SetMaxVelocityY(2000);
 		SetPosition(XMFLOAT3(150.0f, 200.0f, 0.0f));
 
 		m_pCamera = OnChangeCamera(TOP_VIEW_CAMERA, nCurrentCameraMode);

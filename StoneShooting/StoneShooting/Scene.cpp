@@ -590,6 +590,42 @@ void Start_Scene::ReleaseUploadBuffers()
 {
 }
 
+void Start_Scene::AnimateObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fTimeElapsed)
+{
+	Scene_Update(pd3dDevice, pd3dCommandList, fTimeElapsed);
+}
+
+void Start_Scene::Scene_Update(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fTimeElapsed)
+{
+	if (zooming)
+	{
+		XMFLOAT3 start_pos = m_pPlayer->GetPosition();
+		XMFLOAT3 end_pos = { 0.0f,1.0f,0.0f };
+
+		XMVECTOR start_Vec = XMLoadFloat3(&start_pos);
+		XMVECTOR end_Vec = XMLoadFloat3(&end_pos);
+		
+		float T = (float)zoom_value / 100.0f;
+
+		// XMVectorLerp를 사용하여 두 점 사이를 보간
+		XMVECTOR zoom_vec = XMVectorLerp(start_Vec, end_Vec, T);
+
+		// 결과를 XMFLOAT3로 변환하여 저장
+		XMFLOAT3 zoom_pos;
+		XMStoreFloat3(&zoom_pos, zoom_vec);
+
+		m_pPlayer->GetCamera()->SetPosition(zoom_pos);
+		m_pPlayer->GetCamera()->camera_focus = { -100.0f,1.0f,0.0f };
+		
+		if (zoom_value == 0)
+		{
+			zooming = false;
+			m_pPlayer->GetCamera()->SetPosition(start_pos);
+			m_pPlayer->GetCamera()->camera_focus = { 0.1f,0.1f,0.1f };
+		}
+	}
+}
+
 void Start_Scene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
@@ -631,16 +667,18 @@ bool Start_Scene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wP
 
 	case WM_MOUSEWHEEL:
 	{
-		m_pPlayer->LookTo(XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
-		// GET_WHEEL_DELTA_WPARAM을 사용하여 휠 이동량
+		zooming = true;
+
 		int zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 
 		if (zDelta > 0) // 스크롤 위로
-			m_pPlayer->MoveForward(1.0f);
+			zoom_value -= 2;
 		else // 스크롤 아래로
-			m_pPlayer->MoveForward(-1.0f);
-		m_pPlayer->Update(0.05f);
-	}
+			zoom_value += 2;
+
+		zoom_value = std::clamp(zoom_value, 0, 99);
+
+		}
 	break;
 
 	default:

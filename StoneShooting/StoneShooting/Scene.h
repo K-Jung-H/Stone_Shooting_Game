@@ -134,6 +134,9 @@ public:
 
 	void Build_Lights_and_Materials() override;
 
+	void AnimateObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fTimeElapsed) override;
+	void Scene_Update(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fTimeElapsed) override;
+
 	void Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera) override;
 	void UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
 	void Message_Render(ID2D1DeviceContext2* pd2dDevicecontext) override;
@@ -148,6 +151,9 @@ public:
 	static CMaterial* material_color_black_stone;
 	static CMaterial* material_color_board;
 	static CMaterial* material_color_none;
+
+	bool zooming = false;
+	int zoom_value = 0;
 };
 
 

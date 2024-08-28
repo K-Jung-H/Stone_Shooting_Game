@@ -31,26 +31,33 @@ protected:
 protected:
 	//카메라의 위치(월드좌표계) 벡터이다.
 	XMFLOAT3 m_xmf3Position;
+
 	//카메라의 로컬 x-축(Right), y-축(Up), z-축(Look)을 나타내는 벡터이다.*/
 	XMFLOAT3 m_xmf3Right;
 	XMFLOAT3 m_xmf3Up;
 	XMFLOAT3 m_xmf3Look;
+
 	//카메라가 x-축, z-축, y-축으로 얼마만큼 회전했는 가를 나타내는 각도이다.
 	float m_fPitch;
 	float m_fRoll;
 	float m_fYaw;
+
 	//카메라의 종류(1인칭 카메라, 스페이스-쉽 카메라, 3인칭 카메라)를 나타낸다.
 	DWORD m_nMode;
+
 	//플레이어가 바라볼 위치 벡터이다. 주로 3인칭 카메라에서 사용된다.
 	XMFLOAT3 m_xmf3LookAtWorld;
+
 	//플레이어와 카메라의 오프셋을 나타내는 벡터이다. 주로 3인칭 카메라에서 사용된다.
 	XMFLOAT3 m_xmf3Offset;
+
 	//플레이어가 회전할 때 얼마만큼의 시간을 지연시킨 후 카메라를 회전시킬 것인가를 나타낸다.
 	float m_fTimeLag;
 	XMFLOAT4X4 m_xmf4x4View;
 	XMFLOAT4X4 m_xmf4x4Projection;
 	D3D12_VIEWPORT m_d3dViewport;
 	D3D12_RECT m_d3dScissorRect;
+
 	//카메라를 가지고 있는 플레이어에 대한 포인터이다.
 	CPlayer* m_pPlayer = NULL;
 
@@ -58,6 +65,8 @@ protected:
 	BoundingFrustum m_xmFrustum;
 
 public:
+	XMFLOAT3 camera_focus = { 0.0f,1.0f,0.0f };
+
 	CCamera();
 	CCamera(CCamera* pCamera);
 	virtual ~CCamera();
