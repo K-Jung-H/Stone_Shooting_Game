@@ -57,8 +57,11 @@ void CMaterial::SetMaterialColors(CMaterialColors* pMaterialColors)
 //=================================================================================
 
 
-CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMeshes)
 {
+	mesh_list.resize(nMeshes);
+	std::transform(mesh_list.begin(), mesh_list.end(), mesh_list.begin(), [](CMesh* p_mesh) {p_mesh = NULL; return p_mesh; });
+
 	m_xmf4x4Transform = Matrix4x4::Identity();
 	m_xmf4x4World = Matrix4x4::Identity();
 
@@ -67,9 +70,30 @@ CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 
 CGameObject::~CGameObject()
 {
-	if (m_pMesh)
-		m_pMesh->Release();
 
+	for (CGameObject* p_sibling : m_pSibling)
+	{
+		if (p_sibling)
+			delete p_sibling;
+		p_sibling = NULL;
+	}
+	m_pSibling.clear();
+
+	for (CGameObject* p_child : m_pChild)
+	{
+		if (p_child)
+			delete p_child;
+		p_child = NULL;
+	}
+	m_pChild.clear();
+
+	for (CMesh* p_mesh : mesh_list)
+	{
+		if (p_mesh)
+			p_mesh->Release();
+		p_mesh = NULL;
+	}
+	mesh_list.clear();
 
 	for (int i = 0; i < m_ppMaterials.size(); ++i)
 	{
@@ -128,17 +152,28 @@ void CGameObject::Add_Sibling(CGameObject* pSibling, bool bReferenceUpdate)
 	m_pSibling.push_back(pSibling);
 }
 
-void CGameObject::SetMesh(CMesh* pMesh)
+void CGameObject::SetMesh(int nIndex, CMesh* pMesh)
 {
-	if (m_pMesh)
-		m_pMesh->Release();
-
-	m_pMesh = pMesh;
-
-	if (m_pMesh)
-		m_pMesh->AddRef();
+	if (nIndex = mesh_list.size())
+	{
+		if (mesh_list[nIndex])
+			mesh_list[nIndex]->Release();
+		
+		mesh_list[nIndex] = pMesh;
+		
+		if (pMesh)
+			pMesh->AddRef();
+	}
 }
+void CGameObject::AddMesh(CMesh* pMesh)
+{
 
+	mesh_list.push_back(pMesh);
+	
+	if (pMesh)
+		pMesh->AddRef();
+	
+}
 
 void CGameObject::Set_MaterialShader(CShader* pShader, int nMaterial)
 {
@@ -200,9 +235,10 @@ void CGameObject::ChangeMaterial(UINT n)
 
 void CGameObject::ReleaseUploadBuffers()
 {
-	////정점 버퍼를 위한 업로드 버퍼를 소멸시킨다. 
-	if (m_pMesh) 
-		m_pMesh->ReleaseUploadBuffers();
+	//정점 버퍼를 위한 업로드 버퍼를 소멸시킨다. 
+	for (CMesh* p_mesh : mesh_list)
+		if (p_mesh)
+			p_mesh->ReleaseUploadBuffers();
 }
 
 //객체의 정보를 저장하기 위한 리소스를 생성하고 리소스에 대한 포인터를 가져온다. 
@@ -339,7 +375,7 @@ void CGameObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 	for (CGameObject* child_ptr : m_pChild)
 		child_ptr->Animate(fTimeElapsed, &m_xmf4x4World);
 
-	UpdateBoundingBox();
+	//UpdateBoundingBox();
 }
 
 
@@ -350,8 +386,9 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 	if (!active)
 		return;
 
+
 	bool shader_changed = false;
-	
+
 	// 객체 정보 컨테이너 업데이트 :: Mapped_Object_info
 	Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::GameObject_info);
 
@@ -369,11 +406,18 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 
 			// 재질 정보 컨테이너 업데이트 :: Mapped_Material_info
 			Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info, i);
-			
-			if (m_pMesh)
-				m_pMesh->Render(pd3dCommandList);
+
+			if (mesh_list.size())
+			{
+				// 메쉬 마다 절두체 컬링 필요 -> 메쉬마다 메쉬 충돌체의 모델 좌표계가 달라야 함 -> 메쉬 생성시 변환 필요
+				// 그 다음에 해당 과정 추가 할 것
+				for (CMesh* p_mesh : mesh_list)
+					if (p_mesh)
+						p_mesh->Render(pd3dCommandList);
+			}
 		}
-		if(shader_changed)
+
+		if (shader_changed)
 			pShader->Setting_Render(pd3dCommandList);
 	}
 
@@ -410,8 +454,6 @@ void CGameObject::UpdateTransform(XMFLOAT4X4* pxmf4x4Parent)
 
 	for (CGameObject* child_ptr : m_pChild)
 		child_ptr->UpdateTransform(&m_xmf4x4World);
-
-	UpdateBoundingBox();
 }
 
 void CGameObject::SetPosition(float x, float y, float z)
@@ -488,14 +530,31 @@ void CGameObject::Move(XMFLOAT3& vDirection, float fSpeed)
 	SetPosition(m_xmf4x4World._41 + vDirection.x * fSpeed, m_xmf4x4World._42 + vDirection.y * fSpeed, m_xmf4x4World._43 + vDirection.z * fSpeed);
 }
 
-void CGameObject::UpdateBoundingBox()
+BoundingOrientedBox CGameObject::Get_Collider()
 {
-	if (m_pMesh)
+	BoundingOrientedBox xmBoundingBox;
+	default_collider.Transform(xmBoundingBox, XMLoadFloat4x4(&m_xmf4x4World));
+	XMStoreFloat4(&xmBoundingBox.Orientation, XMQuaternionNormalize(XMLoadFloat4(&xmBoundingBox.Orientation)));
+
+	return(xmBoundingBox);
+}
+
+
+bool CGameObject::Is_Visible_Collider(CCamera* pCamera)
+{
+	bool bIsVisible = true;
+
+	// 그릴 메쉬가 있는 객체인가?
+	if (mesh_list.size())
 	{
-		m_pMesh->m_xmBoundingBox.Transform(m_xmOOBB, XMLoadFloat4x4(&m_xmf4x4World));
-		XMStoreFloat4(&m_xmOOBB.Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_xmOOBB.Orientation)));
+		// 메쉬가 여러개 이더라도, 게임 객체는 충돌체 1개임
+		BoundingOrientedBox xmBoundingOrientedBox = Get_Collider();
+
+		if (pCamera)
+			bIsVisible = pCamera->IsInFrustum(xmBoundingOrientedBox);
 	}
 
+	return(bIsVisible);
 }
 
 void CGameObject::UpdateFriction(float fTimeElapsed)
@@ -566,17 +625,17 @@ void CGameObject::LookAt(XMFLOAT3& xmf3LookAt, XMFLOAT3& xmf3Up)
 	m_xmf4x4World._31 = xmf4x4View._13; m_xmf4x4World._32 = xmf4x4View._23; m_xmf4x4World._33 = xmf4x4View._33;
 }
 
-bool CGameObject::IsVisible(CCamera* pCamera)
-{
-	bool bIsVisible = false;
-	BoundingOrientedBox xmBoundingBox = m_pMesh->GetBoundingBox();
-
-	//모델 좌표계의 바운딩 박스를 월드 좌표계로 변환한다. 
-	xmBoundingBox.Transform(xmBoundingBox, XMLoadFloat4x4(&m_xmf4x4World));
-	if (pCamera) 
-		bIsVisible = pCamera->IsInFrustum(xmBoundingBox);
-	return(bIsVisible);
-}
+//bool CGameObject::IsVisible(CCamera* pCamera)
+//{
+//	bool bIsVisible = false;
+//	BoundingOrientedBox xmBoundingBox = m_pMesh->GetBoundingBox();
+//
+//	//모델 좌표계의 바운딩 박스를 월드 좌표계로 변환한다. 
+//	xmBoundingBox.Transform(xmBoundingBox, XMLoadFloat4x4(&m_xmf4x4World));
+//	if (pCamera) 
+//		bIsVisible = pCamera->IsInFrustum(xmBoundingBox);
+//	return(bIsVisible);
+//}
 
 void CGameObject::Generate_Ray_For_Picking_Projection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4&xmf4x4View,
 	XMFLOAT3* pxmf3PickRayOrigin, XMFLOAT3* pxmf3PickRayDirection)
@@ -641,7 +700,7 @@ int CGameObject::Pick_Object_By_Ray_Intersection_Orthographic(XMFLOAT3& xmf3Pick
 	int nIntersected = 0;
 	float currentHitDistance = FLT_MAX;
 
-	if (m_pMesh)
+	for(CMesh* p_mesh : mesh_list)
 	{
 		XMFLOAT3 xmf3PickRayOrigin, xmf3PickRayDirection;
 
@@ -653,11 +712,12 @@ int CGameObject::Pick_Object_By_Ray_Intersection_Orthographic(XMFLOAT3& xmf3Pick
 //		DebugOutput("dir_x: " + std::to_string(xmf3PickRayDirection.x) + "\t dir_y: " + std::to_string(xmf3PickRayDirection.y) + "\t dir_z: " + std::to_string(xmf3PickRayDirection.z));
 
 		// 모델 좌표계의 광선과 메쉬의 교차를 검사한다. 
-		nIntersected = m_pMesh->CheckRayIntersection(xmf3PickRayOrigin, xmf3PickRayDirection, &currentHitDistance);
+		nIntersected = p_mesh->CheckRayIntersection(xmf3PickRayOrigin, xmf3PickRayDirection, &currentHitDistance);
 		if (nIntersected != 0 && currentHitDistance < *pfHitDistance)
 		{
 			*pfHitDistance = currentHitDistance;
 		}
+
 	}
 
 
@@ -692,7 +752,7 @@ int CGameObject::Pick_Object_By_Ray_Intersection_Projection(XMFLOAT3& xmf3PickPo
 	int nIntersected = 0;
 	float currentHitDistance = FLT_MAX;  
 
-	if (m_pMesh)
+	for (CMesh* p_mesh : mesh_list)
 	{
 		XMFLOAT3 xmf3PickRayOrigin, xmf3PickRayDirection;
 
@@ -704,7 +764,7 @@ int CGameObject::Pick_Object_By_Ray_Intersection_Projection(XMFLOAT3& xmf3PickPo
 		//DebugOutput("dir_x: " + std::to_string(xmf3PickRayDirection.x) + "\t dir_y: " + std::to_string(xmf3PickRayDirection.y) + "\t dir_z: " + std::to_string(xmf3PickRayDirection.z));
 
 		// 모델 좌표계의 광선과 메쉬의 교차를 검사한다. 
-		nIntersected = m_pMesh->CheckRayIntersection(xmf3PickRayOrigin, xmf3PickRayDirection, &currentHitDistance);
+		nIntersected = p_mesh->CheckRayIntersection(xmf3PickRayOrigin, xmf3PickRayDirection, &currentHitDistance);
 		if (nIntersected != 0 && currentHitDistance < *pfHitDistance)
 		{
 			*pfHitDistance = currentHitDistance;
@@ -744,11 +804,13 @@ void CGameObject::Apply_Item(Item_Type type)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-CRotatingObject::CRotatingObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) : CGameObject(pd3dDevice, pd3dCommandList)
+
+CRotatingObject::CRotatingObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMeshes) : CGameObject(pd3dDevice, pd3dCommandList, nMeshes)
 {
 	m_xmf3RotationAxis = XMFLOAT3(0.0f, 0.0f, 1.0f);
 	m_fRotationSpeed = 360.0f;
 }
+
 CRotatingObject::~CRotatingObject()
 {
 }
@@ -783,8 +845,10 @@ CBoardObject::~CBoardObject()
 
 void CBoardObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
-	CGameObject::Render(pd3dCommandList, pCamera, pShader);
-
+	if (true) // Is_Visible_Collider(pCamera)
+	{
+		CGameObject::Render(pd3dCommandList, pCamera, pShader);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -801,7 +865,10 @@ StoneObject::~StoneObject()
 
 void StoneObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
+	if (Is_Visible_Collider(pCamera))
+	{
 		CGameObject::Render(pd3dCommandList, pCamera, pShader);
+	}
 }
 
 void StoneObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
@@ -828,21 +895,26 @@ void StoneObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 		break;
 	}
 
-	// 이동한 위치를 기반으로 돌의 충돌체 업데이트
-	XMVECTOR center = XMLoadFloat3(&m_pMesh->m_xmBoundingSphere.Center);
-	XMVECTOR transformedCenter = XMVector3Transform(center, XMLoadFloat4x4(&m_xmf4x4World));
-	XMStoreFloat3(&m_xmOOSP.Center, transformedCenter);
-
 	// 마찰력 연산 및 충돌체 업데이트
 	UpdateFriction(fTimeElapsed);
-	UpdateBoundingBox();
+	//UpdateBoundingBox();
 
-	// 충돌체 구의 반지름 업데이트
-	// 시작할때 한번만 하면 되는데 어디에 넣지
-	m_xmOOSP.Radius = m_pMesh->m_xmBoundingSphere.Radius;
-	
 	// 자식 객체가 있다면, 해당 객체들 업데이트
 	CGameObject::Animate(fTimeElapsed, pxmf4x4Parent);
+}
+
+BoundingSphere StoneObject::Get_Collider()
+{
+	BoundingSphere xmBoundingSphere;
+
+	XMVECTOR center = XMLoadFloat3(&mesh_list[0]->m_xmBoundingSphere.Center); // 첫번째 메쉬의 모델 좌표계 충돌 구에서 가져옴
+	XMVECTOR transformedCenter = XMVector3Transform(center, XMLoadFloat4x4(&m_xmf4x4World));
+	XMStoreFloat3(&xmBoundingSphere.Center, transformedCenter);
+
+	xmBoundingSphere.Radius = mesh_list[0]->m_xmBoundingSphere.Radius;
+	stone_collider = xmBoundingSphere;
+
+	return(xmBoundingSphere);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

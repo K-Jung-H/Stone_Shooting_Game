@@ -21,14 +21,6 @@
  // #define _WITH_SWAPCHAIN_FULLSCREEN_STATE
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용을 Windows 헤더에서 제외합니다.
 
-#define MAX_LIGHTS 8 
-#define MAX_MATERIALS 8 
-#define POINT_LIGHT 1
-#define SPOT_LIGHT 2
-#define DIRECTIONAL_LIGHT 3
-
-#define RANDOM_COLOR XMFLOAT4(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX))
-
 #define _WITH_DIRECT2D
 
 #include "targetver.h"
@@ -131,10 +123,27 @@ enum class UI_Type
 
 };
 
+#define RANDOM_COLOR XMFLOAT4(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX))
+
 #define Snow_Area_Radius 30.0f
 #define Item_Type_Num 8
 #define TURN_MAX_TIME 30
 #define TURN_DELAY 0
+
+#define MAX_LIGHTS 8 
+#define MAX_MATERIALS 8 
+#define POINT_LIGHT 1
+#define SPOT_LIGHT 2
+#define DIRECTIONAL_LIGHT 3
+
+#define EPSILON 1.0e-10f
+
+
+inline bool IsZero(float fValue) { return((fabsf(fValue) < EPSILON)); }
+inline bool IsEqual(float fA, float fB) { return(::IsZero(fA - fB)); }
+inline float InverseSqrt(float fValue) { return 1.0f / sqrtf(fValue); }
+inline void Swap(float* pfS, float* pfT) { float fTemp = *pfS; *pfS = *pfT; *pfT = fTemp; }
+
 
 extern std::default_random_engine dre;
 extern std::uniform_int_distribution<int> uid;
@@ -261,6 +270,16 @@ namespace Vector3
 	{
 		return(TransformCoord(xmf3Vector, XMLoadFloat4x4(&xmmtx4x4Matrix)));
 	}
+
+	//3-차원 벡터가 영벡터인 가를 반환하는 함수이다.
+	inline bool IsZero(XMFLOAT3& xmf3Vector)
+	{
+		if (::IsZero(xmf3Vector.x) && ::IsZero(xmf3Vector.y) && ::IsZero(xmf3Vector.z))
+			return(true);
+		return(false);
+	}
+
+
 }
 
 
@@ -287,6 +306,7 @@ namespace Vector4
 		XMStoreFloat4(&xmf4Result, fScalar * XMLoadFloat4(&xmf4Vector));
 		return(xmf4Result);
 	}
+
 }
 //행렬의 연산
 namespace Matrix4x4

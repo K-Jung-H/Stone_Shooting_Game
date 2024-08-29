@@ -21,7 +21,7 @@ public:
 	UINT8* particles_info = NULL;
 	ID3D12Resource* m_pConstant_Buffer; // 한번에 여러 정보를 담기 때문에 일반 GameObject의 버퍼와 크기가 달라야 함
 
-	Particle(Particle_Type p_type = Particle_Type::None);
+	Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, Particle_Type p_type = Particle_Type::None);
 	virtual ~Particle();
 
 	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);

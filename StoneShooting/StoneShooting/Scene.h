@@ -162,7 +162,7 @@ class Playing_Scene : public CScene
 {
 private:
 	std::vector<std::pair<int, int>> FindCollisionPairs(const std::vector<StoneObject*>& gameObjects);
-	void UpdateVelocities(CGameObject* stone1, CGameObject* stone2, XMVECTOR vel1, XMVECTOR vel2);
+	void UpdateVelocities(StoneObject* stone1, StoneObject* stone2, XMVECTOR vel1, XMVECTOR vel2);
 
 public:
 	Playing_Scene();

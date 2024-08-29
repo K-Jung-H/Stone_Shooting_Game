@@ -713,6 +713,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		switch (wParam)
 		{
 		case VK_TAB:
+			rendering_scene = Scene_Playing;
 			break;
 
 		case VK_F9:

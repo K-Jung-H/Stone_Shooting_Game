@@ -95,7 +95,7 @@ Item::Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 	item_type = i_type;
 
 	outer_frame = new CRotatingObject(pd3dDevice, pd3dCommandList);	
-	outer_frame->SetMesh(outer_Mesh);
+	outer_frame->AddMesh(outer_Mesh);
 	outer_frame->SetRotationAxis(XMFLOAT3(0.0f, 1.0f, 0.0f));
 	outer_frame->SetRotationSpeed(30.0f);
 	outer_frame->SetMaterial(material_color_item_outer);
@@ -103,7 +103,7 @@ Item::Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 
 
 	inner_frame = new CGameObject(pd3dDevice, pd3dCommandList);
-	inner_frame->SetMesh(inner_Mesh);
+	inner_frame->AddMesh(inner_Mesh);
 
 	switch (item_type)
 	{
@@ -149,7 +149,8 @@ Item::~Item()
 
 void Item::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
-	CGameObject::Render(pd3dCommandList, pCamera, pShader);
+	if(Is_Visible_Collider(pCamera))
+		CGameObject::Render(pd3dCommandList, pCamera, pShader);
 }
 
 void Item::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
@@ -167,12 +168,16 @@ void Item::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 	// 자식 객체가 있다면, 해당 객체들 업데이트
 	CGameObject::Animate(fTimeElapsed, pxmf4x4Parent);
 
-	outer_frame->m_pMesh->m_xmBoundingBox.Transform(m_xmOOBB, XMLoadFloat4x4(&m_xmf4x4World));
-	XMStoreFloat4(&m_xmOOBB.Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_xmOOBB.Orientation)));
-
-
 }
 
+BoundingOrientedBox Item::Get_Collider()
+{
+	BoundingOrientedBox xmBoundingBox;
+	default_collider.Transform(xmBoundingBox, XMLoadFloat4x4(&m_xmf4x4World));
+	XMStoreFloat4(&xmBoundingBox.Orientation, XMQuaternionNormalize(XMLoadFloat4(&xmBoundingBox.Orientation)));
+
+	return xmBoundingBox;
+}
 
 //===============================================================================
 
@@ -457,7 +462,7 @@ void Item_Manager::Check_Stone_Frozen_Time_Effect(std::vector<StoneObject*>* sto
 
 				for (StoneObject* stone : *stonelist)
 				{
-					if (moved_Snow_Area.Intersects(stone->m_xmOOSP))
+					if (moved_Snow_Area.Intersects(stone->stone_collider))
 						stones_to_apply_snow.push_back(stone); // 저장해뒀다가 마지막에 적용할 객체들 한번에 적용하기
 				}
 			}

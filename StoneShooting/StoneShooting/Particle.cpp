@@ -74,7 +74,7 @@ XMFLOAT3& Get_Random_Normalize_Direction()
 
 //==========================================================
 
-Particle::Particle(Particle_Type particle_type)
+Particle::Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, Particle_Type particle_type) : CRotatingObject(pd3dDevice, pd3dCommandList)
 {
 	o_type = Object_Type::Particle;
 	p_type = particle_type;
@@ -122,7 +122,7 @@ CMesh* Explosion_Particle::m_ExplosionMesh = NULL;
 bool Explosion_Particle::Setting = false;
 
 
-Explosion_Particle::Explosion_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMaterial* material, Particle_Type p_type) : Particle(p_type)
+Explosion_Particle::Explosion_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMaterial* material, Particle_Type p_type) : Particle(pd3dDevice, pd3dCommandList, p_type)
 {
 	m_fDuration = 1.0f;
 	m_fExplosionSpeed = 100.0f;
@@ -250,7 +250,7 @@ CMesh* Charge_Particle::m_ChargeMesh = NULL;
 bool Charge_Particle::Setting = false;
 
 Charge_Particle::Charge_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
-	float Range, float cycle_time, CMaterial* material, Particle_Type p_type) : Particle(p_type)
+	float Range, float cycle_time, CMaterial* material, Particle_Type p_type) : Particle(pd3dDevice, pd3dCommandList, p_type)
 {
 	m_fDuration = cycle_time;
 	Max_Range = Range;
@@ -443,7 +443,7 @@ CMesh* Firework_Particle::m_FireworkMesh = NULL;
 bool Firework_Particle::Setting = false;
 
 Firework_Particle::Firework_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
-	float cycle_time, CMaterial* material, Particle_Type p_type) : Particle(p_type)
+	float cycle_time, CMaterial* material, Particle_Type p_type) : Particle(pd3dDevice, pd3dCommandList, p_type)
 {
 	m_fDuration = cycle_time;
 	Particle_Rotation = 300.0f;
@@ -645,7 +645,7 @@ XMFLOAT3 Snow_Particle::Particle_Pos_XZ[Snow_DEBRISES];
 XMFLOAT3 Snow_Particle::Particle_Rotation_Vector[Snow_DEBRISES];
 
 Snow_Particle::Snow_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
-	XMFLOAT3 start_pos, float c_range, CMaterial* material, Particle_Type p_type) : Particle(p_type)
+	XMFLOAT3 start_pos, float c_range, CMaterial* material, Particle_Type p_type) : Particle(pd3dDevice, pd3dCommandList, p_type)
 {
 	Set_Center(start_pos);
 	range = c_range;

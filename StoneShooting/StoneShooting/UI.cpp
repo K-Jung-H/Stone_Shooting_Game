@@ -93,8 +93,8 @@ void UI_Object::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCam
 
 	CGameObject::Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::GameObject_info);
 
-	if (m_pMesh)
-		m_pMesh->Render(pd3dCommandList);
+	for (CMesh* p_mesh : mesh_list)
+		p_mesh->Render(pd3dCommandList);
 
 	for (CGameObject* sibling_ptr : m_pSibling)
 		sibling_ptr->Render(pd3dCommandList, pCamera, pShader);
@@ -347,7 +347,7 @@ void Inventory_UI::AnimateObjects(float fTimeElapsed)
 
 void Inventory_UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader)
 {
-	if(true)
+	if(visualize)
 		UI::UI_Render(pd3dDevice, pd3dCommandList, pShader);
 }
 

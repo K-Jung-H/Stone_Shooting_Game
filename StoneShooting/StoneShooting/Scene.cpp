@@ -524,7 +524,7 @@ void Start_Scene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	CGameObject* board_obj = new CBoardObject(pd3dDevice, pd3dCommandList);
 
 	board_obj->SetPosition(0.0f, 0.0f, 0.0f);
-	board_obj->SetMesh(pboard_mesh);
+	board_obj->AddMesh(pboard_mesh);
 	board_obj->SetMaterial(material_color_board);
 
 	//-------------------------------------------------------
@@ -546,7 +546,7 @@ void Start_Scene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 		board_line = new CGameObject(pd3dDevice, pd3dCommandList);
 		board_line->SetPosition(XMFLOAT3(pos));
 		board_line->SetScale(1.0f, 1.0f, 1.0f);
-		board_line->SetMesh(pboard_line_mesh);
+		board_line->AddMesh(pboard_line_mesh);
 		board_line->o_type = Object_Type::Board;
 		board_line->SetMaterial(material_color_black_stone);
 
@@ -569,7 +569,7 @@ void Start_Scene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 		board_line->SetPosition(XMFLOAT3(pos));
 		board_line->SetScale(1.0f, 1.0f, Board_Half_Width / Board_Half_Depth);
 		board_line->Rotate(&vertical_angle, 90.0f);
-		board_line->SetMesh(pboard_line_mesh);
+		board_line->AddMesh(pboard_line_mesh);
 		board_line->o_type = Object_Type::Board;
 		board_line->SetMaterial(material_color_black_stone);
 
@@ -899,10 +899,10 @@ void Playing_Scene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 
 	m_pBoards = new CBoardObject(pd3dDevice, pd3dCommandList);
 	m_pBoards->SetPosition(0.0f, 0.0f, 0.0f);
-	m_pBoards->SetMesh(pboard_mesh);
+	m_pBoards->AddMesh(pboard_mesh);
 	m_pBoards->SetMaterial(material_color_none);
 	m_pBoards->AddMaterial(material_color_board, true);
-	m_pBoards->m_xmOOBB = m_pBoards->m_pMesh->m_xmBoundingBox; // 시작할 때 한번만 하면 됨
+	m_pBoards->default_collider = m_pBoards->mesh_list[0]->m_xmBoundingBox; // 시작할 때 한번만 하면 됨
 
 
 	//-------------------------------------------------------
@@ -920,7 +920,7 @@ void Playing_Scene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 		board_line = new CGameObject(pd3dDevice, pd3dCommandList);
 		board_line->SetPosition(XMFLOAT3(pos));
 		board_line->SetScale(1.0f, 1.0f, 2.0f);
-		board_line->SetMesh(pboard_line_mesh);
+		board_line->AddMesh(pboard_line_mesh);
 		board_line->o_type = Object_Type::Board;
 		board_line->SetMaterial(material_color_black_particle);
 
@@ -939,7 +939,7 @@ void Playing_Scene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 		board_line->SetPosition(XMFLOAT3(pos));
 		board_line->SetScale(2.0f/3.0f,1.0f,1.0f);
 		board_line->Rotate(&vertical_angle, 90.0f);
-		board_line->SetMesh(pboard_line_mesh);
+		board_line->AddMesh(pboard_line_mesh);
 		board_line->o_type = Object_Type::Board;
 		board_line->SetMaterial(material_color_black_particle);
 
@@ -953,7 +953,7 @@ void Playing_Scene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	StoneObject* pStoneObject = NULL;
 
 	pStoneObject = new StoneObject(pd3dDevice, pd3dCommandList);
-	pStoneObject->SetMesh(mesh);
+	pStoneObject->AddMesh(mesh);
 	pStoneObject->SetPosition(pos.x, pos.y, pos.z);
 	pStoneObject->SetFriction(2);										// Default
 
@@ -977,6 +977,7 @@ void Playing_Scene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	pStoneObject->SetMovingSpeed(0.0f);									// Default
 
 	pStoneObject->player_team = player_team;
+
 	if (player_team)
 		player1.stone_list.push_back(pStoneObject);
 	else
@@ -1058,22 +1059,22 @@ void Playing_Scene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 
 	// UI's Object
 	UI_Object* ui_power_bar = new BAR_UI_Object(pd3dDevice, pd3dCommandList, 4);
-	ui_power_bar->SetMesh(ui_power_mesh);
+	ui_power_bar->AddMesh(ui_power_mesh);
 	ui_power_bar->active = true;
 
 	UI_Object* ui_endline =  new UI_Object(pd3dDevice, pd3dCommandList);
-	ui_endline->SetMesh(ui_endline_mesh);
+	ui_endline->AddMesh(ui_endline_mesh);
 	ui_endline->SetPosition(-100.0f, 0.0f, 0.0f);
 	ui_endline->active = true;
 
 	//-----------------------------------
 
 	UI_Object* ui_power_bar_com = new BAR_UI_Object(pd3dDevice, pd3dCommandList, 3);
-	ui_power_bar_com->SetMesh(ui_power_mesh);
+	ui_power_bar_com->AddMesh(ui_power_mesh);
 	ui_power_bar_com->active = true;
 
 	UI_Object* ui_endline_com = new UI_Object(pd3dDevice, pd3dCommandList);
-	ui_endline_com->SetMesh(ui_endline_mesh);
+	ui_endline_com->AddMesh(ui_endline_mesh);
 	ui_endline_com->SetPosition(100.0f, 0.0f, 0.0f);
 	ui_endline_com->active = true;
 
@@ -1144,7 +1145,7 @@ Inventory_UI* Playing_Scene::Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D1
 	Inventory_UI* Inventory_ui = new Inventory_UI(pd3dDevice, pd3dCommandList, area);
 	
 	UI_Object* ui_inventory_obj = new UI_Object(pd3dDevice, pd3dCommandList);
-	ui_inventory_obj->SetMesh(ui_inventory_mesh);
+	ui_inventory_obj->AddMesh(ui_inventory_mesh);
 	ui_inventory_obj->SetPosition(0.0f, 0.0f, 30.0f);
 	ui_inventory_obj->active = true;
 	
@@ -1464,7 +1465,7 @@ std::vector<std::pair<int, int>> Playing_Scene::FindCollisionPairs(const std::ve
 			if (!stone2->active || stone2->used_item == Item_Type::Ghost)
 				continue;
 
-			if (stone1->m_xmOOSP.Intersects(stone2->m_xmOOSP))
+			if (stone1->Get_Collider().Intersects(stone2->Get_Collider()))
 				collision_Pairs.push_back(std::make_pair(i, j));
 
 		}
@@ -1474,7 +1475,7 @@ std::vector<std::pair<int, int>> Playing_Scene::FindCollisionPairs(const std::ve
 }
 
 // 속도 업데이트
-void Playing_Scene::UpdateVelocities(CGameObject* stone1, CGameObject* stone2, XMVECTOR vel1, XMVECTOR vel2)
+void Playing_Scene::UpdateVelocities(StoneObject* stone1, StoneObject* stone2, XMVECTOR vel1, XMVECTOR vel2)
 {
 	XMFLOAT3 pos1 = stone1->GetPosition();
 	XMFLOAT3 pos2 = stone2->GetPosition();
@@ -1486,7 +1487,7 @@ void Playing_Scene::UpdateVelocities(CGameObject* stone1, CGameObject* stone2, X
 
 	//-------------------------------------------------------------
 
-	float overlapDistance = (stone1->m_xmOOSP.Radius + stone2->m_xmOOSP.Radius) - XMVectorGetX(XMVector3Length(posVec2 - posVec1));
+	float overlapDistance = (stone1->Get_Collider().Radius + stone2->Get_Collider().Radius) - XMVectorGetX(XMVector3Length(posVec2 - posVec1));
 
 	if (overlapDistance > 0)
 	{
@@ -1547,7 +1548,7 @@ void Playing_Scene::Check_Board_and_Stone_Collisions(ID3D12Device* pd3dDevice, I
 
 		XMFLOAT3 stone_pos = stone_ptr->GetPosition();
 		XMVECTOR pos_xz = XMVectorSet(stone_pos.x, 0.0f, stone_pos.z, 0.0f);
-		ContainmentType containType = m_pBoards->m_xmOOBB.Contains(pos_xz);
+		ContainmentType containType = m_pBoards->Get_Collider().Contains(pos_xz);
 
 		switch (containType)
 		{
@@ -1587,7 +1588,7 @@ void Playing_Scene::Check_Item_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID
 			if (!stone_ptr->active)
 				continue;
 
-			if (stone_ptr->m_xmOOSP.Intersects(item->m_xmOOBB))
+			if (stone_ptr->Get_Collider().Intersects(item->Get_Collider()))
 			{
 				item->SetActive(false);
 				Setting_Particle(pd3dDevice, pd3dCommandList, item->GetPosition(), material_color_black_particle, Particle_Type::Firework);

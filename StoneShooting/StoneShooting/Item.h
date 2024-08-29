@@ -23,6 +23,8 @@ public:
 
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
+
+	virtual BoundingOrientedBox Get_Collider();
 };
 
 

@@ -107,9 +107,8 @@ public:
 	// 재질마다 사용할 셰이더가 다를 수 있음
 	std::vector<std::pair<CMaterial*, bool>> m_ppMaterials;
 
+	std::vector<CMesh*> mesh_list;
 
-	CMesh* m_pMesh = NULL;
-	
 //=========================================
 
 	XMFLOAT4X4						m_xmf4x4Transform = Matrix4x4::Identity();
@@ -143,8 +142,7 @@ public:
 	Item_Type					used_item = Item_Type::None;
 
 
-	BoundingOrientedBox			m_xmOOBB = BoundingOrientedBox();
-	BoundingSphere				m_xmOOSP = BoundingSphere();
+	BoundingOrientedBox			default_collider = BoundingOrientedBox();
 	CGameObject*				m_pObjectCollided = NULL;
 
 
@@ -153,8 +151,8 @@ public:
 	float						m_fMovingRange = 0.0f;
 	float						m_fFriction = 2.0f;
 
-	CGameObject() {}
-	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	CGameObject() {};
+	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMeshes = 0);
 	virtual ~CGameObject();
 
 	void AddRef();
@@ -166,7 +164,9 @@ public:
 
 	void ReleaseUploadBuffers();
 	
-	void SetMesh(CMesh* pMesh);
+	void SetMesh(int nIndex, CMesh* pMesh);
+	void AddMesh(CMesh* pMesh);
+
 	void Set_MaterialShader(CShader* pShader, int nMaterial = 0);
 	void SetMaterial(CMaterial* pMaterial, bool front_insert = false);
 	void AddMaterial(CMaterial* pMaterial, bool active = false);
@@ -230,7 +230,7 @@ public:
 	void LookAt(XMFLOAT3& xmf3LookAt, XMFLOAT3& xmf3Up);
 	
 	//게임 객체가 카메라에 보인는 가를 검사한다. 
-	bool IsVisible(CCamera *pCamera=NULL);
+	//bool IsVisible(CCamera *pCamera=NULL);
 
 	//모델 좌표계의 픽킹 광선을 생성한다. 
 	void Generate_Ray_For_Picking_Projection(XMFLOAT3& xmf3PickPosition, XMFLOAT4X4& xmf4x4View, XMFLOAT3* pxmf3PickRayOrigin, XMFLOAT3* pxmf3PickRayDirection);
@@ -246,6 +246,11 @@ public:
 
 	void UpdateBoundingBox();
 
+	BoundingOrientedBox Get_Collider();
+
+	bool Is_Visible_Collider(CCamera* pCamera);
+
+
 	void UpdateFriction(float fTimeElapsed);
 
 	void Apply_Item(Item_Type type);
@@ -258,8 +263,7 @@ public:
 	XMFLOAT3 m_xmf3RotationAxis;
 	float m_fRotationSpeed;
 
-	CRotatingObject() {}
-	CRotatingObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	CRotatingObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMeshes = 0);
 	virtual ~CRotatingObject();
 
 	void SetRotationSpeed(float fRotationSpeed) { m_fRotationSpeed = fRotationSpeed; }
@@ -275,7 +279,6 @@ public:
 	CBoardObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~CBoardObject();
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
-
 };
 
 
@@ -283,11 +286,53 @@ class StoneObject : public CRotatingObject
 {
 public:
 	StoneObject* Overlaped = NULL;
+	BoundingSphere stone_collider = BoundingSphere();
 
 	StoneObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~StoneObject();
 
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader);
+	
+	BoundingSphere Get_Collider();
+
 };
 
+class CHeightMapTerrain : public CGameObject
+{
+public:
+	CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
+		* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, LPCTSTR pFileName, int nWidth, int nLength, 
+		int nBlockWidth, int nBlockLength,  XMFLOAT3 xmf3Scale, XMFLOAT4 xmf4Color);
+	virtual ~CHeightMapTerrain();
+
+private:
+	// 지형의 높이 맵으로 사용할 이미지
+	CHeightMapImage* m_pHeightMapImage;
+
+	// 높이 맵의 가로와 세로 크기
+	int	m_nWidth;
+	int	m_nLength;
+		
+	//지형을 실제로 몇 배 확대할 것인가를 나타내는 스케일 벡터
+	XMFLOAT3 m_xmf3Scale;
+
+public:
+	// 지형의 높이를 계산하는 함수이다(월드 좌표계). 높이 맵의 높이에 스케일의 y를 곱한 값
+	float GetHeight(float x, float z) {
+		return(m_pHeightMapImage->GetHeight(x / m_xmf3Scale.x, z / m_xmf3Scale.z) * m_xmf3Scale.y);
+	}
+
+	// 지형의 법선 벡터를 계산하는 함수(월드 좌표계). 
+	// 높이 맵의 법선 벡터를 사용
+	XMFLOAT3 GetNormal(float x, float z) {
+		return(m_pHeightMapImage->GetHeightMapNormal(int(x / m_xmf3Scale.x), int(z / m_xmf3Scale.z)));
+	}
+	int GetHeightMapWidth() { return(m_pHeightMapImage->GetHeightMapWidth()); }
+	int GetHeightMapLength() { return(m_pHeightMapImage->GetHeightMapLength()); }
+	XMFLOAT3 GetScale() { return(m_xmf3Scale); }
+
+	//지형의 크기(가로/세로)를 반환한다. 높이 맵의 크기에 스케일을 곱한 값이다.
+	float GetWidth() { return(m_nWidth * m_xmf3Scale.x); }
+	float GetLength() { return(m_nLength * m_xmf3Scale.z); }
+};
