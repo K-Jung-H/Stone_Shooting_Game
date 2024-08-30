@@ -763,12 +763,14 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 
 void CGameFramework::ProcessInput()
 {
-	if (rendering_player == NULL)
+	static UCHAR pKeysBuffer[256];
+
+	if (!rendering_scene && !rendering_player)
 		return;
 
 	DWORD dwDirection = 0;
-	float cxDelta = 0.0f, cyDelta = 0.0f;
 	POINT ptCursorPos;
+	float cxDelta = 0.0f, cyDelta = 0.0f;
 	/*마우스를 캡쳐했으면 마우스가 얼마만큼 이동하였는 가를 계산한다.
 	마우스 왼쪽 또는 오른쪽 버튼이 눌러질 때의 메시지(WM_LBUTTONDOWN, WM_RBUTTONDOWN)를 처리할 때 마우스를 캡쳐하였다.
 	그러므로 마우스가 캡쳐된 것은 마우스 버튼이 눌려진 상태를 의미한다.
@@ -785,14 +787,11 @@ void CGameFramework::ProcessInput()
 		//마우스 커서의 위치를 마우스가 눌려졌던 위치로 설정한다.
 		::SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
 	}
-	//마우스 또는 키 입력이 있으면 플레이어를 이동하거나(dwDirection) 회전한다(cxDelta 또는 cyDelta).
-	if ((cxDelta != 0.0f) || (cyDelta != 0.0f))
-	{
-		if (cxDelta || cyDelta)
-		{
-			rendering_player->Rotate(cyDelta, cxDelta, 0.0f);
-		}
-	}
-	rendering_player->Update(m_GameTimer.GetTimeElapsed());
+
+
+	if (::GetKeyboardState(pKeysBuffer))
+		rendering_scene->ProcessInput(pKeysBuffer, XMFLOAT3(cyDelta, cxDelta, 0.0f), m_GameTimer.GetTimeElapsed());
+
+
 }
 

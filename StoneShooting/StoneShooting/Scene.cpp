@@ -48,7 +48,6 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 {
 	return false;
 }
-
 bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	return false;
@@ -68,9 +67,9 @@ void CScene::ReleaseObjects()
 {
 }
 
-bool CScene::ProcessInput(UCHAR* pKeysBuffer)
+void CScene::ProcessInput(UCHAR* pKeysBuffer, XMFLOAT3 rotate, float fTimeElapsed)
 {
-	return false;
+	return;
 }
 void CScene::AnimateObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fTimeElapsed)
 {
@@ -135,12 +134,85 @@ float* CScene::Get_BackGround_Color()
 	return background_color;
 }
 
+void CScene::Update_Camera_Zoom(float fTimeElapsed, float m_fTimeLag)
+{
+	if (zooming)
+	{
+		XMFLOAT3 start_pos = m_pPlayer->GetPosition();  // 현재 플레이어의 위치
+		XMFLOAT3 end_pos = { 0.0f, 1.0f, 0.0f };        // 목표 위치 (줌 끝 위치)
+
+		XMVECTOR start_Vec = XMLoadFloat3(&start_pos); // 시작 위치 벡터
+		XMVECTOR end_Vec = XMLoadFloat3(&end_pos);     // 목표 위치 벡터
+
+		// 줌 비율 계산 (0.0f ~ 1.0f)
+		float T = (float)zoom_value / 100.0f;
+
+		// XMVectorLerp를 사용하여 시작과 끝 사이를 보간
+		XMVECTOR target_zoom_vec = XMVectorLerp(start_Vec, end_Vec, T);
+
+		// 현재 카메라 위치 가져오기
+		XMFLOAT3 current_cam_pos = m_pPlayer->GetCamera()->GetPosition();
+		XMVECTOR current_cam_vec = XMLoadFloat3(&current_cam_pos);
+
+		// 타임 래그 스케일 계산
+		float fTimeLagScale = (m_fTimeLag > 0) ? fTimeElapsed * (1.0f / m_fTimeLag) : 1.0f;
+
+		// XMVectorLerp를 사용하여 현재 위치에서 목표 위치로 부드럽게 이동
+		XMVECTOR new_cam_vec = XMVectorLerp(current_cam_vec, target_zoom_vec, fTimeLagScale);
+
+		// 결과를 XMFLOAT3로 변환하여 저장
+		XMFLOAT3 new_cam_pos;
+		XMStoreFloat3(&new_cam_pos, new_cam_vec);
+
+		// 카메라 위치 설정
+		m_pPlayer->GetCamera()->SetPosition(new_cam_pos);
+		m_pPlayer->GetCamera()->camera_focus = { 0.0f, 0.0f, 0.0f };
+
+		// 줌이 완료되었는지 확인
+		if (zoom_value == 0) {
+			zooming = false;
+			m_pPlayer->GetCamera()->SetPosition(start_pos);
+			m_pPlayer->GetCamera()->camera_focus = { 0.0f, 0.0f, 0.0f };
+		}
+	}
+}
+
+void CScene::Update_Player_pos_Oribit(float fTimeElapsed, float m_fTimeLag)
+{
+	// 공전 각도를 라디안으로 변환
+	float angleInRadians = XMConvertToRadians(orbit_value);
+
+	// 목표 위치 계산 (XZ 평면에서의 원형 궤도)
+	float x = 200.0f * cosf(angleInRadians); // X 좌표
+	float z = 200.0f * sinf(angleInRadians); // Z 좌표
+	XMFLOAT3 targetPosition = XMFLOAT3(x, 200.0f, z);
+
+	// 현재 플레이어 위치
+	XMFLOAT3 currentPosition = m_pPlayer->GetPosition();
+
+	// 타임 래그 스케일 계산 (0과 1 사이의 비율, 1초 동안 (1.0f / m_fTimeLag) 만큼 이동)
+	float fTimeLagScale = (m_fTimeLag > 0) ? fTimeElapsed * (1.0f / m_fTimeLag) : 1.0f;
+
+	// XMVectorLerp를 이용해 현재 위치에서 목표 위치로 부드럽게 이동
+	XMVECTOR currentPosVec = XMLoadFloat3(&currentPosition);
+	XMVECTOR targetPosVec = XMLoadFloat3(&targetPosition);
+	XMVECTOR newPosVec = XMVectorLerp(currentPosVec, targetPosVec, fTimeLagScale);
+
+	// 결과를 XMFLOAT3로 변환하여 플레이어 위치 업데이트
+	XMFLOAT3 newPosition;
+	XMStoreFloat3(&newPosition, newPosVec);
+	m_pPlayer->SetPosition(newPosition);
+
+	// 카메라의 포커스 및 Up 벡터 설정
+	m_pPlayer->GetCamera()->camera_focus = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	m_pPlayer->GetCamera()->GetUpVector() = XMFLOAT3(0.0f, 1.0f, 0.0f);
+}
+
 //=========================================================================================
 
 Start_Scene::Start_Scene()
 {
 }
-
 Start_Scene::~Start_Scene()
 {
 }
@@ -597,32 +669,10 @@ void Start_Scene::AnimateObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 
 void Start_Scene::Scene_Update(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fTimeElapsed)
 {
-	if (zooming)
+	if (m_pPlayer->GetCamera()->GetMode() == TOP_VIEW_CAMERA)
 	{
-		XMFLOAT3 start_pos = m_pPlayer->GetPosition();
-		XMFLOAT3 end_pos = { 0.0f,1.0f,0.0f };
-
-		XMVECTOR start_Vec = XMLoadFloat3(&start_pos);
-		XMVECTOR end_Vec = XMLoadFloat3(&end_pos);
-		
-		float T = (float)zoom_value / 100.0f;
-
-		// XMVectorLerp를 사용하여 두 점 사이를 보간
-		XMVECTOR zoom_vec = XMVectorLerp(start_Vec, end_Vec, T);
-
-		// 결과를 XMFLOAT3로 변환하여 저장
-		XMFLOAT3 zoom_pos;
-		XMStoreFloat3(&zoom_pos, zoom_vec);
-
-		m_pPlayer->GetCamera()->SetPosition(zoom_pos);
-		m_pPlayer->GetCamera()->camera_focus = { -100.0f,1.0f,0.0f };
-		
-		if (zoom_value == 0)
-		{
-			zooming = false;
-			m_pPlayer->GetCamera()->SetPosition(start_pos);
-			m_pPlayer->GetCamera()->camera_focus = { 0.1f,0.1f,0.1f };
-		}
+		Update_Camera_Zoom(fTimeElapsed, 0.5f);
+		Update_Player_pos_Oribit(fTimeElapsed, 0.5f);
 	}
 }
 
@@ -667,18 +717,20 @@ bool Start_Scene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wP
 
 	case WM_MOUSEWHEEL:
 	{
-		zooming = true;
+		if (m_pPlayer->GetCamera()->GetMode() == TOP_VIEW_CAMERA)
+		{
+			zooming = true;
 
-		int zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+			int zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 
-		if (zDelta > 0) // 스크롤 위로
-			zoom_value -= 2;
-		else // 스크롤 아래로
-			zoom_value += 2;
+			if (zDelta > 0) // 스크롤 위로
+				zoom_value -= 2;
+			else // 스크롤 아래로
+				zoom_value += 2;
 
-		zoom_value = std::clamp(zoom_value, 0, 99);
-
+			zoom_value = std::clamp(zoom_value, 0, 99);
 		}
+	}
 	break;
 
 	default:
@@ -686,10 +738,55 @@ bool Start_Scene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wP
 	}
 	return(false);
 }
-
 bool Start_Scene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	return false;
+	
+	switch (nMessageID)
+	{
+	case WM_KEYDOWN:
+		switch (wParam)
+		{
+		case VK_LEFT:		
+			orbit_value += 1.0f;
+			break;
+
+		case VK_RIGHT:
+			orbit_value -= 1.0f;			
+			break;
+
+		default:
+			break;
+		}
+		break;
+	case WM_KEYUP:
+		switch (wParam)
+		{
+		case VK_TAB:
+			break;
+
+		default:
+			break;
+		}
+		break;
+	default:
+		break;
+	}
+
+
+	return true;
+}
+
+void Start_Scene::ProcessInput(UCHAR* pKeysBuffer, XMFLOAT3 rotate, float fTimeElapsed)
+{
+	float cxDelta = rotate.y;
+	float cyDelta = rotate.x;
+
+	//마우스 또는 키 입력이 있으면 플레이어를 이동하거나(dwDirection) 회전한다(cxDelta 또는 cyDelta).
+	if ((cxDelta != 0.0f) || (cyDelta != 0.0f))
+	{
+		m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
+	}
+	m_pPlayer->Update(fTimeElapsed);
 }
 
 //=========================================================================================
@@ -2040,6 +2137,15 @@ void Playing_Scene::Scene_Update(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	Check_Stones_Collisions();
 
 	Remove_Unnecessary_Objects();
+
+
+	if (m_pPlayer->GetCamera()->GetMode() == TOP_VIEW_CAMERA)
+	{
+		Update_Camera_Zoom(fTimeElapsed, 0.5f);
+		Update_Player_pos_Oribit(fTimeElapsed, 0.5f);
+	}
+
+
 }
 
 void Playing_Scene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
@@ -2571,6 +2677,24 @@ bool Playing_Scene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM 
 		Charge_Effect->Apply_Item(player1.selected_Item_Type);
 		break;
 
+	case WM_MOUSEWHEEL:
+	{
+		if (m_pPlayer->GetCamera()->GetMode() == TOP_VIEW_CAMERA)
+		{
+			zooming = true;
+
+			int zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+
+			if (zDelta > 0) // 스크롤 위로
+				zoom_value -= 2;
+			else // 스크롤 아래로
+				zoom_value += 2;
+
+			zoom_value = std::clamp(zoom_value, 0, 99); 
+		}
+	}
+	break;
+
 	default:
 		break;
 	}
@@ -2592,8 +2716,15 @@ bool Playing_Scene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPAR
 			}
 			break;
 
-		case VK_UP:
+		case VK_LEFT:
+			orbit_value += 1.0f;
 			break;
+
+		case VK_RIGHT:
+			orbit_value -= 1.0f;
+			break;
+
+
 
 		default:
 			break;
@@ -2683,4 +2814,18 @@ bool Playing_Scene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPAR
 	}
 
 	return(false);
+}
+
+void Playing_Scene::ProcessInput(UCHAR* pKeysBuffer, XMFLOAT3 rotate, float fTimeElapsed)
+{
+	float cxDelta = rotate.y;
+	float cyDelta = rotate.x;
+
+	//마우스 또는 키 입력이 있으면 플레이어를 이동하거나(dwDirection) 회전한다(cxDelta 또는 cyDelta).
+	if ((cxDelta != 0.0f) || (cyDelta != 0.0f))
+		m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
+
+	m_pPlayer->Update(fTimeElapsed);
+
+	return;
 }

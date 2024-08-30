@@ -18,6 +18,7 @@ public:
 	//씬에서 마우스와 키보드 메시지를 처리
 	virtual bool OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	virtual bool OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
+	virtual void ProcessInput(UCHAR* pKeysBuffer, XMFLOAT3 rotate, float fTimeElapsed);
 
 	virtual void BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
@@ -25,7 +26,6 @@ public:
 	
 	virtual void ReleaseObjects();
 
-	virtual bool ProcessInput(UCHAR* pKeysBuffer);
 	virtual void AnimateObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fTimeElapsed);
 	virtual void Scene_Update(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fTimeElapsed);
 
@@ -61,7 +61,17 @@ public:
 
 	void Add_Font(IDWriteTextFormat* pfont) { write_font_list.push_back(pfont); }
 	void Add_Brush(ID2D1SolidColorBrush* pbrush) { brush_list.push_back(pbrush); }
+
+	void Update_Camera_Zoom(float fTimeElapsed, float m_fTimeLag);
+	void Update_Player_pos_Oribit(float fTimeElapsed, float m_fTimeLag);
+
 	//=============================================
+protected:
+	// 카메라 줌 & 공전 계수
+	float orbit_value = 0.0f;
+	bool zooming = false;
+	int zoom_value = 0;
+
 
 protected:
 	CShader* Object_Shader = NULL;
@@ -113,6 +123,8 @@ public:
 
 	bool OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam) override;
 	bool OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam) override;
+	virtual void ProcessInput(UCHAR* pKeysBuffer, XMFLOAT3 rotate, float fTimeElapsed);
+
 
 	ID3D12RootSignature* CreateGraphicsRootSignature(ID3D12Device* pd3dDevice) override;
 	ID3D12RootSignature* Create_UI_GraphicsRootSignature(ID3D12Device* pd3dDevice) override;
@@ -145,15 +157,12 @@ public:
 
 	void Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float Board_Width, float Board_Depth);
 
-
-
 	static CMaterial* material_color_white_stone;
 	static CMaterial* material_color_black_stone;
 	static CMaterial* material_color_board;
 	static CMaterial* material_color_none;
 
-	bool zooming = false;
-	int zoom_value = 0;
+
 };
 
 
@@ -171,7 +180,8 @@ public:
 	//씬에서 마우스와 키보드 메시지를 처리한다. 
 	bool OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam) override;
 	bool OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam) override;
-	
+	virtual void ProcessInput(UCHAR* pKeysBuffer, XMFLOAT3 rotate, float fTimeElapsed);
+
 	void BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
 	void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
 	void BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
@@ -218,10 +228,6 @@ public:
 	void Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float Board_Width, float Board_Depth);
 	Inventory_UI* Create_Inventory_UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, D3D12_RECT area);
 
-
-	void Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team);
-
-
 	// 돌 & 돌 충돌 검사
 	void Check_Stones_Collisions();
 
@@ -251,6 +257,7 @@ public:
 
 	void Remove_Unnecessary_Objects();
 
+	void Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool player_team);
 	void Setting_Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, Item_Type type);
 	void Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 pos, CMaterial* material, Particle_Type type);
 	

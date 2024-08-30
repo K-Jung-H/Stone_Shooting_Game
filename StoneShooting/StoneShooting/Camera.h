@@ -156,8 +156,6 @@ class TOP_Camera : public CCamera
 {
 public:
 	TOP_Camera(CCamera* pCamera);
-	
-
 	virtual ~TOP_Camera() { }
 	virtual void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f);
 	virtual void SetLookAt(XMFLOAT3& vLookAt);
