@@ -84,6 +84,7 @@ private:
 	ID2D1SolidColorBrush* m_pd2dbrText = NULL;
 
 	IDWriteTextFormat* m_pdw_Timer_Font = NULL;
+	IDWriteTextFormat* m_pdw_Message_Font = NULL;
 	IDWriteTextFormat* m_pdw_Inventory_Font = NULL;
 
 	IDWriteTextLayout* m_pdwTextLayout = NULL;

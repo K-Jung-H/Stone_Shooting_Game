@@ -23,11 +23,15 @@ CMaterial* Playing_Scene::material_color_white_particle = NULL;
 CMaterial* Playing_Scene::material_color_black_particle = NULL;
 
 CMaterial* Playing_Scene::material_color_board = NULL;
+CMaterial* Playing_Scene::material_color_mountain = NULL;
 CMaterial* Playing_Scene::material_color_none = NULL; 
+
+
 
 CMaterial* Start_Scene::material_color_white_stone = NULL;
 CMaterial* Start_Scene::material_color_black_stone = NULL;
 CMaterial* Start_Scene::material_color_board = NULL;
+CMaterial* Start_Scene::material_color_mountain = NULL;
 CMaterial* Start_Scene::material_color_none = NULL;
 
 CScene::CScene()
@@ -291,6 +295,13 @@ void Start_Scene::Build_Lights_and_Materials()
 		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f)
 	};
 
+	CMaterialColors mountain_color = {
+		XMFLOAT4(0.0f, 0.3725f, 0.4196f, 1.0f),
+		XMFLOAT4(0.0f, 0.3725f, 0.4196f, 1.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+		XMFLOAT4(0.0f, 0.1f, 0.1f, 1.0f)
+	};
+
 	CMaterialColors none_color = {
 	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
 	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
@@ -298,10 +309,11 @@ void Start_Scene::Build_Lights_and_Materials()
 	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f)
 	};
 
+
 	material_color_white_stone = new CMaterial(&white_stone_color);
 	material_color_black_stone = new CMaterial(&black_stone_color);
 	material_color_board = new CMaterial(&board_color);
-
+	material_color_mountain = new CMaterial(&mountain_color);
 	material_color_none = new CMaterial(&none_color);
 }
 
@@ -553,6 +565,15 @@ void Start_Scene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 
 	Create_Board(pd3dDevice, pd3dCommandList, 300, 300);
 
+
+	XMFLOAT3 xmf3Scale(16.0f, 4.0f, 16.0f);
+	XMFLOAT4 xmf4Color(0.0f, 0.2f, 0.0f, 0.0f);
+
+	 CGameObject* m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("HeightMap.raw"), 257, 257, 17, 17, xmf3Scale, xmf4Color);
+	m_pTerrain->SetMaterial(material_color_none);
+	m_pTerrain->AddMaterial(material_color_mountain, true);
+	m_pTerrain->SetPosition(XMFLOAT3(-257.0f * xmf3Scale.x / 2, -500.0f, -257.0f * xmf3Scale.z / 2));
+	game_objects.push_back(m_pTerrain);
 	//===========================================================
 
 	//CSphereMeshIlluminated* StoneMesh = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 8.0f, 20, 20, 0.5f);
@@ -701,6 +722,40 @@ void Start_Scene::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList*
 }
 void Start_Scene::Message_Render(ID2D1DeviceContext2* pd2dDevicecontext)
 {
+	static float T = 1.0f;    
+	static bool increasing = true; 
+
+	if (increasing)
+	{
+		T += 0.01f;
+		if (T >= 1.5f)
+		{
+			T = 1.5f;     
+			increasing = false; 
+		}
+	}
+	else
+	{
+		T -= 0.01f;
+		if (T <= 1.0f)
+		{
+			T = 1.0f;  
+			increasing = true; 
+		}
+	}
+
+
+	D2D1_MATRIX_3X2_F scaleMatrix = D2D1::Matrix3x2F::Scale(T, T);
+	D2D1_MATRIX_3X2_F oldTransform;
+	pd2dDevicecontext->GetTransform(&oldTransform);
+	pd2dDevicecontext->SetTransform(scaleMatrix * oldTransform);
+
+	D2D1_RECT_F message_area = D2D1::RectF(50, 30, 700, 200);
+	std::wstring message = L"Press Any Key!!!";
+	pd2dDevicecontext->DrawTextW(message.c_str(), (UINT32)wcslen(message.c_str()), write_font_list[0], &message_area, brush_list[0]);
+
+	// 출력 후 원래 변환으로 복원
+	pd2dDevicecontext->SetTransform(oldTransform);
 }
 
 bool Start_Scene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
@@ -817,9 +872,9 @@ void Playing_Scene::Build_Lights_and_Materials()
 	m_pLights->m_pLights[1].m_bEnable = true;
 	m_pLights->m_pLights[1].m_nType = DIRECTIONAL_LIGHT;
 	m_pLights->m_pLights[1].m_xmf4Ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_pLights->m_pLights[1].m_xmf4Diffuse = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
+	m_pLights->m_pLights[1].m_xmf4Diffuse = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
 	m_pLights->m_pLights[1].m_xmf4Specular = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	m_pLights->m_pLights[1].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 1.0f);
+	m_pLights->m_pLights[1].m_xmf3Direction = XMFLOAT3(0.0f, -0.5f, 0.5f);
 
 	m_pLights->m_pLights[2].m_bEnable = true;
 	m_pLights->m_pLights[2].m_nType = SPOT_LIGHT;
@@ -896,6 +951,13 @@ void Playing_Scene::Build_Lights_and_Materials()
 		XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f)
 	};
 
+	CMaterialColors mountain_color = {
+		XMFLOAT4(0.0f, 0.3725f, 0.4196f, 1.0f),
+		XMFLOAT4(0.0f, 0.3725f, 0.4196f, 1.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+		XMFLOAT4(0.0f, 0.1f, 0.1f, 1.0f)
+	};
+
 	CMaterialColors none_color = {
 	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
 	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
@@ -912,6 +974,7 @@ void Playing_Scene::Build_Lights_and_Materials()
 	material_color_player_selected = new CMaterial(&player_selected_color);
 	material_color_com_selected = new CMaterial(&com_selected_color);
 	material_color_board = new CMaterial(&board_color);
+	material_color_mountain = new CMaterial(&mountain_color);
 	
 	material_color_none = new CMaterial(&none_color);
 }
@@ -1051,6 +1114,7 @@ void Playing_Scene::Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 
 	pStoneObject = new StoneObject(pd3dDevice, pd3dCommandList);
 	pStoneObject->AddMesh(mesh);
+	pStoneObject->default_collider = mesh->m_xmBoundingBox;
 	pStoneObject->SetPosition(pos.x, pos.y, pos.z);
 	pStoneObject->SetFriction(2);										// Default
 
@@ -1099,6 +1163,13 @@ void Playing_Scene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 
 	Create_Board(pd3dDevice, pd3dCommandList, 200, 600);
 
+
+	XMFLOAT3 xmf3Scale(16.0f, 4.0f, 16.0f);
+	XMFLOAT4 xmf4Color(0.0f, 0.2f, 0.0f, 0.0f);
+	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("HeightMap.raw"), 257, 257, 17, 17, xmf3Scale, xmf4Color);
+	m_pTerrain->SetMaterial(material_color_none);
+	m_pTerrain->AddMaterial(material_color_mountain, true);
+	m_pTerrain->SetPosition(XMFLOAT3(-257.0f * xmf3Scale.x / 2, -500.0f, -257.0f * xmf3Scale.z / 2));
 	//===========================================================
 
 	CSphereMeshIlluminated* StoneMesh = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 8.0f, 20, 20, 0.5f);
@@ -1813,7 +1884,7 @@ bool Playing_Scene::Change_Turn()
 	ui_player_power->Reset();
 	ui_com_power->Reset();
 
-	m_pPlayer->SetCamera(m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, 0.005f));
+	m_pPlayer->SetCamera(m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, 5.0f));
 	return true;
 }
 
@@ -2163,6 +2234,9 @@ void Playing_Scene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 	Update_Shader_Resource(pd3dCommandList);
 	
 	m_pBoards->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
+
+	if (m_pTerrain)
+		m_pTerrain->Render(pd3dCommandList, pCamera, &Object_Shader[0]);
 
 	for (CGameObject* gameobject : GameObject_Stone)
 	{
@@ -2764,7 +2838,7 @@ bool Playing_Scene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPAR
 					item_manager->Add_Stone_Item_Applied(player1.select_Stone);
 				}
 				
-				m_pPlayer->SetCamera(m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, 0.005f));
+				m_pPlayer->SetCamera(m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, 5.0f));
 				Charge_Effect->Reset();
 				ui_player_power->Reset();
 				ui_com_power->Reset();

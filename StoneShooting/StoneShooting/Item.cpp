@@ -139,6 +139,8 @@ Item::Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 		break;
 	}
 
+	default_collider = outer_frame->mesh_list[0]->m_xmBoundingBox;
+
 	Add_Child(inner_frame);
 	Add_Child(outer_frame);
 }

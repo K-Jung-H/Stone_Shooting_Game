@@ -161,7 +161,7 @@ public:
 	static CMaterial* material_color_black_stone;
 	static CMaterial* material_color_board;
 	static CMaterial* material_color_none;
-
+	static CMaterial* material_color_mountain;
 
 };
 
@@ -285,6 +285,7 @@ protected:
 	static CMaterial* material_color_black_particle;
 
 	static CMaterial* material_color_board;
+	static CMaterial* material_color_mountain;
 	static CMaterial* material_color_none;
 public:
 	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
@@ -296,8 +297,11 @@ public:
 	ID3D12PipelineState* m_pd3dPipelineState = NULL;
 	//파이프라인 상태를 나타내는 인터페이스 포인터이다.
 	
+	CHeightMapTerrain* GetTerrain() { return(m_pTerrain); }
 
 public:
+	CHeightMapTerrain* m_pTerrain = NULL;
+
 	CBoardObject* m_pBoards = NULL;
 	
 	UI* ui_player_power;

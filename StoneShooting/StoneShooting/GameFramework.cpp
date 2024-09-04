@@ -310,8 +310,13 @@ void CGameFramework::CreateDirect2DDevice()
 	hResult = m_pdWriteFactory->CreateTextFormat(L"¸¼Àº °íµñ", NULL, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 48.0f, L"ko-KR", &m_pdw_Timer_Font);
 	hResult = m_pdw_Timer_Font->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
 	hResult = m_pdw_Timer_Font->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-	//hResult = m_pdWriteFactory->CreateTextLayout(L"ÅØ½ºÆ® ·¹ÀÌ¾Æ¿ô", 8, m_pdw_Timer_Font, 4096.0f, 4096.0f, &m_pdwTextLayout);
+
 	
+	hResult = m_pdWriteFactory->CreateTextFormat(L"¸¼Àº °íµñ", NULL, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 40.0f, L"ko-KR", &m_pdw_Message_Font);
+	hResult = m_pdw_Message_Font->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+	hResult = m_pdw_Message_Font->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+
 	hResult = m_pdWriteFactory->CreateTextFormat(L"¸¼Àº °íµñ", NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 30.0f, L"ko-KR", &m_pdw_Inventory_Font);
 	hResult = m_pdw_Inventory_Font->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
 	hResult = m_pdw_Inventory_Font->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
@@ -461,7 +466,7 @@ void CGameFramework::BuildObjects()
 
 	Scene_Beginning = new Start_Scene();
 	Scene_Beginning->SetPlayer(player);
-	Scene_Beginning->Add_Font(m_pdw_Timer_Font);
+	Scene_Beginning->Add_Font(m_pdw_Message_Font);
 	Scene_Beginning->Add_Brush(m_pd2dbrText);
 
 	scene_list.push_back(Scene_Beginning);

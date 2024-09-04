@@ -301,8 +301,7 @@ public:
 class CHeightMapTerrain : public CGameObject
 {
 public:
-	CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
-		* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, LPCTSTR pFileName, int nWidth, int nLength, 
+	CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, LPCTSTR pFileName, int nWidth, int nLength, 
 		int nBlockWidth, int nBlockLength,  XMFLOAT3 xmf3Scale, XMFLOAT4 xmf4Color);
 	virtual ~CHeightMapTerrain();
 
@@ -316,6 +315,7 @@ private:
 		
 	//지형을 실제로 몇 배 확대할 것인가를 나타내는 스케일 벡터
 	XMFLOAT3 m_xmf3Scale;
+	int m_nMeshes;
 
 public:
 	// 지형의 높이를 계산하는 함수이다(월드 좌표계). 높이 맵의 높이에 스케일의 y를 곱한 값
