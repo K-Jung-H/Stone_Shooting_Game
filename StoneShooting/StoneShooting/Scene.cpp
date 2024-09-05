@@ -2838,6 +2838,8 @@ bool Playing_Scene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPAR
 					item_manager->Add_Stone_Item_Applied(player1.select_Stone);
 				}
 				
+				orbit_value = 0;
+				zoom_value = 0;
 				m_pPlayer->SetCamera(m_pPlayer->ChangeCamera(TOP_VIEW_CAMERA, 5.0f));
 				Charge_Effect->Reset();
 				ui_player_power->Reset();
