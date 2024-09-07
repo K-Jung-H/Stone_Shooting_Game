@@ -25,6 +25,8 @@ cbuffer Outline : register(b5)
     float padding[3] : packoffset(c2);
 };
 
+Texture2D gtxtTexture : register(t0);
+SamplerState gSamplerState : register(s0);
 
 //========================================================================
 // 플레이어를 그리는 셰이더 

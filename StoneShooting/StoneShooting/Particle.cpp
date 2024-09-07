@@ -55,23 +55,6 @@ XMVECTOR GetRandomRotatedVector(float angle)
 	return finalVector;
 }
 
-
-
-XMFLOAT3& Get_Random_Normalize_Direction()
-{
-	float randX = static_cast<float>(rand()) / RAND_MAX;
-	float randY = static_cast<float>(rand()) / RAND_MAX;
-	float randZ = static_cast<float>(rand()) / RAND_MAX;
-
-	XMFLOAT3 random_D(randX, randY, randZ);
-
-	XMVECTOR normalized_D = XMVector3Normalize(XMLoadFloat3(&random_D));
-
-	XMStoreFloat3(&random_D, normalized_D);
-
-	return random_D;
-}
-
 //==========================================================
 
 Particle::Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, Particle_Type particle_type) : CRotatingObject(pd3dDevice, pd3dCommandList)
@@ -746,7 +729,7 @@ void Snow_Particle::Animate(float fElapsedTime)
 	if (active)
 	{
 		if (Active_Particle < Snow_DEBRISES)
-			Active_Particle += 0.2;
+			Active_Particle += 0.2f;
 
 		m_fElapsedTimes += fElapsedTime;
 

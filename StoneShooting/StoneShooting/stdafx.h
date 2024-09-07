@@ -8,6 +8,7 @@
 #pragma comment(lib, "dxgi.lib")
 
 #pragma comment(lib, "dxguid.lib")
+/*#pragma comment(lib, "DirectXTex.lib") */
 
 //========================DX2D=============start
 #pragma comment(lib, "d2d1.lib")
@@ -18,6 +19,9 @@
 
 #define FRAME_BUFFER_WIDTH 800
 #define FRAME_BUFFER_HEIGHT 600
+
+#define TEXTURES				6
+
  // #define _WITH_SWAPCHAIN_FULLSCREEN_STATE
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용을 Windows 헤더에서 제외합니다.
 
@@ -59,6 +63,7 @@
 #include <DirectXCollision.h>
 
 
+
 //=======================C++================
 #include <random>
 #include <vector>
@@ -66,6 +71,7 @@
 #include <variant>
 #include <algorithm>
 #include <unordered_map>
+
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
@@ -123,7 +129,15 @@ enum class UI_Type
 
 };
 
+#define RESOURCE_TEXTURE2D			0x01
+#define RESOURCE_TEXTURE2D_ARRAY	0x02	
+#define RESOURCE_TEXTURE2DARRAY		0x03
+#define RESOURCE_TEXTURE_CUBE		0x04
+#define RESOURCE_BUFFER				0x05
+
 #define RANDOM_COLOR XMFLOAT4(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX))
+
+
 
 #define Snow_Area_Radius 30.0f
 #define Item_Type_Num 8
@@ -152,13 +166,12 @@ extern ID3D12PipelineState* Connected_PSO;
 extern ID3D12RootSignature* Object_GraphicsRootSignature_ptr;
 extern ID3D12RootSignature* UI_GraphicsRootSignature_ptr;
 
-extern ID3D12Resource* CreateBufferResource(
-	ID3D12Device* pd3dDevice,
-	ID3D12GraphicsCommandList* pd3dCommandList, void* pData, 
-	UINT nBytes, 
-	D3D12_HEAP_TYPE d3dHeapType = D3D12_HEAP_TYPE_UPLOAD, 
-	D3D12_RESOURCE_STATES d3dResourceStates = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, 
-	ID3D12Resource** ppd3dUploadBuffer = NULL);
+
+extern UINT	gnCbvSrvDescriptorIncrementSize;
+
+extern ID3D12Resource* CreateBufferResource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, void* pData, UINT nBytes, D3D12_HEAP_TYPE d3dHeapType = D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATES d3dResourceStates = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ID3D12Resource** ppd3dUploadBuffer = NULL);
+extern ID3D12Resource* CreateTextureResourceFromDDSFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, wchar_t* pszFileName, ID3D12Resource** ppd3dUploadBuffer, D3D12_RESOURCE_STATES d3dResourceStates = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+extern ID3D12Resource* CreateTextureResourceFromWICFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, wchar_t* pszFileName, ID3D12Resource** ppd3dUploadBuffer, D3D12_RESOURCE_STATES d3dResourceStates = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 // 디버그 메시지 출력함수
 extern void DebugOutput(const std::string& message);
