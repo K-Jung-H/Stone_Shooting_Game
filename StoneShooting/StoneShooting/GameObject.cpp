@@ -16,13 +16,18 @@ CTexture::CTexture(int nTextures, UINT nTextureType, int nSamplers, int nRootPar
 	{
 		m_ppd3dTextureUploadBuffers = new ID3D12Resource * [m_nTextures];
 		m_ppd3dTextures = new ID3D12Resource * [m_nTextures];
-		for (int i = 0; i < m_nTextures; i++) m_ppd3dTextureUploadBuffers[i] = m_ppd3dTextures[i] = NULL;
+		for (int i = 0; i < m_nTextures; i++) 
+			m_ppd3dTextureUploadBuffers[i] = m_ppd3dTextures[i] = NULL;
 
 		m_ppstrTextureNames = new _TCHAR[m_nTextures][64];
-		for (int i = 0; i < m_nTextures; i++) m_ppstrTextureNames[i][0] = '\0';
+
+		for (int i = 0; i < m_nTextures; i++) 
+			m_ppstrTextureNames[i][0] = '\0';
 
 		m_pd3dSrvGpuDescriptorHandles = new D3D12_GPU_DESCRIPTOR_HANDLE[m_nTextures];
-		for (int i = 0; i < m_nTextures; i++) m_pd3dSrvGpuDescriptorHandles[i].ptr = NULL;
+
+		for (int i = 0; i < m_nTextures; i++) 
+			m_pd3dSrvGpuDescriptorHandles[i].ptr = NULL;
 
 		m_pnResourceTypes = new UINT[m_nTextures];
 		m_pdxgiBufferFormats = new DXGI_FORMAT[m_nTextures];
@@ -77,12 +82,14 @@ void CTexture::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 	{
 		for (int i = 0; i < m_nRootParameters; i++)
 		{
-			if (m_pd3dSrvGpuDescriptorHandles[i].ptr && (m_pnRootParameterIndices[i] != -1)) pd3dCommandList->SetGraphicsRootDescriptorTable(m_pnRootParameterIndices[i], m_pd3dSrvGpuDescriptorHandles[i]);
+			if (m_pd3dSrvGpuDescriptorHandles[i].ptr && (m_pnRootParameterIndices[i] != -1)) 
+				pd3dCommandList->SetGraphicsRootDescriptorTable(m_pnRootParameterIndices[i], m_pd3dSrvGpuDescriptorHandles[i]);
 		}
 	}
 	else
 	{
-		if (m_pd3dSrvGpuDescriptorHandles[0].ptr) pd3dCommandList->SetGraphicsRootDescriptorTable(m_pnRootParameterIndices[0], m_pd3dSrvGpuDescriptorHandles[0]);
+		if (m_pd3dSrvGpuDescriptorHandles[0].ptr) 
+			pd3dCommandList->SetGraphicsRootDescriptorTable(m_pnRootParameterIndices[0], m_pd3dSrvGpuDescriptorHandles[0]);
 	}
 }
 
@@ -189,6 +196,13 @@ CMaterial::~CMaterial()
 
 	if (Material_Colors)
 		Material_Colors->Release();
+}
+
+void CMaterial::SetTexture(CTexture* pTexture)
+{
+	if (m_pTexture) m_pTexture->Release();
+	m_pTexture = pTexture;
+	if (m_pTexture) m_pTexture->AddRef();
 }
 
 void CMaterial::SetShader(CShader* pShader)
@@ -443,7 +457,7 @@ void CGameObject::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandL
 
 	case Resource_Buffer_Type::Material_info:
 	{
-		Update_Material_Buffer(N);
+		Update_Material_Buffer(pd3dCommandList, N);
 
 		// 현재 게임 재질 정보 상수 버퍼를 바인딩
 		D3D12_GPU_VIRTUAL_ADDRESS d3dcbMaterialGpuVirtualAddress = Material_Constant_Buffer->GetGPUVirtualAddress();
@@ -466,7 +480,7 @@ void CGameObject::Update_Object_Buffer()
 	::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
 }
 
-void CGameObject::Update_Material_Buffer(int N)
+void CGameObject::Update_Material_Buffer(ID3D12GraphicsCommandList* pd3dCommandList, int N)
 {
 	if (m_ppMaterials.size() == 0) {
 		DebugOutput("Update_Material_Buffer :: Object has no material");
@@ -485,6 +499,11 @@ void CGameObject::Update_Material_Buffer(int N)
 	::memcpy(&pbMappedMaterial->m_cDiffuse, &colors->m_xmf4Diffuse, sizeof(XMFLOAT4));
 	::memcpy(&pbMappedMaterial->m_cSpecular, &colors->m_xmf4Specular, sizeof(XMFLOAT4));
 	::memcpy(&pbMappedMaterial->m_cEmissive, &colors->m_xmf4Emissive, sizeof(XMFLOAT4));
+
+
+	//if (m_ppMaterials[N].first->m_pTexture)
+	//	m_ppMaterials[N].first->m_pTexture->UpdateShaderVariables(pd3dCommandList);
+
 
 }
 
@@ -540,7 +559,7 @@ void CGameObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 
 void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CShader* pShader)
 {
-	pd3dCommandList->SetGraphicsRootSignature(Object_GraphicsRootSignature_ptr);
+//	pd3dCommandList->SetGraphicsRootSignature(Object_GraphicsRootSignature_ptr);
 
 	if (!active)
 		return;
@@ -559,6 +578,11 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 			{
 				m_ppMaterials[i].first->material_shader->Setting_Render(pd3dCommandList, o_type, used_item);
 				shader_changed = true;
+
+				// 재질에 텍스쳐가 연결되어 있다면 활용
+				if (m_ppMaterials[i].first->m_pTexture)
+					m_ppMaterials[i].first->m_pTexture->UpdateShaderVariables(pd3dCommandList);
+
 			}
 			else // Ghost는 선으로 그리기
 				pShader->Setting_Render(pd3dCommandList, o_type, used_item);

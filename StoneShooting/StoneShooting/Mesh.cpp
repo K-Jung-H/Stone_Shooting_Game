@@ -966,6 +966,75 @@ CPlaneMeshIlluminated::~CPlaneMeshIlluminated() {
 	if (m_pd3dVertexUploadBuffer) m_pd3dVertexUploadBuffer->Release();
 }
 
+//===============================================================================
+
+CPlaneMeshTextured::CPlaneMeshTextured(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
+	float fWidth, float fDepth, int N_SubRect) : CMesh(pd3dDevice, pd3dCommandList)
+{
+	int nSubRects = N_SubRect;
+
+	float fHalfWidth = fWidth * 0.5f;
+	float fHalfDepth = fDepth * 0.5f;
+	float fCellWidth = fWidth / nSubRects;
+	float fCellDepth = fDepth / nSubRects;
+
+	m_nVertices = 0;
+	m_nStride = sizeof(CTexturedVertex);
+	m_nOffset = 0;
+	m_nSlot = 0;
+	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	std::vector<CTexturedVertex> tempVertices;
+
+	for (int i = 0; i < nSubRects; i++) {
+		for (int j = 0; j < nSubRects; j++) {
+			float u0 = i / static_cast<float>(nSubRects);
+			float v0 = j / static_cast<float>(nSubRects);
+			float u1 = (i + 1) / static_cast<float>(nSubRects);
+			float v1 = (j + 1) / static_cast<float>(nSubRects);
+
+			XMFLOAT3 v0_pos(-fHalfWidth + (i * fCellWidth), 0.0f, -fHalfDepth + (j * fCellDepth));
+			XMFLOAT3 v1_pos(-fHalfWidth + ((i + 1) * fCellWidth), 0.0f, -fHalfDepth + (j * fCellDepth));
+			XMFLOAT3 v2_pos(-fHalfWidth + ((i + 1) * fCellWidth), 0.0f, -fHalfDepth + ((j + 1) * fCellDepth));
+			XMFLOAT3 v3_pos(-fHalfWidth + (i * fCellWidth), 0.0f, -fHalfDepth + ((j + 1) * fCellDepth));
+
+			XMFLOAT2 uv0(u0, v0);
+			XMFLOAT2 uv1(u1, v0);
+			XMFLOAT2 uv2(u1, v1);
+			XMFLOAT2 uv3(u0, v1);
+
+			tempVertices.push_back(CTexturedVertex(v0_pos, uv0));
+			tempVertices.push_back(CTexturedVertex(v2_pos, uv2));
+			tempVertices.push_back(CTexturedVertex(v1_pos, uv1));
+
+			tempVertices.push_back(CTexturedVertex(v0_pos, uv0));
+			tempVertices.push_back(CTexturedVertex(v3_pos, uv3));
+			tempVertices.push_back(CTexturedVertex(v2_pos, uv2));
+		}
+	}
+
+	m_nVertices = tempVertices.size();
+	m_pVertices_T = new CTexturedVertex[m_nVertices];
+	std::copy(tempVertices.begin(), tempVertices.end(), m_pVertices_T);
+
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pVertices_T, m_nStride * m_nVertices,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
+	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
+	m_d3dVertexBufferView.StrideInBytes = m_nStride;
+	m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
+
+	m_xmBoundingBox = BoundingOrientedBox(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(fHalfWidth, 10.0f, fHalfDepth), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+
+}
+
+CPlaneMeshTextured::~CPlaneMeshTextured() {
+	if (m_pVertices_I) delete[] m_pVertices_I;
+	if (m_pd3dVertexBuffer) m_pd3dVertexBuffer->Release();
+	if (m_pd3dVertexUploadBuffer) m_pd3dVertexUploadBuffer->Release();
+}
+
+//===============================================================================
+
 CHeightMapImage::CHeightMapImage(LPCTSTR pFileName, int nWidth, int nLength, XMFLOAT3 xmf3Scale)
 {
 	m_nWidth = nWidth;

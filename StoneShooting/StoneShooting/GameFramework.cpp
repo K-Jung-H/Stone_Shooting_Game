@@ -246,9 +246,11 @@ void CGameFramework::CreateDirect3DDevice()
 	//펜스와 동기화를 위한 이벤트 객체를 생성한다(이벤트 객체의 초기값을 FALSE이다).
 	//이벤트의 값을 자동적으로 FALSE가 되도록 생성한다.
 	m_hFenceEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
-	
-	
-	if (pd3dAdapter) pd3dAdapter->Release();
+		
+	::gnCbvSrvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	if (pd3dAdapter) 
+		pd3dAdapter->Release();
 }
 
 #ifdef _WITH_DIRECT2D
@@ -380,8 +382,7 @@ void CGameFramework::CreateRtvAndDsvDescriptorHeaps()
 		__uuidof(ID3D12DescriptorHeap), (void**)&m_pd3dRtvDescriptorHeap);
 
 	//렌더 타겟 서술자 힙의 원소의 크기를 저장한다.
-	m_nRtvDescriptorIncrementSize =
-		m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_nRtvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 
 	//깊이-스텐실 서술자 힙(서술자 개수는 1)을 생성한다.

@@ -61,6 +61,18 @@ public:
 	~CIlluminatedVertex() { }
 };
 
+class CTexturedVertex : public CVertex
+{
+public:
+	XMFLOAT2						m_xmf2TexCoord;
+
+public:
+	CTexturedVertex() { m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f); m_xmf2TexCoord = XMFLOAT2(0.0f, 0.0f); }
+	CTexturedVertex(float x, float y, float z, XMFLOAT2 xmf2TexCoord) { m_xmf3Position = XMFLOAT3(x, y, z); m_xmf2TexCoord = xmf2TexCoord; }
+	CTexturedVertex(XMFLOAT3 xmf3Position, XMFLOAT2 xmf2TexCoord = XMFLOAT2(0.0f, 0.0f)) { m_xmf3Position = xmf3Position; m_xmf2TexCoord = xmf2TexCoord; }
+	~CTexturedVertex() { }
+};
+
 class CMesh
 {
 protected:
@@ -92,9 +104,9 @@ protected:
 
 	//정점을 픽킹을 위하여 저장한다(정점 버퍼를 Map()하여 읽지 않아도 되도록).
 	CDiffusedVertex* m_pVertices_D = NULL;
-
-
 	CIlluminatedVertex* m_pVertices_I = NULL;
+	CTexturedVertex* m_pVertices_T = NULL;
+
 	//메쉬의 인덱스를 저장한다(인덱스 버퍼를 Map()하여 읽지 않아도 되도록).
 	UINT* m_pnIndices = NULL;
 
@@ -216,6 +228,8 @@ public:
 	virtual ~CPlaneMeshIlluminated();
 };
 
+
+
 //======================================================================================
 
 class CHeightMapImage
@@ -278,4 +292,15 @@ public:
 
 	//격자의 좌표가 (x, z)일 때 교점(정점)의 색상을 반환하는 함수이다.
 	virtual XMFLOAT4 OnGetColor(int x, int z, void* pContext);
+};
+
+//======================================================================================
+
+
+
+class CPlaneMeshTextured : public CMesh
+{
+public:
+	CPlaneMeshTextured(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fWidth, float fDepth, int N_SubRect);
+	virtual ~CPlaneMeshTextured();
 };

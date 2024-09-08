@@ -138,3 +138,19 @@ public:
 	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type = Object_Type::ETC, Item_Type i_type = Item_Type::None);
 
 };
+
+class CTexturedShader : public CShader
+{
+public:
+	CTexturedShader();
+	virtual ~CTexturedShader();
+
+	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
+
+	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature);
+
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob** ppd3dShaderBlob);
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob** ppd3dShaderBlob);
+
+	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type, Item_Type i_type);
+};

@@ -77,6 +77,9 @@ protected:
 	CShader* Object_Shader = NULL;
 	int N_Object_Shader = 1;
 
+	CShader* Texture_Shader = NULL;
+	int N_Texture_Shader = 1;
+
 	CShader* UI_Shader = NULL;
 	int N_UI_Shader = 1;
 

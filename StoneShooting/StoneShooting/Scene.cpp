@@ -1026,7 +1026,7 @@ void Playing_Scene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	Object_GraphicsRootSignature_ptr = m_pd3dGraphicsRootSignature;
 	UI_GraphicsRootSignature_ptr = UI_GraphicsRootSignature;
 
-	CreateCbvSrvDescriptorHeaps(pd3dDevice, nObjects + 1, TEXTURES);
+	CreateCbvSrvDescriptorHeaps(pd3dDevice, 0, TEXTURES);
 
 	// 조명 및 재질 리소스 생성
 	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
@@ -1057,8 +1057,10 @@ void Playing_Scene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	float Board_Half_Width = Board_Width / 2;
 	float Board_Half_Depth = Board_Depth / 2;
 
-	CPlaneMeshIlluminated* pboard_mesh = new CPlaneMeshIlluminated(pd3dDevice, pd3dCommandList, Board_Half_Width * 2.0f, Board_Half_Depth * 2.0f, 500);
+	//CPlaneMeshIlluminated* pboard_mesh = new CPlaneMeshIlluminated(pd3dDevice, pd3dCommandList, Board_Half_Width * 2.0f, Board_Half_Depth * 2.0f, 500);
+	CPlaneMeshTextured* pboard_mesh = new CPlaneMeshTextured(pd3dDevice, pd3dCommandList, Board_Half_Width * 2.0f, Board_Half_Depth * 2.0f, 500);
 
+	
 	m_pBoards = new CBoardObject(pd3dDevice, pd3dCommandList);
 	m_pBoards->SetPosition(0.0f, 0.0f, 0.0f);
 	m_pBoards->AddMesh(pboard_mesh);
@@ -1155,6 +1157,38 @@ void Playing_Scene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	// 게임 객체
 	Object_Shader = new CObjectsShader[N_Object_Shader];
 	Object_Shader[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
+	
+	Texture_Shader = new CTexturedShader[N_Texture_Shader];
+	Texture_Shader[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
+
+
+	CTexture* ppTextures[TEXTURES];
+	ppTextures[0] = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
+	ppTextures[0]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Stone01.dds", RESOURCE_TEXTURE2D, 0);
+	ppTextures[1] = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
+	ppTextures[1]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Stone01.dds", RESOURCE_TEXTURE2D, 0);
+	ppTextures[2] = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
+	ppTextures[2]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Metal01.dds", RESOURCE_TEXTURE2D, 0);
+	ppTextures[3] = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
+	ppTextures[3]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Metal02.dds", RESOURCE_TEXTURE2D, 0);
+	ppTextures[4] = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
+	ppTextures[4]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Rock01.dds", RESOURCE_TEXTURE2D, 0);
+	ppTextures[5] = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
+	ppTextures[5]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Lava(Emissive).dds", RESOURCE_TEXTURE2D, 0);
+	
+	for (int i = 0; i < TEXTURES; i++)
+		CreateShaderResourceViews(pd3dDevice, ppTextures[i], 0, 6);
+
+	CMaterial* ppMaterials[TEXTURES];
+	for (int i = 0; i < TEXTURES; i++)
+	{
+		ppMaterials[i] = new CMaterial();
+		ppMaterials[i]->SetTexture(ppTextures[i]);
+
+		ppMaterials[i]->SetShader(&Texture_Shader[0]);
+	}
+
+
 
 	// 윤곽선
 	Outline_Shader = new OutlineShader[N_Outline_Shader];
@@ -1164,6 +1198,7 @@ void Playing_Scene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	material_color_none->SetShader(&Outline_Shader[0]);
 
 	Create_Board(pd3dDevice, pd3dCommandList, 200, 600);
+	m_pBoards->AddMaterial(ppMaterials[0], true);
 
 
 	XMFLOAT3 xmf3Scale(16.0f, 4.0f, 16.0f);
@@ -1412,30 +1447,17 @@ void Playing_Scene::ReleaseUploadBuffers()
 		Object_Shader[j].ReleaseUploadBuffers();
 }
 
-
 ID3D12RootSignature* Playing_Scene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevice)
 {
 	ID3D12RootSignature* pd3dGraphicsRootSignature = NULL;
 
-	D3D12_DESCRIPTOR_RANGE pd3dDescriptorRanges[3];
+	D3D12_DESCRIPTOR_RANGE pd3dDescriptorRanges[1];
 
-	pd3dDescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	pd3dDescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	pd3dDescriptorRanges[0].NumDescriptors = 1;
-	pd3dDescriptorRanges[0].BaseShaderRegister = 2; //GameObject
+	pd3dDescriptorRanges[0].BaseShaderRegister = 0; //t0: gtxtTexture
 	pd3dDescriptorRanges[0].RegisterSpace = 0;
 	pd3dDescriptorRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-	pd3dDescriptorRanges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	pd3dDescriptorRanges[1].NumDescriptors = 1;
-	pd3dDescriptorRanges[1].BaseShaderRegister = 3; //Materials
-	pd3dDescriptorRanges[1].RegisterSpace = 0;
-	pd3dDescriptorRanges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-	pd3dDescriptorRanges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	pd3dDescriptorRanges[2].NumDescriptors = 1;
-	pd3dDescriptorRanges[2].BaseShaderRegister = 0; //t0: gtxtTexture
-	pd3dDescriptorRanges[2].RegisterSpace = 0;
-	pd3dDescriptorRanges[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	D3D12_ROOT_PARAMETER pd3dRootParameters[7];
 
@@ -1448,19 +1470,16 @@ ID3D12RootSignature* Playing_Scene::CreateGraphicsRootSignature(ID3D12Device* pd
 	pd3dRootParameters[1].Descriptor.ShaderRegister = 1; //Camera
 	pd3dRootParameters[1].Descriptor.RegisterSpace = 0;
 	pd3dRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-	
-	//------------------------------------
-	pd3dRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	pd3dRootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
-	pd3dRootParameters[2].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[0]; //GameObject
+
+	pd3dRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	pd3dRootParameters[2].Descriptor.ShaderRegister = 2;
+	pd3dRootParameters[2].Descriptor.RegisterSpace = 0; //GameObject
 	pd3dRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
-	pd3dRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	pd3dRootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
-	pd3dRootParameters[3].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[1]; //Material
+	pd3dRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	pd3dRootParameters[3].Descriptor.ShaderRegister = 3;
+	pd3dRootParameters[3].Descriptor.RegisterSpace = 0; //Material
 	pd3dRootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-
-	//------------------------------------
 
 	pd3dRootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	pd3dRootParameters[4].Descriptor.ShaderRegister = 4; //Lights
@@ -1473,11 +1492,9 @@ ID3D12RootSignature* Playing_Scene::CreateGraphicsRootSignature(ID3D12Device* pd
 	pd3dRootParameters[5].Constants.Num32BitValues = 8;
 	pd3dRootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	//------------------------------------
-
 	pd3dRootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	pd3dRootParameters[6].DescriptorTable.NumDescriptorRanges = 1;
-	pd3dRootParameters[6].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[2];
+	pd3dRootParameters[6].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[0];
 	pd3dRootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	//================================================
@@ -1497,14 +1514,12 @@ ID3D12RootSignature* Playing_Scene::CreateGraphicsRootSignature(ID3D12Device* pd
 	d3dSamplerDesc.RegisterSpace = 0;
 	d3dSamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-
 	D3D12_ROOT_SIGNATURE_FLAGS d3dRootSignatureFlags =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
-	
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+
 	D3D12_ROOT_SIGNATURE_DESC d3dRootSignatureDesc;
 	::ZeroMemory(&d3dRootSignatureDesc, sizeof(D3D12_ROOT_SIGNATURE_DESC));
 	d3dRootSignatureDesc.NumParameters = _countof(pd3dRootParameters);
@@ -1512,23 +1527,24 @@ ID3D12RootSignature* Playing_Scene::CreateGraphicsRootSignature(ID3D12Device* pd
 	d3dRootSignatureDesc.NumStaticSamplers = 1;
 	d3dRootSignatureDesc.pStaticSamplers = &d3dSamplerDesc;
 	d3dRootSignatureDesc.Flags = d3dRootSignatureFlags;
-	
+
 	ID3DBlob* pd3dSignatureBlob = NULL;
 	ID3DBlob* pd3dErrorBlob = NULL;
-	
+
 	::D3D12SerializeRootSignature(&d3dRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &pd3dSignatureBlob, &pd3dErrorBlob);
-	
+
 	pd3dDevice->CreateRootSignature(0, pd3dSignatureBlob->GetBufferPointer(), pd3dSignatureBlob->GetBufferSize(),
 		__uuidof(ID3D12RootSignature), (void**)&pd3dGraphicsRootSignature);
-	
-	if (pd3dSignatureBlob) 
+
+	if (pd3dSignatureBlob)
 		pd3dSignatureBlob->Release();
-	
-	if (pd3dErrorBlob) 
+
+	if (pd3dErrorBlob)
 		pd3dErrorBlob->Release();
-	
+
 	return(pd3dGraphicsRootSignature);
 }
+
 
 ID3D12RootSignature* Playing_Scene::Create_UI_GraphicsRootSignature(ID3D12Device* pd3dDevice)
 {
@@ -1665,11 +1681,13 @@ void Playing_Scene::CreateCbvSrvDescriptorHeaps(ID3D12Device* pd3dDevice, int nC
 
 	m_d3dCbvCPUDescriptorStartHandle = m_pd3dCbvSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	m_d3dCbvGPUDescriptorStartHandle = m_pd3dCbvSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
-	m_d3dSrvCPUDescriptorStartHandle.ptr = m_d3dCbvCPUDescriptorStartHandle.ptr + (::gnCbvSrvDescriptorIncrementSize * nConstantBufferViews);
+	// CBV는 0개
+	m_d3dSrvCPUDescriptorStartHandle.ptr = m_d3dCbvCPUDescriptorStartHandle.ptr + (::gnCbvSrvDescriptorIncrementSize *  nConstantBufferViews);
 	m_d3dSrvGPUDescriptorStartHandle.ptr = m_d3dCbvGPUDescriptorStartHandle.ptr + (::gnCbvSrvDescriptorIncrementSize * nConstantBufferViews);
 
-	m_d3dCbvCPUDescriptorNextHandle = m_d3dCbvCPUDescriptorStartHandle;
-	m_d3dCbvGPUDescriptorNextHandle = m_d3dCbvGPUDescriptorStartHandle;
+	//m_d3dCbvCPUDescriptorNextHandle = m_d3dCbvCPUDescriptorStartHandle;
+	//m_d3dCbvGPUDescriptorNextHandle = m_d3dCbvGPUDescriptorStartHandle;
+
 	m_d3dSrvCPUDescriptorNextHandle = m_d3dSrvCPUDescriptorStartHandle;
 	m_d3dSrvGPUDescriptorNextHandle = m_d3dSrvGPUDescriptorStartHandle;
 }
@@ -2368,6 +2386,9 @@ void Playing_Scene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 	// 커멘드 리스트에 PSO 연결, 루트 시그니처는 PSO에 이미 바인딩 되어 있음 == 따로 커멘드 리스트에서 바인딩 안해도 되지만, 안정성 문제
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
 	Object_Shader[0].Setting_PSO(pd3dCommandList, 1); 
+
+	pd3dCommandList->SetDescriptorHeaps(1, &m_pd3dCbvSrvDescriptorHeap);
+
 
 	// 카메라 영역 및 정보 업데이트
 	pCamera->SetViewportsAndScissorRects(pd3dCommandList);

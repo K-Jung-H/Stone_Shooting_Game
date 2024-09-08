@@ -82,6 +82,7 @@ enum class Shader_Type {
 	Outline,
 	Object,
 	UI,
+	Texture,
 	ETC
 };
 

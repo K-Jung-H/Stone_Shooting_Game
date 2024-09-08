@@ -138,6 +138,7 @@ private:
 	int m_nReferences = 0;
 
 public:
+	CTexture* m_pTexture = NULL; // 재질에 사용할 텍스쳐
 	CShader* material_shader = NULL; 	// 재질에 적용할 추가적인 셰이더
 	CMaterialColors* Material_Colors = NULL;
 
@@ -153,7 +154,7 @@ public:
 
 	void SetMaterialColors(CMaterialColors* pMaterialColors);
 	void SetShader(CShader* pShader);
-
+	void SetTexture(CTexture* pTexture);
 };
 
 
@@ -246,7 +247,7 @@ public:
 
 
 	virtual void Update_Object_Buffer();
-	virtual void Update_Material_Buffer(int N);
+	virtual void Update_Material_Buffer(ID3D12GraphicsCommandList* pd3dCommandList, int N);
 	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList, Resource_Buffer_Type type, int N = 0);
 
 	virtual void Release_Shader_Resource();
