@@ -139,6 +139,9 @@ Item::Item(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 		break;
 	}
 
+	SetMovingDirection(XMFLOAT3(0.0f, -1.0f, 0.0f));
+	SetMovingSpeed(30.0f);
+
 	default_collider = outer_frame->mesh_list[0]->m_xmBoundingBox;
 
 	Add_Child(inner_frame);
@@ -165,6 +168,17 @@ void Item::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 	if (inner_frame)
 	{
 		inner_frame->Animate(fTimeElapsed, pxmf4x4Parent);
+	}
+
+	if (!is_ground)
+	{
+		Move(m_xmf3MovingDirection, m_fMovingSpeed * fTimeElapsed);
+		XMFLOAT3 pos = GetPosition();
+		if (pos.y <= 10.0f)
+		{
+			SetPosition(pos.x, 10.0f, pos.z);
+			is_ground = true;
+		}
 	}
 
 	// 자식 객체가 있다면, 해당 객체들 업데이트
@@ -498,3 +512,4 @@ void Item_Manager::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, C
 	}
 
 }
+

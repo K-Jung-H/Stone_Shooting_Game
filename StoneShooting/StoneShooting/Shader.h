@@ -154,3 +154,18 @@ public:
 
 	virtual void Setting_Render(ID3D12GraphicsCommandList* pd3dCommandList, Object_Type o_type, Item_Type i_type);
 };
+
+class Textured_UI_Shader : public CShader
+{
+public:
+	Textured_UI_Shader();
+	virtual ~Textured_UI_Shader();
+
+	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
+
+	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature);
+
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob** ppd3dShaderBlob);
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob** ppd3dShaderBlob);
+
+};

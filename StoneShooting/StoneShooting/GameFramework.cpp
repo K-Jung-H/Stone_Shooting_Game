@@ -67,6 +67,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	//·»´õ¸µ ÇÒ °ÔÀÓ °´Ã¼¸¦ »ý¼ºÇÑ´Ù.
 	BuildObjects();
+	
 
 	return(true);
 }
@@ -107,7 +108,9 @@ void CGameFramework::OnDestroy()
 	if (m_pd2dbrBorder) m_pd2dbrBorder->Release();
 	if (m_pdw_Timer_Font) m_pdw_Timer_Font->Release();
 	if (m_pdwTextLayout) m_pdwTextLayout->Release();
-	if (m_pd2dbrText) m_pd2dbrText->Release();
+
+	if (m_pd2dbrText_B) m_pd2dbrText_B->Release();
+	if (m_pd2dbrText_W) m_pd2dbrText_W->Release();
 
 	if (m_pd2dDeviceContext) m_pd2dDeviceContext->Release();
 	if (m_pd2dDevice) m_pd2dDevice->Release();
@@ -307,7 +310,9 @@ void CGameFramework::CreateDirect2DDevice()
 	m_pd2dDeviceContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 	m_pd2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(0.3f, 0.0f, 0.0f, 0.5f), &m_pd2dbrBackground);
 	m_pd2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF(0x9ACD32, 1.0f)), &m_pd2dbrBorder);
-	m_pd2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black, 1.0f), &m_pd2dbrText);
+	m_pd2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black, 1.0f), &m_pd2dbrText_B);
+	m_pd2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White, 1.0f), &m_pd2dbrText_W);
+
 
 	hResult = m_pdWriteFactory->CreateTextFormat(L"¸¼Àº °íµñ", NULL, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 48.0f, L"ko-KR", &m_pdw_Timer_Font);
 	hResult = m_pdw_Timer_Font->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
@@ -451,50 +456,108 @@ void CGameFramework::CreateDepthStencilView()
 
 }
 
-void CGameFramework::BuildObjects()
+void CGameFramework::Build_Player()
 {
 	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
-	
+
 	Moving_Player* player = new Moving_Player(m_pd3dDevice, m_pd3dCommandList);
 	player_list.push_back(player);
 
-	Scene_Playing = new Playing_Scene();
-	Scene_Playing->SetPlayer(player);
-	Scene_Playing->Add_Font(m_pdw_Timer_Font);
-	Scene_Playing->Add_Font(m_pdw_Inventory_Font);
-	Scene_Playing->Add_Brush(m_pd2dbrText);
-	scene_list.push_back(Scene_Playing);
 
-	Scene_Beginning = new Start_Scene();
-	Scene_Beginning->SetPlayer(player);
-	Scene_Beginning->Add_Font(m_pdw_Message_Font);
-	Scene_Beginning->Add_Brush(m_pd2dbrText);
-
-	scene_list.push_back(Scene_Beginning);
-
-
-	for (CScene* scene : scene_list)
-		scene->BuildScene(m_pd3dDevice, m_pd3dCommandList);
-
-	
-	
-
-	rendering_player = player;
-	rendering_scene = Scene_Beginning;
-	
-
-	//===================================================
 
 	m_pd3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
 
 	WaitForGpuComplete();
+	m_GameTimer.Reset();
 
-	for (CScene* scene : scene_list)
-		scene->ReleaseUploadBuffers();
+}
+
+void CGameFramework::Build_Loading_Scene(CPlayer* cplayer)
+{
+	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
+
+	Scene_Loading = new Loading_Scene();
+
+	Scene_Loading->SetPlayer(cplayer);
+	Scene_Loading->Add_Font(m_pdw_Timer_Font);
+	Scene_Loading->Add_Brush(m_pd2dbrText_W);
+	Scene_Loading->BuildScene(m_pd3dDevice, m_pd3dCommandList);
+
+	scene_list.push_back(Scene_Beginning);
+
+
+	m_pd3dCommandList->Close();
+	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
+	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
+
+	WaitForGpuComplete();
+	Scene_Loading->ReleaseUploadBuffers();
 
 	m_GameTimer.Reset();
+}
+
+void CGameFramework::Build_Start_Scene(CPlayer* cplayer)
+{
+	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
+
+	Scene_Beginning = new Start_Scene();
+	Scene_Beginning->SetPlayer(cplayer);
+	Scene_Beginning->Add_Font(m_pdw_Message_Font);
+	Scene_Beginning->Add_Brush(m_pd2dbrText_B);
+	Scene_Beginning->BuildScene(m_pd3dDevice, m_pd3dCommandList);
+
+	scene_list.push_back(Scene_Beginning);
+
+	m_pd3dCommandList->Close();
+	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
+	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
+
+	WaitForGpuComplete();
+	Scene_Beginning->ReleaseUploadBuffers();
+
+	m_GameTimer.Reset();
+}
+
+void CGameFramework::Build_Playing_Scene(CPlayer* cplayer)
+{
+	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
+
+	Scene_Playing = new Playing_Scene();
+	Scene_Playing->SetPlayer(cplayer);
+	Scene_Playing->Add_Font(m_pdw_Timer_Font);
+	Scene_Playing->Add_Font(m_pdw_Inventory_Font);
+	Scene_Playing->Add_Brush(m_pd2dbrText_B);
+	Scene_Playing->BuildScene(m_pd3dDevice, m_pd3dCommandList);
+
+	scene_list.push_back(Scene_Playing);
+
+
+
+	m_pd3dCommandList->Close();
+	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
+	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
+
+	WaitForGpuComplete();
+	Scene_Playing->ReleaseUploadBuffers();
+
+	m_GameTimer.Reset();
+}
+
+void CGameFramework::BuildObjects()
+{
+
+	Build_Player();
+
+	Build_Loading_Scene(player_list[0]);
+	Build_Start_Scene(player_list[0]);
+	Build_Playing_Scene(player_list[0]);
+
+	rendering_scene = Scene_Beginning;
+	rendering_player = rendering_scene->GetPlayer();
+	//===================================================
+
 }
 
 void CGameFramework::ReleaseObjects()
@@ -512,6 +575,8 @@ void CGameFramework::Animate_Scene_Objects()
 {
 	if (rendering_scene)
 		rendering_scene->AnimateObjects(m_pd3dDevice, m_pd3dCommandList, m_GameTimer.GetTimeElapsed());
+
+
 }
 
 void CGameFramework::WaitForGpuComplete()
@@ -532,6 +597,10 @@ void CGameFramework::FrameAdvance()
 	
 	ProcessInput();
 	
+	if (Scene_Loading != NULL)
+		if (Scene_Loading->Is_Loading_End())
+			rendering_scene = Scene_Playing;
+
 	Animate_Scene_Objects();
 	
 	HRESULT hResult = m_pd3dCommandAllocator->Reset();
@@ -719,7 +788,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		switch (wParam)
 		{
 		case VK_TAB:
-			rendering_scene = Scene_Playing;
+			rendering_scene = Scene_Loading;
 			break;
 
 		case VK_F9:

@@ -12,6 +12,8 @@ public:
 	CRotatingObject* outer_frame = NULL;
 	CGameObject* inner_frame = NULL;
 
+	bool is_ground = false;
+
 public:
 	Item_Type item_type = Item_Type::ETC;
 	static CMesh* outer_Mesh;

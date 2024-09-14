@@ -81,7 +81,8 @@ private:
 
 	ID2D1SolidColorBrush* m_pd2dbrBackground = NULL;
 	ID2D1SolidColorBrush* m_pd2dbrBorder = NULL;
-	ID2D1SolidColorBrush* m_pd2dbrText = NULL;
+	ID2D1SolidColorBrush* m_pd2dbrText_B = NULL;
+	ID2D1SolidColorBrush* m_pd2dbrText_W = NULL;
 
 	IDWriteTextFormat* m_pdw_Timer_Font = NULL;
 	IDWriteTextFormat* m_pdw_Message_Font = NULL;
@@ -94,6 +95,7 @@ private:
 public:
 	std::vector<CScene*> scene_list;
 
+	Loading_Scene* Scene_Loading = NULL;
 	Playing_Scene* Scene_Playing = NULL;
 	Start_Scene* Scene_Beginning = NULL;
 	CScene* rendering_scene = NULL;
@@ -125,6 +127,12 @@ public:
 	void CreateDepthStencilView();
 	//렌더 타겟 뷰와 깊이-스텐실 뷰를 생성하는 함수이다.
 
+	void Build_Player();
+
+	void Build_Scene();
+	void Build_Loading_Scene(CPlayer* cplayer);
+	void Build_Start_Scene(CPlayer* cplayer);
+	void Build_Playing_Scene(CPlayer* cplayer);
 	void BuildObjects();
 	void ReleaseObjects();
 	//렌더링할 메쉬와 게임 객체를 생성하고 소멸하는 함수이다.

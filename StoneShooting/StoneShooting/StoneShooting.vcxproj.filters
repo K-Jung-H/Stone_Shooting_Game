@@ -125,5 +125,6 @@
     <FxCompile Include="Shaders.hlsl" />
     <FxCompile Include="Light.hlsl" />
     <FxCompile Include="UI.hlsl" />
+    <FxCompile Include="Textured_UI.hlsl" />
   </ItemGroup>
 </Project>

@@ -280,7 +280,6 @@ void TOP_Camera::SetLookAt(XMFLOAT3& xmf3LookAt)
 	m_xmf3Look = XMFLOAT3(mtxLookAt._13, mtxLookAt._23, mtxLookAt._33);
 }
 
-
 CThirdPersonCamera::CThirdPersonCamera(CCamera* pCamera) : CCamera(pCamera)
 {
 	m_nMode = THIRD_PERSON_CAMERA;

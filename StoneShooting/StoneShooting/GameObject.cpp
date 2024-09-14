@@ -500,11 +500,6 @@ void CGameObject::Update_Material_Buffer(ID3D12GraphicsCommandList* pd3dCommandL
 	::memcpy(&pbMappedMaterial->m_cSpecular, &colors->m_xmf4Specular, sizeof(XMFLOAT4));
 	::memcpy(&pbMappedMaterial->m_cEmissive, &colors->m_xmf4Emissive, sizeof(XMFLOAT4));
 
-
-	//if (m_ppMaterials[N].first->m_pTexture)
-	//	m_ppMaterials[N].first->m_pTexture->UpdateShaderVariables(pd3dCommandList);
-
-
 }
 
 void CGameObject::Release_Shader_Resource()
@@ -1103,7 +1098,7 @@ BoundingSphere StoneObject::Get_Collider()
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 CHeightMapTerrain::CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, LPCTSTR pFileName, 
-	int nWidth, int nLength, int nBlockWidth, int nBlockLength, XMFLOAT3 xmf3Scale, XMFLOAT4 xmf4Color) : CGameObject(pd3dDevice, pd3dCommandList, 0)
+	int nWidth, int nLength, int nBlockWidth, int nBlockLength, XMFLOAT3 xmf3Scale, bool texture) : CGameObject(pd3dDevice, pd3dCommandList, 0)
 {
 	//지형에 사용할 높이 맵의 가로, 세로의 크기이다.
 	m_nWidth = nWidth;
@@ -1127,7 +1122,10 @@ CHeightMapTerrain::CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 	for (int i = 0; i < m_nMeshes; i++) 
 		mesh_list[i] = NULL;
 
-	CHeightMapGridMesh* pHeightMapGridMesh = NULL;
+
+	CHeightMapGridMesh_Textured* pHeightMapGridMesh_T = NULL;
+	CHeightMapGridMesh_Illuminated* pHeightMapGridMesh_I = NULL;
+	
 	for (int z = 0, zStart = 0; z < czBlocks; z++)
 	{
 		for (int x = 0, xStart = 0; x < cxBlocks; x++)
@@ -1137,8 +1135,16 @@ CHeightMapTerrain::CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 			zStart = z * (nBlockLength - 1);
 
 			//지형의 일부분을 나타내는 격자 메쉬를 생성하여 지형 메쉬에 저장
-			pHeightMapGridMesh = new CHeightMapGridMesh(pd3dDevice, pd3dCommandList, xStart, zStart, nBlockWidth, nBlockLength, xmf3Scale, xmf4Color, m_pHeightMapImage);
-			SetMesh(x + (z * cxBlocks), pHeightMapGridMesh);
+			if (texture)
+			{
+				pHeightMapGridMesh_T = new CHeightMapGridMesh_Textured(pd3dDevice, pd3dCommandList, xStart, zStart, nBlockWidth, nBlockLength, xmf3Scale, m_pHeightMapImage);
+				SetMesh(x + (z * cxBlocks), pHeightMapGridMesh_T);
+			}
+			else
+			{
+				pHeightMapGridMesh_I = new CHeightMapGridMesh_Illuminated(pd3dDevice, pd3dCommandList, xStart, zStart, nBlockWidth, nBlockLength, xmf3Scale, m_pHeightMapImage);
+				SetMesh(x + (z * cxBlocks), pHeightMapGridMesh_I);
+			}
 		}
 	}
 }

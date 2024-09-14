@@ -1093,6 +1093,7 @@ XMFLOAT3 CHeightMapImage::GetHeightMapNormal(int x, int z)
 	return(xmf3Normal);
 }
 
+//===============================================================================
 #define _WITH_APPROXIMATE_OPPOSITE_CORNER
 
 float CHeightMapImage::GetHeight(float fx, float fz)
@@ -1144,18 +1145,25 @@ float CHeightMapImage::GetHeight(float fx, float fz)
 	return(fHeight);
 }
 
-CHeightMapGridMesh::CHeightMapGridMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int xStart, int zStart, int nWidth, int nLength, 
-	XMFLOAT3 xmf3Scale, XMFLOAT4 xmf4Color, void* pContext) : CMesh(pd3dDevice, pd3dCommandList)
+
+// 노멀값을 적용하는 하이트맵 메쉬
+CHeightMapGridMesh_Illuminated::CHeightMapGridMesh_Illuminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int xStart, int zStart, int nWidth, int nLength, 
+	XMFLOAT3 xmf3Scale, void* pContext) : CMeshIlluminated(pd3dDevice, pd3dCommandList)
 {
 	//격자의 교점(정점)의 개수는 (nWidth * nLength)이다.
 	m_nVertices = nWidth * nLength;
-	m_nStride = sizeof(CDiffusedVertex);
+	m_nStride = sizeof(CIlluminatedVertex);
+
 	//격자는 삼각형 스트립으로 구성한다.
 	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 	m_nWidth = nWidth;
 	m_nLength = nLength;
 	m_xmf3Scale = xmf3Scale;
-	CDiffusedVertex* pVertices = new CDiffusedVertex[m_nVertices];
+
+	CIlluminatedVertex* pVertices = new CIlluminatedVertex[m_nVertices];
+	XMFLOAT3* pos = new XMFLOAT3[m_nVertices];
+	XMFLOAT3* pxmf3Normals = new XMFLOAT3[m_nVertices];
+
 	/*xStart와 zStart는 격자의 시작 위치(x-좌표와 z-좌표)를 나타낸다. 커다란 지형은 격자들의 이차원 배열로 만들 필
    요가 있기 때문에 전체 지형에서 각 격자의 시작 위치를 나타내는 정보가 필요하다.*/
 
@@ -1163,24 +1171,17 @@ CHeightMapGridMesh::CHeightMapGridMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 	for (int i = 0, z = zStart; z < (zStart + nLength); z++)
 	{
 		for (int x = xStart; x < (xStart + nWidth); x++, i++)
-		{
-			//정점의 높이와 색상을 높이 맵으로부터 구한다.
-			XMFLOAT3 xmf3Position = XMFLOAT3((x * m_xmf3Scale.x), OnGetHeight(x, z, pContext), (z * m_xmf3Scale.z));
-			XMFLOAT4 xmf3Color = Vector4::Add(OnGetColor(x, z, pContext), xmf4Color);
-			pVertices[i] = CDiffusedVertex(xmf3Position, xmf3Color);
+		{			
+			pos[i] = XMFLOAT3((x * m_xmf3Scale.x), OnGetHeight(x, z, pContext), (z * m_xmf3Scale.z));
 
-			if (fHeight < fMinHeight) fMinHeight = fHeight;
-			if (fHeight > fMaxHeight) fMaxHeight = fHeight;
+			if (fHeight < fMinHeight) 
+				fMinHeight = fHeight;
+
+			if (fHeight > fMaxHeight)
+				fMaxHeight = fHeight;
 		}
 	}
 
-	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pVertices, m_nStride * m_nVertices,
-		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
-
-	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
-	m_d3dVertexBufferView.StrideInBytes = m_nStride;
-	m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
-	delete[] pVertices;
 
 	// 인덱스를 나열하면 인덱스 버퍼는 ((nWidth*2)*(nLength-1))+((nLength-1)-1)개의 인덱스를 가짐
 	// 사각형 줄의 개수는 (nLength-1)이고 한 줄에서 (nWidth*2)개의 인덱스를 가짐
@@ -1216,6 +1217,28 @@ CHeightMapGridMesh::CHeightMapGridMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 		}
 	}
 
+	for (int i = 0; i < m_nVertices; i++)
+		pxmf3Normals[i] = XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+
+	CalculateVertexNormals(pxmf3Normals, pos, m_nVertices, pnIndices, m_nIndices);
+	
+	for (int i = 0; i < m_nVertices; i++)
+		pVertices[i] = CIlluminatedVertex(pos[i], pxmf3Normals[i]);
+
+	// 객체에 정점 정보 저장
+	m_pVertices_I = pVertices;
+	m_pnIndices = pnIndices;
+
+
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pVertices, m_nStride * m_nVertices,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
+
+	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
+	m_d3dVertexBufferView.StrideInBytes = m_nStride;
+	m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
+	delete[] pVertices; 
+
 	m_pd3dIndexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pnIndices, sizeof(UINT) * m_nIndices, 
 		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pd3dIndexUploadBuffer);
 
@@ -1226,12 +1249,14 @@ CHeightMapGridMesh::CHeightMapGridMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 	delete[] pnIndices;
 }
 
-CHeightMapGridMesh::~CHeightMapGridMesh()
+
+
+CHeightMapGridMesh_Illuminated::~CHeightMapGridMesh_Illuminated()
 {
 }
 
 //높이 맵 이미지의 픽셀 값을 지형의 높이로 반환
-float CHeightMapGridMesh::OnGetHeight(int x, int z, void* pContext)
+float CHeightMapGridMesh_Illuminated::OnGetHeight(int x, int z, void* pContext)
 {
 	CHeightMapImage* pHeightMapImage = (CHeightMapImage*)pContext;
 	BYTE* pHeightMapPixels = pHeightMapImage->GetHeightMapPixels();
@@ -1243,7 +1268,7 @@ float CHeightMapGridMesh::OnGetHeight(int x, int z, void* pContext)
 	return(fHeight);
 }
 
-XMFLOAT4 CHeightMapGridMesh::OnGetColor(int x, int z, void* pContext)
+XMFLOAT4 CHeightMapGridMesh_Illuminated::OnGetColor(int x, int z, void* pContext)
 {
 	//조명의 방향 벡터(정점에서 조명까지의 벡터)
 	XMFLOAT3 xmf3LightDirection = XMFLOAT3(-1.0f, 1.0f, 1.0f);
@@ -1273,3 +1298,120 @@ XMFLOAT4 CHeightMapGridMesh::OnGetColor(int x, int z, void* pContext)
 
 	return(xmf4Color);
 }
+
+//===============================================================================
+
+CHeightMapGridMesh_Textured::CHeightMapGridMesh_Textured(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int xStart, int zStart, int nWidth, int nLength,
+	XMFLOAT3 xmf3Scale, void* pContext) : CMesh(pd3dDevice, pd3dCommandList)
+{
+	// 격자의 정점 개수
+	m_nVertices = nWidth * nLength;
+	m_nStride = sizeof(CTexturedVertex);  
+	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+	m_nWidth = nWidth;
+	m_nLength = nLength;
+	m_xmf3Scale = xmf3Scale;
+
+	// 버텍스 배열 생성
+	XMFLOAT3* pos = new XMFLOAT3[m_nVertices];
+	XMFLOAT3* normal = new XMFLOAT3[m_nVertices];
+	XMFLOAT2* uv = new XMFLOAT2[m_nVertices];
+
+	CTexturedVertex* pVertices = new CTexturedVertex[m_nVertices];
+
+	// 하이트맵의 높이 정보 및 최소/최대 높이 계산
+	float fMinHeight = +FLT_MAX, fMaxHeight = -FLT_MAX;
+
+	for (int i = 0, z = zStart; z < (zStart + nLength); z++)
+	{
+		for (int x = xStart; x < (xStart + nWidth); x++, i++)
+		{
+			float fHeight = OnGetHeight(x, z, pContext);  // 하이트맵에서 높이 가져오기
+			
+			XMFLOAT3 vPosition = XMFLOAT3((x * m_xmf3Scale.x), fHeight, (z * m_xmf3Scale.z));
+
+			// 최소 및 최대 높이 업데이트
+			if (fHeight < fMinHeight) fMinHeight = fHeight;
+			if (fHeight > fMaxHeight) fMaxHeight = fHeight;
+
+			// 텍스처 좌표 계산 (x, z에 따라 정규화)
+			float u = static_cast<float>(x - xStart) / (nWidth - 1);
+			float v = static_cast<float>(z - zStart) / (nLength - 1);
+
+			pos[i] = vPosition;
+			uv[i] = XMFLOAT2(u, v);
+		}
+	}
+
+	// 인덱스 배열 생성
+	m_nIndices = ((nWidth * 2) * (nLength - 1)) + ((nLength - 1) - 1);
+	UINT* pnIndices = new UINT[m_nIndices];
+	for (int j = 0, z = 0; z < nLength - 1; z++)
+	{
+		if ((z % 2) == 0)  // 짝수 줄
+		{
+			for (int x = 0; x < nWidth; x++)
+			{
+				if ((x == 0) && (z > 0)) pnIndices[j++] = (UINT)(x + (z * nWidth));
+				pnIndices[j++] = (UINT)(x + (z * nWidth));
+				pnIndices[j++] = (UINT)((x + (z * nWidth)) + nWidth);
+			}
+		}
+		else  // 홀수 줄
+		{
+			for (int x = nWidth - 1; x >= 0; x--)
+			{
+				if (x == (nWidth - 1)) pnIndices[j++] = (UINT)(x + (z * nWidth));
+				pnIndices[j++] = (UINT)(x + (z * nWidth));
+				pnIndices[j++] = (UINT)((x + (z * nWidth)) + nWidth);
+			}
+		}
+	}
+
+
+	m_pVertices_T = new CTexturedVertex[m_nVertices];
+
+	for (int i = 0; i < m_nVertices; ++i)
+	{
+		m_pVertices_T[i].m_xmf3Position = pVertices[i].m_xmf3Position = pos[i];
+		m_pVertices_T[i].m_xmf2TexCoord = pVertices[i].m_xmf2TexCoord = uv[i];
+	}
+
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pVertices, m_nStride * m_nVertices,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
+
+	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
+	m_d3dVertexBufferView.StrideInBytes = m_nStride;
+	m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
+	delete[] pVertices;
+
+
+	m_pd3dIndexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pnIndices, sizeof(UINT) * m_nIndices,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pd3dIndexUploadBuffer);
+
+	m_d3dIndexBufferView.BufferLocation = m_pd3dIndexBuffer->GetGPUVirtualAddress();
+	m_d3dIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
+	m_d3dIndexBufferView.SizeInBytes = sizeof(UINT) * m_nIndices;
+
+	delete[] pnIndices;
+}
+
+
+
+CHeightMapGridMesh_Textured::~CHeightMapGridMesh_Textured()
+{
+}
+
+//높이 맵 이미지의 픽셀 값을 지형의 높이로 반환
+float CHeightMapGridMesh_Textured::OnGetHeight(int x, int z, void* pContext)
+{
+	CHeightMapImage* pHeightMapImage = (CHeightMapImage*)pContext;
+	BYTE* pHeightMapPixels = pHeightMapImage->GetHeightMapPixels();
+	XMFLOAT3 xmf3Scale = pHeightMapImage->GetScale();
+
+	int nWidth = pHeightMapImage->GetHeightMapWidth();
+	float fHeight = pHeightMapPixels[x + (z * nWidth)] * xmf3Scale.y;
+
+	return(fHeight);
+}
+

@@ -347,8 +347,15 @@ void Inventory_UI::AnimateObjects(float fTimeElapsed)
 
 void Inventory_UI::UI_Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CShader* pShader)
 {
-	if(visualize)
+	if (visualize)
+	{
+		pd3dCommandList->SetGraphicsRootSignature(Object_GraphicsRootSignature_ptr);
+
 		UI::UI_Render(pd3dDevice, pd3dCommandList, pShader);
+
+		pd3dCommandList->SetGraphicsRootSignature(UI_GraphicsRootSignature_ptr);
+	}
+
 }
 
 void Inventory_UI::Set_Visualize(bool Bool)

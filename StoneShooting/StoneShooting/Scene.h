@@ -71,7 +71,7 @@ protected:
 	float orbit_value = 0.0f;
 	bool zooming = false;
 	int zoom_value = 0;
-
+	XMFLOAT3 zoom_pos = { 0.0f,1.0f, 0.0f };
 
 protected:
 	CShader* Object_Shader = NULL;
@@ -82,6 +82,9 @@ protected:
 
 	CShader* UI_Shader = NULL;
 	int N_UI_Shader = 1;
+
+	CShader* Outline_Shader = NULL;
+	int N_Outline_Shader = 1;
 
 	std::vector<UI*> UI_list;
 	int ui_num = 0;
@@ -117,6 +120,63 @@ public:
 	std::vector< ID2D1SolidColorBrush*> brush_list;
 };
 
+class Loading_Scene : public CScene
+{
+public:
+	Loading_Scene();
+	~Loading_Scene();
+	
+	bool OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam) override;
+
+	void BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
+
+	void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
+	void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList) override;
+	void Release_Shader_Resource() override;
+
+
+	//그래픽 루트 시그너쳐를 생성한다. 
+	ID3D12RootSignature* CreateGraphicsRootSignature(ID3D12Device* pd3dDevice) override;
+
+	void CreateCbvSrvDescriptorHeaps(ID3D12Device* pd3dDevice, int nConstantBufferViews, int nShaderResourceViews);
+
+	void AnimateObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fTimeElapsed) override;
+
+	void Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera) override;
+	void Message_Render(ID2D1DeviceContext2* pd2dDevicecontext) override;
+
+	bool Is_Loading_End() { return !loading; }
+
+public:
+	CTexture* loading_texture = NULL;
+	XMFLOAT4X4	texture_Transform = Matrix4x4::Identity();
+
+	ID3D12Resource* CB_loading_Texture_Tranform = NULL;
+	CB_GAMEOBJECT_INFO* Mapped_Loading_Texture_Tranform = NULL;
+	D3D12_GPU_DESCRIPTOR_HANDLE CBV_Loading_Texture_Tranform;
+
+	bool difficulty_selected = false;
+	bool loading = true;
+	float index_value = 0.0f;
+	float Difficulty_Scale = 1.0f;
+
+	std::wstring difficulty[3] = { L"Normal", L"Hard", L"Hell" };
+	int difficulty_index = 0;
+	
+protected:
+	ID3D12DescriptorHeap* m_pd3dCbvSrvDescriptorHeap = NULL;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE			m_d3dCbvCPUDescriptorStartHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE			m_d3dCbvGPUDescriptorStartHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE			m_d3dSrvCPUDescriptorStartHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE			m_d3dSrvGPUDescriptorStartHandle;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE			m_d3dCbvCPUDescriptorNextHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE			m_d3dCbvGPUDescriptorNextHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE			m_d3dSrvCPUDescriptorNextHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE			m_d3dSrvGPUDescriptorNextHandle;
+};
+
 class Start_Scene : public CScene
 {
 public:
@@ -132,7 +192,6 @@ public:
 	ID3D12RootSignature* CreateGraphicsRootSignature(ID3D12Device* pd3dDevice) override;
 	ID3D12RootSignature* Create_UI_GraphicsRootSignature(ID3D12Device* pd3dDevice) override;
 
-	void CreateGraphicsPipelineState(ID3D12Device* pd3dDevice) override;
 
 	void BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
 	void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;
@@ -159,6 +218,7 @@ public:
 	//-----------------------------------------------------
 
 	void Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float Board_Width, float Board_Depth);
+	void Setting_Stone(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMesh* mesh, XMFLOAT3 pos, bool white);
 
 	static CMaterial* material_color_white_stone;
 	static CMaterial* material_color_black_stone;
@@ -204,8 +264,6 @@ public:
 	//그래픽 루트 시그너쳐를 생성한다. 
 	ID3D12RootSignature* CreateGraphicsRootSignature(ID3D12Device* pd3dDevice) override;
 	ID3D12RootSignature* Create_UI_GraphicsRootSignature(ID3D12Device* pd3dDevice) override;
-
-	void CreateGraphicsPipelineState(ID3D12Device* pd3dDevice) override;
 
 //------------------------------------------------------------
 	void CreateCbvSrvDescriptorHeaps(ID3D12Device* pd3dDevice, int nConstantBufferViews, int nShaderResourceViews);
@@ -288,6 +346,7 @@ public:
 	bool Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	bool Change_Turn();
+	XMFLOAT3 Item_Spawn(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	bool Check_Turn();
 	bool Check_GameOver();
 
@@ -299,8 +358,7 @@ public:
 	
 	//=============================================
 protected:
-	CShader* Outline_Shader = NULL;
-	int N_Outline_Shader = 1;
+
 
 //==========================================
 
@@ -358,6 +416,7 @@ public:
 	float m_fElapsedTime = 0.0f;
 
 	bool Camera_First_Person_View = false;
+	bool item_zoom = false;
 
 	bool Com_Turn = false;
 	bool Com_Shot = false;

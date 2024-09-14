@@ -6,7 +6,7 @@
 class CVertex
 {
 
-protected:
+public:
 	//정점의 위치 벡터이다(모든 정점은 최소한 위치 벡터를 가져야 한다). 
 	XMFLOAT3 m_xmf3Position;
 
@@ -20,7 +20,7 @@ public:
 class CDiffusedVertex : public CVertex
 {
 
-protected:
+public:
 	//정점의 색상이다. 
 	XMFLOAT4 m_xmf4Diffuse;
 
@@ -43,7 +43,7 @@ public:
  
 class CIlluminatedVertex : public CVertex
 {
-protected:
+public:
 	XMFLOAT3 m_xmf3Normal;
 
 public:
@@ -260,7 +260,7 @@ public:
 	int GetHeightMapLength() { return(m_nLength); }
 };
 
-class CHeightMapGridMesh : public CMesh
+class CHeightMapGridMesh_Illuminated : public CMeshIlluminated
 {
 protected:
 	//격자의 크기(가로: x-방향, 세로: z-방향)
@@ -277,11 +277,11 @@ protected:
 
 public:
 
-	CHeightMapGridMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int xStart, int zStart, int nWidth, int nLength,
+	CHeightMapGridMesh_Illuminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int xStart, int zStart, int nWidth, int nLength,
 		XMFLOAT3 xmf3Scale = XMFLOAT3(1.0f, 1.0f, 1.0f), 
-		XMFLOAT4 xmf4Color = XMFLOAT4(1.0f, 1.0f, 0.0f, 0.0f), void* pContext = NULL);
+		void* pContext = NULL);
 
-	virtual ~CHeightMapGridMesh();
+	virtual ~CHeightMapGridMesh_Illuminated();
 
 	XMFLOAT3 GetScale() { return(m_xmf3Scale); }
 	int GetWidth() { return(m_nWidth); }
@@ -303,4 +303,38 @@ class CPlaneMeshTextured : public CMesh
 public:
 	CPlaneMeshTextured(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fWidth, float fDepth, int N_SubRect);
 	virtual ~CPlaneMeshTextured();
+};
+
+
+class CHeightMapGridMesh_Textured : public CMesh
+{
+protected:
+	//격자의 크기(가로: x-방향, 세로: z-방향)
+	int	m_nWidth;
+	int	m_nLength;
+
+	/*
+	격자의 스케일(가로: x-방향, 세로: z-방향, 높이: y-방향) 벡터
+	실제 격자 메쉬의 각 정점의 x-좌표, y-좌표, z-좌표는 스케일 벡터의 x-좌표, y-좌표, z-좌표로 곱한 값을 가짐.
+	-> 실제 격자의 x-축 방향의 간격은 1이 아니라 스케일 벡터의 x-좌표가 됨
+	-->작은 격자(적은 정점)를 사용하더라도 큰 크기의 격자(지형)를 생성할 수 있음.
+	*/
+	XMFLOAT3 m_xmf3Scale;
+
+public:
+
+	CHeightMapGridMesh_Textured(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int xStart, int zStart, int nWidth, int nLength,
+		XMFLOAT3 xmf3Scale = XMFLOAT3(1.0f, 1.0f, 1.0f),
+		void* pContext = NULL);
+
+	virtual ~CHeightMapGridMesh_Textured();
+
+	XMFLOAT3 GetScale() { return(m_xmf3Scale); }
+	int GetWidth() { return(m_nWidth); }
+	int GetLength() { return(m_nLength); }
+
+	//격자의 좌표가 (x, z)일 때 교점(정점)의 높이를 반환하는 함수이다.
+	virtual float OnGetHeight(int x, int z, void* pContext);
+
+
 };

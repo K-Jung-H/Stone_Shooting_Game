@@ -41,6 +41,11 @@ struct CB_MATERIAL_INFO
 	XMFLOAT4				m_cEmissive;
 };
 
+struct MATRIX4X4_BUFFER
+{
+	XMFLOAT4X4 mat4x4; 
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 
@@ -363,7 +368,7 @@ class CHeightMapTerrain : public CGameObject
 {
 public:
 	CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, LPCTSTR pFileName, int nWidth, int nLength, 
-		int nBlockWidth, int nBlockLength,  XMFLOAT3 xmf3Scale, XMFLOAT4 xmf4Color);
+		int nBlockWidth, int nBlockLength,  XMFLOAT3 xmf3Scale, bool texture);
 	virtual ~CHeightMapTerrain();
 
 private:
