@@ -51,12 +51,14 @@ class Item_Manager
 	std::vector<Stone_Item_Info*> Taunt_obj;
 
 	BoundingSphere Snow_Area;
+	BoundingSphere Boom_Area;
 
 	void Update_Frozen_Time(float fTimeElapsed);
 	void Update_Ghost(float fTimeElapsed);
 	void Update_Fire_Shot(float fTimeElapsed);
 
 	void Check_Stone_Frozen_Time_Effect(std::vector<StoneObject*>* stones);
+	void Check_Stone_Fire_Shot_Effect(std::vector<StoneObject*>* stonelist);
 
 public:
 	LIGHT* Frozen_Light = NULL;
@@ -75,7 +77,7 @@ public:
 	void Set_Clear(Item_Type type);
 	
 	// 판 위의 아이템에 영향받는지 판별
-	void Check_Stone_Item_Effect(std::vector<StoneObject*>* stones);
+	void Check_Stone_Item_Effect(std::vector<StoneObject*>* stones, Item_Type type);
 
 	void Animate(float fTimeElapsed);
 	void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);

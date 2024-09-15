@@ -885,7 +885,7 @@ void Fire_Boom_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12Graphi
 {
 	if (Setting == false)
 	{
-		m_Fire_Boom_Mesh = new CTorusMeshIlluminated(pd3dDevice, pd3dCommandList, 5.0f, 4.0f, 20, 20);
+		m_Fire_Boom_Mesh = new CTorusMeshIlluminated(pd3dDevice, pd3dCommandList, 5.0f, 0.5f, 20, 20);
 		Setting = true;
 	}
 }
@@ -896,8 +896,8 @@ Fire_Boom_Particle::Fire_Boom_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 	CMaterial* material, Particle_Type p_type) : Particle(pd3dDevice, pd3dCommandList, p_type)
 {
 	m_fDuration = 1.0f;
-	m_fBoom_Speed = 100.0f;
-
+	m_fBoom_Speed = 30.0f;
+	scale_Max = 10.0f;
 	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
 	Create_Material_Buffer(pd3dDevice, pd3dCommandList);
 	SetMaterial(material);
@@ -944,8 +944,18 @@ void Fire_Boom_Particle::Animate(float fElapsedTime)
 {
 	m_fElapsedTimes += fElapsedTime;
 
-	scale_value += fElapsedTime;
-	scale_value = (int)scale_value % 3 + 1;
+	scale_value += fElapsedTime * m_fBoom_Speed;
+	if (scale_value >= scale_Max)
+	{
+		scale_value = 1;
+		cycle_count += 1;
+		m_fBoom_Speed *= 0.5f;
+
+		if (3 <= cycle_count)
+			Reset();
+	}
+
+	
 
 	XMFLOAT3 center = GetPosition();
 
@@ -953,11 +963,10 @@ void Fire_Boom_Particle::Animate(float fElapsedTime)
 	{
 		m_pxmf4x4Transforms[i] = Matrix4x4::Identity();
 
-		XMMATRIX translationToCenter = XMMatrixTranslation(-center.x, -center.y, -center.z);
 		XMMATRIX scaling = XMMatrixScaling(scale_value, scale_value, scale_value);
-		XMMATRIX translationBack = XMMatrixTranslation(center.x, center.y, center.z);
+		XMMATRIX translationBack = XMMatrixTranslation(center.x, 1.0f, center.z);
 
-		XMMATRIX transform = translationToCenter * scaling * translationBack;
+		XMMATRIX transform =  scaling * translationBack;
 		XMStoreFloat4x4(&m_pxmf4x4Transforms[i], transform);
 
 		m_pxmf4x4Transforms[i] = Matrix4x4::Multiply(Matrix4x4::RotationAxis(XMFLOAT3(0.0f, 1.0f, 0.0f), Particle_Rotation * m_fElapsedTimes), m_pxmf4x4Transforms[i]);
@@ -984,9 +993,9 @@ void Fire_Boom_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandL
 
 		if (m_Fire_Boom_Mesh)
 		{
-			for (int j = 0; j < Fire_Boom_DEBRISES; ++j)
+			for (int i = 0; i < Fire_Boom_DEBRISES; ++i)
 			{
-				pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * j));
+				pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * i));
 
 				m_Fire_Boom_Mesh->Render(pd3dCommandList);
 
@@ -996,6 +1005,15 @@ void Fire_Boom_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandL
 }
 void Fire_Boom_Particle::Reset()
 {
+	cycle_count = 0;
+	m_fBoom_Speed = 5.0f;
+	scale_Max = 10.0f;
+	m_fElapsedTimes = 0.0f;
+	active = false;
+
+	for (int i = 0; i < Fire_Boom_DEBRISES; ++i)
+		m_pxmf4x4Transforms[i] = Matrix4x4::Identity();
+
 }
 
 

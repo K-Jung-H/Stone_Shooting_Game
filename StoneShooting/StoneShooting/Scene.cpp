@@ -1263,9 +1263,9 @@ void Playing_Scene::Build_Lights_and_Materials()
 	
 	CMaterialColors red_particle_color = {
 	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
-	XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f),
-	XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f),
-	XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f)
+	XMFLOAT4(0.0f, 0.0f, 0.1f, 1.0f),
+	XMFLOAT4(0.1f, 0.1f, 0.1f, 30.0f),
+	XMFLOAT4(1.0f, 0.3f, 0.0f, 1.0f)
 	};
 
 	CMaterialColors yellow_particle_color = {
@@ -2267,6 +2267,7 @@ bool Playing_Scene::Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12Graphics
 			if (fire_stone_info->particle->active == false)
 			{
 				item_manager->fire_boom = false;
+				item_manager->Check_Stone_Item_Effect(&GameObject_Stone, Item_Type::Fire_Shot);
 				item_manager->Set_Clear(Item_Type::Fire_Shot);
 			}
 		}
@@ -2276,7 +2277,7 @@ bool Playing_Scene::Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12Graphics
 	}
 
 
-
+	
 	// Frozen Time
 	if (item_manager->Get_Active_Stone_Num(Item_Type::Frozen_Time))
 	{
@@ -2603,8 +2604,7 @@ void Playing_Scene::AnimateObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 	}
 
 	item_manager->Animate(fTimeElapsed);
-	item_manager->Check_Stone_Item_Effect(&GameObject_Stone);
-
+	item_manager->Check_Stone_Item_Effect(&GameObject_Stone, Item_Type::Frozen_Time);
 	Scene_Update(pd3dDevice, pd3dCommandList, fTimeElapsed);
 }
 

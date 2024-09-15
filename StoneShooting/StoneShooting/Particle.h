@@ -231,6 +231,8 @@ class Fire_Boom_Particle : public Particle
 
 	float m_fBoom_Speed = 10.0f;
 	float scale_value = 1.0f;
+	float scale_Max = 3.0f;
+	int cycle_count = 0;
 
 public:
 	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);

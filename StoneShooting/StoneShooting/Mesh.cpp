@@ -974,15 +974,16 @@ CTorusMeshIlluminated::CTorusMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12Gra
 			int nextI = (i + 1) % nMajorSegments;
 			int nextJ = (j + 1) % nMinorSegments;
 
-			// 첫 번째 삼각형
+			// 첫 번째 삼각형 (반시계 방향으로 순서를 조정)
 			pnIndices[k++] = (i * nMinorSegments) + j;
-			pnIndices[k++] = (nextI * nMinorSegments) + j;
 			pnIndices[k++] = (i * nMinorSegments) + nextJ;
+			pnIndices[k++] = (nextI * nMinorSegments) + j;
 
-			// 두 번째 삼각형
+			// 두 번째 삼각형 (반시계 방향으로 순서를 조정)
 			pnIndices[k++] = (i * nMinorSegments) + nextJ;
-			pnIndices[k++] = (nextI * nMinorSegments) + j;
 			pnIndices[k++] = (nextI * nMinorSegments) + nextJ;
+			pnIndices[k++] = (nextI * nMinorSegments) + j;
+
 		}
 	}
 

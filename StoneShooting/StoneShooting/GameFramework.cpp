@@ -554,7 +554,7 @@ void CGameFramework::BuildObjects()
 	Build_Start_Scene(player_list[0]);
 	Build_Playing_Scene(player_list[0]);
 
-	rendering_scene = Scene_Beginning;
+	rendering_scene = Scene_Playing;
 	rendering_player = rendering_scene->GetPlayer();
 	//===================================================
 

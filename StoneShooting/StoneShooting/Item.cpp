@@ -200,6 +200,8 @@ BoundingOrientedBox Item::Get_Collider()
 Item_Manager::Item_Manager()
 {
 	Snow_Area = BoundingSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), Snow_Area_Radius);
+
+	Boom_Area = BoundingSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), Boom_Area_Radius);
 }
 
 Item_Manager::~Item_Manager()
@@ -464,11 +466,59 @@ void Item_Manager::Update_Fire_Shot(float fTimeElapsed)
 		if(Fire_Shot_obj->particle!= NULL)
 			Fire_Shot_obj->particle->Animate(fTimeElapsed);
 }
+void Item_Manager::Check_Stone_Fire_Shot_Effect(std::vector<StoneObject*>* stonelist)
+{
+	Stone_Item_Info* fire_stone_info = Get_Stone(Item_Type::Fire_Shot);
 
+	std::vector<StoneObject*> stones_in_boom_area;
+
+	if (fire_stone_info == NULL || 1 <= fire_stone_info->turn)
+		return;
+
+	//========================================================
+
+	XMFLOAT3 boom_center = fire_stone_info->stone->GetPosition();
+
+	// 폭발 영역 이동
+	BoundingSphere moved_Boom_area = Boom_Area;
+	moved_Boom_area.Center = boom_center;
+
+	// 폭발 영역 안에 있는 돌 객체 저장
+	for (StoneObject* stone : *stonelist)
+	{
+		if (moved_Boom_area.Intersects(stone->stone_collider))
+			stones_in_boom_area.push_back(stone);
+	}
+
+	//========================================================
+
+	// 폭발 효과 적용
+	for (StoneObject* stone_ptr : stones_in_boom_area)
+	{
+		XMVECTOR stone_pos = XMLoadFloat3(&stone_ptr->GetPosition());
+		XMVECTOR boom_center_vec = XMLoadFloat3(&boom_center);
+
+		// 폭발 중심으로부터 돌까지의 벡터 계산
+		XMVECTOR direction = XMVector3Normalize(stone_pos - boom_center_vec);
+
+		// 충격 벡터 계산
+		float explosion_force = 100.0f;  // 폭발력 크기 (상수로 조정 가능)
+		XMVECTOR explosion_vec = explosion_force * direction;
+
+		// 돌의 기존 속도에 폭발 벡터 적용
+		XMVECTOR stone_velocity = XMLoadFloat3(&stone_ptr->m_xmf3MovingDirection) * stone_ptr->m_fMovingSpeed;
+		XMVECTOR new_velocity = stone_velocity + explosion_vec;
+
+		// 최종 속도 및 방향 저장
+		XMStoreFloat3(&stone_ptr->m_xmf3MovingDirection, XMVector3Normalize(new_velocity));
+		stone_ptr->m_fMovingSpeed = XMVectorGetX(XMVector3Length(new_velocity));
+	}
+
+}
 void Item_Manager::Check_Stone_Frozen_Time_Effect(std::vector<StoneObject*>* stonelist)
 {
 	std::vector<StoneObject*> stones_to_apply_snow;
-
+	
 	if (Get_Active_Stone_Num(Item_Type::Frozen_Time))
 	{
 		for (const Stone_Item_Info* frozen_info : Frozen_Time_obj)
@@ -498,9 +548,39 @@ void Item_Manager::Check_Stone_Frozen_Time_Effect(std::vector<StoneObject*>* sto
 	}
 }
 
-void Item_Manager::Check_Stone_Item_Effect(std::vector<StoneObject*>* stonelist)
+void Item_Manager::Check_Stone_Item_Effect(std::vector<StoneObject*>* stonelist, Item_Type type)
 {
-	Check_Stone_Frozen_Time_Effect(stonelist);
+	switch (type)
+	{
+	case Item_Type::Taunt:
+		break;
+
+	case Item_Type::Fire_Shot:
+		Check_Stone_Fire_Shot_Effect(stonelist);
+		break;
+
+	case Item_Type::Double_Power:
+		break;
+
+	case Item_Type::Frozen_Time:
+		Check_Stone_Frozen_Time_Effect(stonelist);
+		break;
+
+	case Item_Type::Max_Power:
+		break;
+
+	case Item_Type::Ghost:
+		break;
+
+	case Item_Type::ETC:
+		break;
+
+	case Item_Type::None:
+		break;
+	default:
+		break;
+	}
+
 }
 
 void Item_Manager::Animate(float fTimeElapsed)
