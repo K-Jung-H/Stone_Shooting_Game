@@ -132,7 +132,7 @@ public:
 	void Build_Scene();
 	void Build_Loading_Scene(CPlayer* cplayer);
 	void Build_Start_Scene(CPlayer* cplayer);
-	void Build_Playing_Scene(CPlayer* cplayer);
+	void Build_Playing_Scene(CPlayer* cplayer, Difficulty_Type difficulty);
 	void BuildObjects();
 	void ReleaseObjects();
 	//렌더링할 메쉬와 게임 객체를 생성하고 소멸하는 함수이다.

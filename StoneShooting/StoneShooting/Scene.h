@@ -160,8 +160,10 @@ public:
 	float index_value = 0.0f;
 	float Difficulty_Scale = 1.0f;
 
-	std::wstring difficulty[3] = { L"Normal", L"Hard", L"Hell" };
+	std::wstring difficulty_word[3] = { L"Normal", L"Hard", L"Hell" };
 	int difficulty_index = 0;
+
+	Difficulty_Type difficulty = Difficulty_Type::ETC;
 	
 protected:
 	ID3D12DescriptorHeap* m_pd3dCbvSrvDescriptorHeap = NULL;
@@ -237,7 +239,7 @@ private:
 	void UpdateVelocities(StoneObject* stone1, StoneObject* stone2, XMVECTOR vel1, XMVECTOR vel2);
 
 public:
-	Playing_Scene();
+	Playing_Scene(Difficulty_Type difficulty = Difficulty_Type::Normal);
 	~Playing_Scene();
 
 	//씬에서 마우스와 키보드 메시지를 처리한다. 
@@ -358,7 +360,7 @@ public:
 	
 	//=============================================
 protected:
-
+	Difficulty_Type difficulty;
 
 //==========================================
 

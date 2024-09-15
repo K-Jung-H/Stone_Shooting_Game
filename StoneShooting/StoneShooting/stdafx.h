@@ -132,6 +132,14 @@ enum class UI_Type
 
 };
 
+enum class Difficulty_Type
+{
+	Normal,
+	Hard,
+	Hell,
+	ETC,
+};
+
 #define RESOURCE_TEXTURE2D			0x01
 #define RESOURCE_TEXTURE2D_ARRAY	0x02	
 #define RESOURCE_TEXTURE2DARRAY		0x03

@@ -520,11 +520,11 @@ void CGameFramework::Build_Start_Scene(CPlayer* cplayer)
 	m_GameTimer.Reset();
 }
 
-void CGameFramework::Build_Playing_Scene(CPlayer* cplayer)
+void CGameFramework::Build_Playing_Scene(CPlayer* cplayer, Difficulty_Type difficulty)
 {
 	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
 
-	Scene_Playing = new Playing_Scene();
+	Scene_Playing = new Playing_Scene(Scene_Loading->difficulty);
 	Scene_Playing->SetPlayer(cplayer);
 	Scene_Playing->Add_Font(m_pdw_Timer_Font);
 	Scene_Playing->Add_Font(m_pdw_Inventory_Font);
@@ -547,14 +547,12 @@ void CGameFramework::Build_Playing_Scene(CPlayer* cplayer)
 
 void CGameFramework::BuildObjects()
 {
-
 	Build_Player();
 
 	Build_Loading_Scene(player_list[0]);
 	Build_Start_Scene(player_list[0]);
-	Build_Playing_Scene(player_list[0]);
 
-	rendering_scene = Scene_Playing;
+	rendering_scene = Scene_Beginning;
 	rendering_player = rendering_scene->GetPlayer();
 	//===================================================
 
@@ -597,10 +595,13 @@ void CGameFramework::FrameAdvance()
 	
 	ProcessInput();
 	
-	if (Scene_Loading != NULL)
+	if (Scene_Loading != NULL && Scene_Playing == NULL)
 		if (Scene_Loading->Is_Loading_End())
+		{
+			
+			Build_Playing_Scene(player_list[0], Scene_Loading->difficulty);
 			rendering_scene = Scene_Playing;
-
+		}
 	Animate_Scene_Objects();
 	
 	HRESULT hResult = m_pd3dCommandAllocator->Reset();
@@ -787,8 +788,9 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	case WM_KEYUP:
 		switch (wParam)
 		{
-		case VK_TAB:
-			rendering_scene = Scene_Loading;
+		case VK_SPACE:
+			if(rendering_scene == Scene_Beginning)
+				rendering_scene = Scene_Loading;
 			break;
 
 		case VK_F9:

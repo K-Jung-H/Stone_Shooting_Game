@@ -504,7 +504,7 @@ void Loading_Scene::Message_Render(ID2D1DeviceContext2* pd2dDevicecontext)
 		pd2dDevicecontext->SetTransform(finalTransform);
 
 		// 텍스트 그리기
-		std::wstring difficulty_message = difficulty[difficulty_index];
+		std::wstring difficulty_message = difficulty_word[difficulty_index];
 		pd2dDevicecontext->DrawTextW(difficulty_message.c_str(), (UINT32)wcslen(difficulty_message.c_str()), write_font_list[0], &difficulty_area, brush_list[0]);
 
 		// 원래 변환으로 복구
@@ -535,7 +535,7 @@ bool Loading_Scene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPAR
 		case VK_RIGHT:
 		case VK_UP:
 		{
-			int size = sizeof(difficulty) / sizeof(std::wstring);
+			int size = sizeof(difficulty_word) / sizeof(std::wstring);
 
 			Difficulty_Scale = 2.0f;
 			difficulty_index += 1;
@@ -547,6 +547,24 @@ bool Loading_Scene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPAR
 
 		case VK_SPACE:
 			difficulty_selected = true;
+
+			switch (difficulty_index)
+			{
+			case 0:
+				difficulty = Difficulty_Type::Normal;
+				break;
+
+			case 1:
+				difficulty = Difficulty_Type::Hard;
+				break;
+
+			case 2:
+				difficulty = Difficulty_Type::Hell;
+				break;
+
+			default:
+				break;
+			}
 			break;
 
 		default:
@@ -1177,8 +1195,9 @@ void Start_Scene::ProcessInput(UCHAR* pKeysBuffer, XMFLOAT3 rotate, float fTimeE
 
 //=========================================================================================
 
-Playing_Scene::Playing_Scene()
+Playing_Scene::Playing_Scene(Difficulty_Type play_difficulty)
 {
+	difficulty = play_difficulty;
 }
 Playing_Scene::~Playing_Scene()
 {
@@ -1397,8 +1416,21 @@ void Playing_Scene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	Charge_Effect->m_ppMaterials[0].second = true;
 	Charge_Effect->m_ppMaterials[1].second = true;
 
-	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(30.0f, 100.0f, 0.0f), Item_Type::Frozen_Time);
-	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 100.0f, 0.0f), Item_Type::Fire_Shot);
+	if (difficulty == Difficulty_Type::Normal)
+	{
+		Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(30.0f, 100.0f, 0.0f), Item_Type::Max_Power);
+		Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 100.0f, 0.0f), Item_Type::Fire_Shot);
+	}
+	if (difficulty == Difficulty_Type::Hard)
+	{
+		Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(30.0f, 100.0f, 0.0f), Item_Type::Double_Power);
+		Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 100.0f, 0.0f), Item_Type::Fire_Shot);
+	}
+	if (difficulty == Difficulty_Type::Hell)
+	{
+		Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, 100.0f, 0.0f), Item_Type::Frozen_Time);
+	}
+
 	Set_BackGround_Color(XMFLOAT4(0.8f, 0.8f, 0.8f, 0.0f));
 
 }
@@ -1517,15 +1549,16 @@ void Playing_Scene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	ppTextures[0] = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
 	ppTextures[0]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/GrassStone.dds", RESOURCE_TEXTURE2D, 0);
 	ppTextures[1] = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
-	ppTextures[1]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/wooden.dds", RESOURCE_TEXTURE2D, 0);
+	ppTextures[1]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/icy.dds", RESOURCE_TEXTURE2D, 0);
 	ppTextures[2] = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
-	ppTextures[2]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Metal01.dds", RESOURCE_TEXTURE2D, 0);
+	ppTextures[2]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/lava.dds", RESOURCE_TEXTURE2D, 0);
 	ppTextures[3] = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
-	ppTextures[3]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Metal02.dds", RESOURCE_TEXTURE2D, 0);
+	ppTextures[3]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/GrassStone.dds", RESOURCE_TEXTURE2D, 0);
 	ppTextures[4] = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
-	ppTextures[4]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Rock01.dds", RESOURCE_TEXTURE2D, 0);
+	ppTextures[4]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/icy.dds", RESOURCE_TEXTURE2D, 0);
 	ppTextures[5] = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
-	ppTextures[5]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Lava(Emissive).dds", RESOURCE_TEXTURE2D, 0);
+	ppTextures[5]->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/lava.dds", RESOURCE_TEXTURE2D, 0);
+
 	
 	for (int i = 0; i < TEXTURES; i++)
 		CreateShaderResourceViews(pd3dDevice, ppTextures[i], 0, 6);
@@ -1537,7 +1570,6 @@ void Playing_Scene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 		ppMaterials[i]->SetTexture(ppTextures[i]);
 		ppMaterials[i]->SetShader(&Texture_Shader[0]);
 	}
-
 
 
 	// 윤곽선
@@ -1554,7 +1586,14 @@ void Playing_Scene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	XMFLOAT4 xmf4Color(0.0f, 0.2f, 0.0f, 0.0f);
 	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("HeightMap.raw"), 257, 257, 17, 17, xmf3Scale, true);
 	m_pTerrain->AddMaterial(material_color_mountain, true);
-	m_pTerrain->AddMaterial(ppMaterials[0], true);
+
+	if(difficulty == Difficulty_Type::Normal)
+		m_pTerrain->AddMaterial(ppMaterials[0], true);
+	else if(difficulty == Difficulty_Type::Hard)
+		m_pTerrain->AddMaterial(ppMaterials[1], true);
+	else if(difficulty == Difficulty_Type::Hell)
+		m_pTerrain->AddMaterial(ppMaterials[2], true);
+
 	m_pTerrain->SetPosition(XMFLOAT3(-257.0f * xmf3Scale.x / 2, -800.0f, -257.0f * xmf3Scale.z / 2));
 	//===========================================================
 
@@ -1564,9 +1603,11 @@ void Playing_Scene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	w_stone_pos_list.push_back({ -50, 5, 100 });
 	w_stone_pos_list.push_back({ 0, 5, 100 });
 	w_stone_pos_list.push_back({ 50, 5, 100 });
+
 	w_stone_pos_list.push_back({ -25, 5, 150 });
 	w_stone_pos_list.push_back({ 0, 5, 150 });
 	w_stone_pos_list.push_back({ 25, 5, 150 });
+
 
 	for(XMFLOAT3& w_stone_pos : w_stone_pos_list)
 		Setting_Stone(pd3dDevice, pd3dCommandList, StoneMesh, w_stone_pos, true);
@@ -1578,9 +1619,24 @@ void Playing_Scene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	b_stone_pos_list.push_back({ -50, 5, -100 });
 	b_stone_pos_list.push_back({ 0, 5, -100 });
 	b_stone_pos_list.push_back({50, 5, -100});
+
 	b_stone_pos_list.push_back({ -25, 5, -150 });
 	b_stone_pos_list.push_back({ 0, 5, -150 });
 	b_stone_pos_list.push_back({ 25, 5, -150 });
+
+	if (difficulty == Difficulty_Type::Hard)
+	{
+		b_stone_pos_list.push_back({ -25, 5, -100 });
+		b_stone_pos_list.push_back({ 25, 5, -100 });
+	}
+	else if (difficulty == Difficulty_Type::Hell)
+	{
+		b_stone_pos_list.push_back({ -25, 5, -100 });
+		b_stone_pos_list.push_back({ 25, 5, -100 });
+
+		b_stone_pos_list.push_back({ -50, 5, -150 });
+		b_stone_pos_list.push_back({ 50, 5, -150 });
+	}
 
 	for (XMFLOAT3& b_stone_pos : b_stone_pos_list)
 		Setting_Stone(pd3dDevice, pd3dCommandList, StoneMesh, b_stone_pos, false);
@@ -2321,14 +2377,13 @@ XMFLOAT3 Playing_Scene::Item_Spawn(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 		Item_Type::Frozen_Time,
 		Item_Type::Max_Power,
 		Item_Type::Ghost,
-		Item_Type::ETC,
-		Item_Type::None };
+	};
 
 	int N = sizeof(item_type_list) / sizeof(Item_Type);
 	Item_Type spawn_type = item_type_list[rand() % N];
 	XMFLOAT3 spawn_pos = { (rand() % 201) - 100.0f, 100.0f, (rand() % 601) - 300.0f };
 
-	Setting_Item(pd3dDevice, pd3dCommandList, spawn_pos, Item_Type::Fire_Shot); // spawn_type
+	Setting_Item(pd3dDevice, pd3dCommandList, spawn_pos, spawn_type);
 	Setting_Particle(pd3dDevice, pd3dCommandList, spawn_pos, material_color_yellow_particle, Particle_Type::Small_Explosion);
 
 	return spawn_pos;
@@ -2634,16 +2689,25 @@ void Playing_Scene::Scene_Update(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 		{
 			if (computer.select_Stone == NULL) // 돌을 선택 안했다면
 			{
-				//std::pair<StoneObject*, StoneObject*> hard_version = Find_Nearest_Enemy_Stone();
+				std::pair<StoneObject*, StoneObject*> Stone_Pair;
 
-				std::pair<StoneObject*, StoneObject*> normal_version = Select_Stone_Com();
-				if (normal_version.first == NULL || normal_version.second == NULL)
+				if(difficulty == Difficulty_Type::Normal || difficulty == Difficulty_Type::Hard)
+					Stone_Pair = Select_Stone_Com();
+				else if(difficulty == Difficulty_Type::Hell)
+					Stone_Pair = Find_Nearest_Enemy_Stone();
+
+
+				if (Stone_Pair.first == NULL || Stone_Pair.second == NULL)
+				{
+					DebugOutput("Com can't select Stone_Pair to shoot");
+					::PostQuitMessage(0);
 					return;
+				}
 
-				computer.select_Stone = normal_version.first;
+				computer.select_Stone = Stone_Pair.first;
 				computer.select_Stone->ChangeMaterial(2);
 
-				computer.target_Stone = normal_version.second;
+				computer.target_Stone = Stone_Pair.second;
 
 				// 차징 시간 결정
 				power_charge = true;
@@ -2977,8 +3041,16 @@ void Playing_Scene::Shoot_Stone_Com(float power)
 	XMStoreFloat3(&direction, XMVectorSubtract(XMLoadFloat3(&p_position), XMLoadFloat3(&c_position)));
 	XMStoreFloat3(&direction, XMVector3Normalize(XMLoadFloat3(&direction))); // 정규화까지 하기
 
-	// 오차 각도 : -5 ~ 5
-	float random_angle = 5 - uid(dre) / 300.0f;
+	// uid : 1~ 3000
+	float random_angle = 0.0f;
+	if (difficulty == Difficulty_Type::Normal) // -20 ~ 20
+		random_angle = 10 - uid(dre) / 150.0f;
+	else if (difficulty == Difficulty_Type::Hard) // -5 ~ 5
+		random_angle = 5 - uid(dre) / 300.0f;
+	else if (difficulty == Difficulty_Type::Hell) // -1 ~ 1
+		random_angle = 0;
+
+
 
 	// 각도를 라디안으로 변환
 	float angleInRadians = XMConvertToRadians(random_angle);
@@ -3005,13 +3077,14 @@ void Playing_Scene::Shoot_Stone_Com(float power)
 	else if (power > 300)
 		power = 500;
 
-	c_stone->SetMovingSpeed(power);
+	if (difficulty == Difficulty_Type::Hell)
+		power = 600;
 
+	c_stone->SetMovingSpeed(power);
 }
 
 std::pair<StoneObject*, StoneObject*> Playing_Scene::Select_Stone_Com()
 {
-	// 1. Find_Nearest_Enemy_Stone를 반복하여 쌍을 찾기 위한 벡터
 	std::vector<std::pair<StoneObject*, StoneObject*>> pairs;
 	std::vector<StoneObject*> Living_C_Stone;
 	std::vector<StoneObject*> Living_Player_Stone;
@@ -3045,14 +3118,12 @@ std::pair<StoneObject*, StoneObject*> Playing_Scene::Select_Stone_Com()
 		return std::pair<StoneObject*, StoneObject*>{NULL, NULL};
 	}
 
-	// 3. 거리 순으로 정렬
 	std::sort(pairs.begin(), pairs.end(), [](const auto& lhs, const auto& rhs) {
 		float lhs_D = XMVectorGetX(XMVector3Length(XMLoadFloat3(&lhs.first->GetPosition()) - XMLoadFloat3(&lhs.second->GetPosition())));
 		float rhs_D = XMVectorGetX(XMVector3Length(XMLoadFloat3(&rhs.first->GetPosition()) - XMLoadFloat3(&rhs.second->GetPosition())));
 		return lhs_D < rhs_D;
 		});
 
-	// 4. 배열의 크기가 0~3이 가능한지 파악
 	int maxIndex = std::min<int>(3, static_cast<int>(pairs.size()) - 1);
 
 	if (maxIndex < 0)
@@ -3062,8 +3133,13 @@ std::pair<StoneObject*, StoneObject*> Playing_Scene::Select_Stone_Com()
 		return std::pair<StoneObject*, StoneObject*>{NULL, NULL};
 	}
 
-	// 5. 0부터 maxIndex 사이의 랜덤 인덱스를 구하여 쌍을 선택
-	int randomIndex = rand() % (maxIndex + 1);
+	int randomIndex = 0;
+	
+	if (difficulty == Difficulty_Type::Normal || difficulty == Difficulty_Type::Hard)
+		randomIndex = rand() % (maxIndex + 1);
+	else if (difficulty == Difficulty_Type::Hell)
+		randomIndex = 0;
+
 	auto selected_pair = pairs[randomIndex];
 	return selected_pair;
 
@@ -3071,8 +3147,6 @@ std::pair<StoneObject*, StoneObject*> Playing_Scene::Select_Stone_Com()
 
 std::pair<StoneObject*, StoneObject*> Playing_Scene::Find_Nearest_Enemy_Stone()
 {
-
-
 	std::vector<StoneObject*>Living_C_Stone;
 	std::vector< StoneObject*>Living_Player_Stone;
 	for (CGameObject* obj_ptr : GameObject_Stone)
@@ -3112,8 +3186,6 @@ std::pair<StoneObject*, StoneObject*> Playing_Scene::Find_Nearest_Enemy_Stone()
 	}
 	return std::make_pair(closest_com_stone, closest_player_stone);
 }
-
-
 
 void Playing_Scene::Mark_selected_stone()
 {
