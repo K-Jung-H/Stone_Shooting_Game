@@ -73,9 +73,9 @@ void Item::Prepare_Item(ID3D12Device * pd3dDevice, ID3D12GraphicsCommandList * p
 
 	CMaterialColors orange_color = {
 	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
-	XMFLOAT4(2.0f, 0.5f, 0.0f, 1.0f),
+	XMFLOAT4(0.0f, 0.0f, 0.1f, 1.0f),
 	XMFLOAT4(0.1f, 0.1f, 0.1f, 30.0f),
-	XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f)
+	XMFLOAT4(1.0f, 0.3f, 0.0f, 1.0f)
 	};
 
 	material_color_item_inner_red = new CMaterial(&red_color);
@@ -341,13 +341,13 @@ void Item_Manager::Set_Clear(Item_Type type)
 	switch (type)
 	{
 	case Item_Type::Fire_Shot:
-
 		Fire_Shot_obj = NULL;
 		break;
-	case Item_Type::Double_Power:
 
+	case Item_Type::Double_Power:
 		Double_Power_obj = NULL;
 		break;
+
 	case Item_Type::Max_Power:
 		Max_Power_obj = NULL;
 		break;
@@ -458,6 +458,12 @@ void Item_Manager::Update_Ghost(float fTimeElapsed)
 
 
 }
+void Item_Manager::Update_Fire_Shot(float fTimeElapsed)
+{
+	if (Fire_Shot_obj != NULL)
+		if(Fire_Shot_obj->particle!= NULL)
+			Fire_Shot_obj->particle->Animate(fTimeElapsed);
+}
 
 void Item_Manager::Check_Stone_Frozen_Time_Effect(std::vector<StoneObject*>* stonelist)
 {
@@ -501,6 +507,7 @@ void Item_Manager::Animate(float fTimeElapsed)
 {
 	Update_Frozen_Time(fTimeElapsed);
 	Update_Ghost(fTimeElapsed);
+	Update_Fire_Shot(fTimeElapsed);
 }
 
 void Item_Manager::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
@@ -511,5 +518,9 @@ void Item_Manager::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, C
 			info->particle->Particle_Render(pd3dCommandList, pCamera);
 	}
 
+	if(Fire_Shot_obj != NULL)
+		if (Fire_Shot_obj->particle != NULL)
+			Fire_Shot_obj->particle->Particle_Render(pd3dCommandList, pCamera);
+	
 }
 

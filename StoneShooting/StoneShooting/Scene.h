@@ -377,6 +377,8 @@ protected:
 
 	static CMaterial* material_color_white_particle;
 	static CMaterial* material_color_black_particle;
+	static CMaterial* material_color_red_particle;
+	static CMaterial* material_color_yellow_particle;
 
 	static CMaterial* material_color_board;
 	static CMaterial* material_color_mountain;

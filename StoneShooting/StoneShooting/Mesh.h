@@ -221,6 +221,17 @@ public:
 	virtual ~CSphereMeshIlluminated();
 };
 
+
+class CTorusMeshIlluminated : public CMeshIlluminated
+{
+public:
+	CTorusMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
+		float fMajorRadius, float fMinorRadius, int nMajorSegments, int nMinorSegments);
+	virtual ~CTorusMeshIlluminated();
+
+};
+
+
 class CPlaneMeshIlluminated : public CMeshIlluminated
 {
 public:

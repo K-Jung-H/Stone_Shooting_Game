@@ -226,6 +226,66 @@ void Explosion_Particle::Reset()
 	m_fElapsedTimes = 0.0f;
 	active = false;
 }
+
+//===========================================================================
+
+CMesh* Small_Explosion_Particle::m_Small_ExplosionMesh = NULL;
+bool Small_Explosion_Particle::Setting = false;
+
+
+Small_Explosion_Particle::Small_Explosion_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMaterial* material, Particle_Type p_type) : Explosion_Particle(pd3dDevice, pd3dCommandList, material, p_type)
+{
+}
+
+Small_Explosion_Particle::~Small_Explosion_Particle()
+{
+}
+
+void Small_Explosion_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	if (Setting == false)
+	{
+		if(Explosion_Particle::Setting == false)
+			for (int i = 0; i < EXPLOSION_DEBRISES; ++i)
+				XMStoreFloat3(&Explosion_Sphere_Vectors[i], RandomUnitVectorOnSphere());
+
+		m_Small_ExplosionMesh = new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 5.0f, 1.0f, 1.0f);
+		Setting = true;
+	}
+}
+
+void Small_Explosion_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	//IsVisible(pCamera)
+	if (true && active)
+	{
+		// 위치 정보 업데이트
+		Update_Shader_Resource(pd3dCommandList);
+
+		UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255);
+		D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
+
+		// 활성화된 재질의 정보 업데이트
+		for (int i = 0; i < m_ppMaterials.size(); ++i)
+			if (m_ppMaterials[i].second == true)
+				CGameObject::Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info, i);
+
+
+
+		if (m_Small_ExplosionMesh)
+		{
+			for (int j = 0; j < EXPLOSION_DEBRISES; ++j)
+			{
+				pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * j));
+
+				m_Small_ExplosionMesh->Render(pd3dCommandList);
+
+			}
+		}
+	}
+}
+
+
 //===========================================================================
 
 XMFLOAT3 Charge_Particle::Charge_Sphere_Vectors[CHARGE_DEBRISES];
@@ -509,6 +569,13 @@ void Firework_Particle::Release_Shader_Resource()
 		m_pConstant_Buffer->Unmap(0, NULL);
 		m_pConstant_Buffer->Release();
 	}
+
+	if (firework_Constant_Buffer)
+	{
+		firework_Constant_Buffer->Unmap(0, NULL);
+		firework_Constant_Buffer->Release();
+	}
+	
 }
 
 void Firework_Particle::Set_Main_Direction(XMFLOAT3 Direction)
@@ -658,7 +725,6 @@ void Snow_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 			Particle_Pos_XZ[i] = Random_In_Circle();
 			XMStoreFloat3(&Particle_Rotation_Vector[i], RandomUnitVectorOnSphere());
 		}
-		//new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 3.0f, 20.0f, 20.0f);
 		m_SnowMesh =  new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 1.0f, 1.0f, 1.0f);
 		Setting = true;
 	}
@@ -715,6 +781,13 @@ void Snow_Particle::Release_Shader_Resource()
 		m_pConstant_Buffer->Unmap(0, NULL);
 		m_pConstant_Buffer->Release();
 	}
+
+	if (Snow_Constant_Buffer)
+	{
+		Snow_Constant_Buffer->Unmap(0, NULL);
+		Snow_Constant_Buffer->Release();
+	}
+	
 }
 
 void Snow_Particle::Set_Center(XMFLOAT3 pos)
@@ -802,3 +875,127 @@ void Snow_Particle::Reset()
 	m_fElapsedTimes = 0.0f;
 	active = false;
 }
+
+//==================================================================================
+
+CMesh* Fire_Boom_Particle::m_Fire_Boom_Mesh = NULL;
+bool Fire_Boom_Particle::Setting = false;
+
+void Fire_Boom_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	if (Setting == false)
+	{
+		m_Fire_Boom_Mesh = new CTorusMeshIlluminated(pd3dDevice, pd3dCommandList, 5.0f, 4.0f, 20, 20);
+		Setting = true;
+	}
+}
+
+
+
+Fire_Boom_Particle::Fire_Boom_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
+	CMaterial* material, Particle_Type p_type) : Particle(pd3dDevice, pd3dCommandList, p_type)
+{
+	m_fDuration = 1.0f;
+	m_fBoom_Speed = 100.0f;
+
+	Create_Shader_Resource(pd3dDevice, pd3dCommandList);
+	Create_Material_Buffer(pd3dDevice, pd3dCommandList);
+	SetMaterial(material);
+}
+Fire_Boom_Particle::~Fire_Boom_Particle()
+{
+
+}
+
+
+void Fire_Boom_Particle::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	UINT ncbElementBytes1 = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
+	m_pConstant_Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes1 * Fire_Boom_DEBRISES,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+
+	m_pConstant_Buffer->Map(0, NULL, (void**)&particles_info);
+}
+
+void Fire_Boom_Particle::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
+	XMFLOAT4X4 xmf4x4World;
+
+	for (int i = 0; i < Fire_Boom_DEBRISES; ++i)
+	{
+		XMStoreFloat4x4(&xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_pxmf4x4Transforms[i])));
+
+		CB_GAMEOBJECT_INFO* pbMappedcbGameObject = (CB_GAMEOBJECT_INFO*)(particles_info + (i * ncbGameObjectBytes));
+		::memcpy(&pbMappedcbGameObject->m_xmf4x4World, &xmf4x4World, sizeof(XMFLOAT4X4));
+	}
+
+}
+void Fire_Boom_Particle::Release_Shader_Resource()
+{
+	if (m_pConstant_Buffer)
+	{
+		m_pConstant_Buffer->Unmap(0, NULL);
+		m_pConstant_Buffer->Release();
+	}
+}
+
+void Fire_Boom_Particle::Animate(float fElapsedTime)
+{
+	m_fElapsedTimes += fElapsedTime;
+
+	scale_value += fElapsedTime;
+	scale_value = (int)scale_value % 3 + 1;
+
+	XMFLOAT3 center = GetPosition();
+
+	for (int i = 0; i < Fire_Boom_DEBRISES; ++i)
+	{
+		m_pxmf4x4Transforms[i] = Matrix4x4::Identity();
+
+		XMMATRIX translationToCenter = XMMatrixTranslation(-center.x, -center.y, -center.z);
+		XMMATRIX scaling = XMMatrixScaling(scale_value, scale_value, scale_value);
+		XMMATRIX translationBack = XMMatrixTranslation(center.x, center.y, center.z);
+
+		XMMATRIX transform = translationToCenter * scaling * translationBack;
+		XMStoreFloat4x4(&m_pxmf4x4Transforms[i], transform);
+
+		m_pxmf4x4Transforms[i] = Matrix4x4::Multiply(Matrix4x4::RotationAxis(XMFLOAT3(0.0f, 1.0f, 0.0f), Particle_Rotation * m_fElapsedTimes), m_pxmf4x4Transforms[i]);
+
+	}
+
+}
+void Fire_Boom_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	//IsVisible(pCamera)
+	if (true && active)
+	{
+		// 위치 정보 업데이트
+		Update_Shader_Resource(pd3dCommandList);
+
+		UINT ncbGameObjectBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255);
+		D3D12_GPU_VIRTUAL_ADDRESS d3dcbGameObjectGpuVirtualAddress = m_pConstant_Buffer->GetGPUVirtualAddress();
+
+		// 활성화된 재질의 정보 업데이트
+		for (int i = 0; i < m_ppMaterials.size(); ++i)
+			if (m_ppMaterials[i].second == true)
+				CGameObject::Update_Shader_Resource(pd3dCommandList, Resource_Buffer_Type::Material_info, i);
+
+
+		if (m_Fire_Boom_Mesh)
+		{
+			for (int j = 0; j < Fire_Boom_DEBRISES; ++j)
+			{
+				pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbGameObjectGpuVirtualAddress + (ncbGameObjectBytes * j));
+
+				m_Fire_Boom_Mesh->Render(pd3dCommandList);
+
+			}
+		}
+	}
+}
+void Fire_Boom_Particle::Reset()
+{
+}
+
+

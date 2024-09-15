@@ -88,9 +88,11 @@ enum class Shader_Type {
 
 enum class Particle_Type {
 	Explosion,
+	Small_Explosion,
 	Charge,
 	Firework,
 	Snow,
+	Fire_Boom,
 	None,
 };
 

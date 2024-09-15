@@ -15,11 +15,13 @@ CMaterial* Playing_Scene::material_color_com_selected = NULL;
 
 CMaterial* Playing_Scene::material_color_white_particle = NULL;
 CMaterial* Playing_Scene::material_color_black_particle = NULL;
+CMaterial* Playing_Scene::material_color_yellow_particle = NULL;
+CMaterial* Playing_Scene::material_color_red_particle = NULL;
 
 CMaterial* Playing_Scene::material_color_board = NULL;
+
 CMaterial* Playing_Scene::material_color_mountain = NULL;
 CMaterial* Playing_Scene::material_color_none = NULL; 
-
 
 
 CMaterial* Start_Scene::material_color_white_stone = NULL;
@@ -1258,6 +1260,21 @@ void Playing_Scene::Build_Lights_and_Materials()
 		XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f),
 		XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f)
 	};
+	
+	CMaterialColors red_particle_color = {
+	XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+	XMFLOAT4(0.5f, 0.0f, 0.0f, 1.0f),
+	XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f),
+	XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f)
+	};
+
+	CMaterialColors yellow_particle_color = {
+		XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+		XMFLOAT4(0.5f, 0.5f, 0.0f, 1.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 30.0f),
+		XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f)
+	};
+	
 
 	CMaterialColors player_selected_color = {
 		 XMFLOAT4(0.0f, 0.5f, 0.0f, 1.0f),
@@ -1299,6 +1316,8 @@ void Playing_Scene::Build_Lights_and_Materials()
 
 	material_color_white_particle = new CMaterial(&white_particle_color);
 	material_color_black_particle = new CMaterial(&black_particle_color);
+	material_color_red_particle = new CMaterial(&red_particle_color);
+	material_color_yellow_particle = new CMaterial(&yellow_particle_color);
 
 	material_color_player_selected = new CMaterial(&player_selected_color);
 	material_color_com_selected = new CMaterial(&com_selected_color);
@@ -1343,9 +1362,12 @@ void Playing_Scene::Release_Shader_Resource()
 void Playing_Scene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	Explosion_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
+	Small_Explosion_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
 	Charge_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
 	Firework_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
 	Snow_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
+	Fire_Boom_Particle::Prepare_Particle(pd3dDevice, pd3dCommandList);
+
 	Item::Prepare_Item(pd3dDevice, pd3dCommandList);
 	Build_Lights_and_Materials();
 
@@ -1376,7 +1398,7 @@ void Playing_Scene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	Charge_Effect->m_ppMaterials[1].second = true;
 
 	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(30.0f, 100.0f, 0.0f), Item_Type::Frozen_Time);
-	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 100.0f, 0.0f), Item_Type::Ghost);
+	Setting_Item(pd3dDevice, pd3dCommandList, XMFLOAT3(-30.0f, 100.0f, 0.0f), Item_Type::Fire_Shot);
 	Set_BackGround_Color(XMFLOAT4(0.8f, 0.8f, 0.8f, 0.0f));
 
 }
@@ -2228,6 +2250,33 @@ bool Playing_Scene::Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12Graphics
 		}
 	}
 
+	// Fire Shot
+	Stone_Item_Info* fire_stone_info = item_manager->Get_Stone(Item_Type::Fire_Shot);
+	if (fire_stone_info != NULL)
+	{
+		if (fire_stone_info->particle == NULL)
+		{
+			fire_stone_info->particle = new Fire_Boom_Particle(pd3dDevice, pd3dCommandList, material_color_red_particle, Particle_Type::Fire_Boom);
+			fire_stone_info->particle->SetActive(true);
+			fire_stone_info->particle->SetPosition(fire_stone_info->stone->GetPosition());
+
+			item_manager->fire_boom = true;
+		}
+		else
+		{
+			if (fire_stone_info->particle->active == false)
+			{
+				item_manager->fire_boom = false;
+				item_manager->Set_Clear(Item_Type::Fire_Shot);
+			}
+		}
+
+		// Set_Clear 시, 이 루프문에서 빠져 나감
+		Change_Turn = false;
+	}
+
+
+
 	// Frozen Time
 	if (item_manager->Get_Active_Stone_Num(Item_Type::Frozen_Time))
 	{
@@ -2278,8 +2327,8 @@ XMFLOAT3 Playing_Scene::Item_Spawn(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 	Item_Type spawn_type = item_type_list[rand() % N];
 	XMFLOAT3 spawn_pos = { (rand() % 201) - 100.0f, 100.0f, (rand() % 601) - 300.0f };
 
-	Setting_Item(pd3dDevice, pd3dCommandList, spawn_pos, spawn_type);
-	Setting_Particle(pd3dDevice, pd3dCommandList, spawn_pos, material_color_item_outer, Particle_Type::Explosion);
+	Setting_Item(pd3dDevice, pd3dCommandList, spawn_pos, Item_Type::Fire_Shot); // spawn_type
+	Setting_Particle(pd3dDevice, pd3dCommandList, spawn_pos, material_color_yellow_particle, Particle_Type::Small_Explosion);
 
 	return spawn_pos;
 }
@@ -2458,6 +2507,15 @@ void Playing_Scene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 			m_particle.push_back(particle);
 		}
 		break;
+		
+		case Particle_Type::Small_Explosion:
+		{
+			particle = new Small_Explosion_Particle(pd3dDevice, pd3dCommandList, material, Particle_Type::Small_Explosion);
+			particle->SetActive(true);
+			particle->SetPosition(pos);
+			m_particle.push_back(particle);
+		}
+		break;
 
 		case Particle_Type::Charge:
 		{
@@ -2486,10 +2544,17 @@ void Playing_Scene::Setting_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 		break;
 
 		case Particle_Type::Snow:
-			particle = new Snow_Particle(pd3dDevice, pd3dCommandList, pos, Snow_Area_Radius, material_color_white_stone, Particle_Type::Snow);
+			particle = new Snow_Particle(pd3dDevice, pd3dCommandList, pos, Snow_Area_Radius, material, Particle_Type::Snow);
 			particle->SetActive(true);
 			particle->SetPosition(pos);
 			((Snow_Particle*)particle)->Set_Center(pos);
+			m_particle.push_back(particle);
+			break;
+
+		case Particle_Type::Fire_Boom:
+			particle = new Fire_Boom_Particle(pd3dDevice, pd3dCommandList, material, Particle_Type::Fire_Boom);
+			particle->SetActive(true);
+			particle->SetPosition(pos);
 			m_particle.push_back(particle);
 			break;
 
@@ -3279,8 +3344,6 @@ bool Playing_Scene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPAR
 		case VK_RIGHT:
 			orbit_value -= 1.0f;
 			break;
-
-
 
 		default:
 			break;

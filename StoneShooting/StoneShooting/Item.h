@@ -54,10 +54,14 @@ class Item_Manager
 
 	void Update_Frozen_Time(float fTimeElapsed);
 	void Update_Ghost(float fTimeElapsed);
+	void Update_Fire_Shot(float fTimeElapsed);
+
 	void Check_Stone_Frozen_Time_Effect(std::vector<StoneObject*>* stones);
 
 public:
 	LIGHT* Frozen_Light = NULL;
+
+	bool fire_boom = false;
 
 	Item_Manager();
 	~Item_Manager();

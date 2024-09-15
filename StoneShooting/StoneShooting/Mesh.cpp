@@ -907,6 +907,118 @@ CSphereMeshIlluminated::CSphereMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12G
 CSphereMeshIlluminated::~CSphereMeshIlluminated()
 {
 }
+//===============================================================================
+
+CTorusMeshIlluminated::CTorusMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
+	float fMajorRadius, float fMinorRadius, int nMajorSegments, int nMinorSegments) : CMeshIlluminated(pd3dDevice, pd3dCommandList)
+{
+	m_nStride = sizeof(CIlluminatedVertex);
+	m_d3dPrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	// 정점 수: 큰 원을 따라 nMajorSegments, 작은 원을 따라 nMinorSegments
+	m_nVertices = (nMajorSegments * nMinorSegments);
+
+	XMFLOAT3* pxmf3Positions = new XMFLOAT3[m_nVertices];
+	XMFLOAT3* pxmf3Normals = new XMFLOAT3[m_nVertices];
+
+	float fDeltaTheta = float(2.0f * XM_PI / nMajorSegments);  // 큰 원을 따라 분할
+	float fDeltaPhi = float(2.0f * XM_PI / nMinorSegments);    // 작은 원을 따라 분할
+
+	int k = 0;
+
+	// 도넛 정점 계산
+	for (int i = 0; i < nMajorSegments; i++)
+	{
+		float theta = i * fDeltaTheta; // 큰 원에서의 각도
+		XMFLOAT3 majorCircleCenter = XMFLOAT3(
+			fMajorRadius * cosf(theta), // 큰 원의 중심
+			0.0f,
+			fMajorRadius * sinf(theta)
+		);
+
+		for (int j = 0; j < nMinorSegments; j++)
+		{
+			float phi = j * fDeltaPhi; // 작은 원에서의 각도
+			XMFLOAT3 offset = XMFLOAT3(
+				fMinorRadius * cosf(phi) * cosf(theta),
+				fMinorRadius * sinf(phi),
+				fMinorRadius * cosf(phi) * sinf(theta)
+			);
+
+			// 정점 좌표 계산
+			pxmf3Positions[k] = XMFLOAT3(
+				majorCircleCenter.x + offset.x,
+				majorCircleCenter.y + offset.y,
+				majorCircleCenter.z + offset.z
+			);
+
+			// 법선 벡터 계산 (방사형)
+			pxmf3Normals[k] = XMFLOAT3(
+				cosf(phi) * cosf(theta),
+				sinf(phi),
+				cosf(phi) * sinf(theta)
+			);
+			k++;
+		}
+	}
+
+	// 인덱스 수: 사각형당 두 개의 삼각형이 필요
+	m_nIndices = (nMajorSegments * nMinorSegments) * 6;
+	UINT* pnIndices = new UINT[m_nIndices];
+
+	k = 0;
+	for (int i = 0; i < nMajorSegments; i++)
+	{
+		for (int j = 0; j < nMinorSegments; j++)
+		{
+			int nextI = (i + 1) % nMajorSegments;
+			int nextJ = (j + 1) % nMinorSegments;
+
+			// 첫 번째 삼각형
+			pnIndices[k++] = (i * nMinorSegments) + j;
+			pnIndices[k++] = (nextI * nMinorSegments) + j;
+			pnIndices[k++] = (i * nMinorSegments) + nextJ;
+
+			// 두 번째 삼각형
+			pnIndices[k++] = (i * nMinorSegments) + nextJ;
+			pnIndices[k++] = (nextI * nMinorSegments) + j;
+			pnIndices[k++] = (nextI * nMinorSegments) + nextJ;
+		}
+	}
+
+	// 법선 벡터 계산 (필요시)
+	CalculateVertexNormals(pxmf3Normals, pxmf3Positions, m_nVertices, pnIndices, m_nIndices);
+
+	// 정점과 인덱스를 저장
+	CIlluminatedVertex* pVertices = new CIlluminatedVertex[m_nVertices];
+	for (int i = 0; i < m_nVertices; i++)
+		pVertices[i] = CIlluminatedVertex(pxmf3Positions[i], pxmf3Normals[i]);
+
+	m_pVertices_I = pVertices;
+	m_pnIndices = pnIndices;
+
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pVertices, m_nStride * m_nVertices,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
+
+	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
+	m_d3dVertexBufferView.StrideInBytes = m_nStride;
+	m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
+
+	m_pd3dIndexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pnIndices, sizeof(UINT) * m_nIndices,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pd3dIndexUploadBuffer);
+
+	m_d3dIndexBufferView.BufferLocation = m_pd3dIndexBuffer->GetGPUVirtualAddress();
+	m_d3dIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
+	m_d3dIndexBufferView.SizeInBytes = sizeof(UINT) * m_nIndices;
+
+	// 도넛의 경계 구체와 경계 상자 설정
+	m_xmBoundingSphere = BoundingSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), fMajorRadius + fMinorRadius);
+	m_xmBoundingBox = BoundingOrientedBox(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(fMajorRadius + fMinorRadius, fMinorRadius, fMajorRadius + fMinorRadius), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+}
+
+CTorusMeshIlluminated::~CTorusMeshIlluminated()
+{
+}
 
 //===============================================================================
 

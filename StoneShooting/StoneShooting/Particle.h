@@ -40,6 +40,7 @@ public:
 
 class Explosion_Particle : public Particle
 {
+protected:
 	static XMFLOAT3				Explosion_Sphere_Vectors[EXPLOSION_DEBRISES];
 	static bool Setting;
 	static CMesh* m_ExplosionMesh; 
@@ -66,7 +67,21 @@ public:
 	virtual void Reset();
 };
 
+class Small_Explosion_Particle : public Explosion_Particle
+{
+private:
+	static CMesh* m_Small_ExplosionMesh;
+	static bool Setting;
 
+public:
+
+	Small_Explosion_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
+		CMaterial* material, Particle_Type p_type = Particle_Type::Explosion);
+	virtual ~Small_Explosion_Particle();
+
+	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+};
 
 #define CHARGE_DEBRISES 160
 
@@ -200,5 +215,37 @@ public:
 
 	virtual void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 
+	virtual void Reset();
+};
+
+
+
+#define Fire_Boom_DEBRISES 1
+
+class Fire_Boom_Particle : public Particle
+{
+	XMFLOAT4X4					m_pxmf4x4Transforms[Fire_Boom_DEBRISES];
+
+	static CMesh* m_Fire_Boom_Mesh;
+	static bool Setting;
+
+	float m_fBoom_Speed = 10.0f;
+	float scale_value = 1.0f;
+
+public:
+	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+
+
+	Fire_Boom_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
+		CMaterial* material, Particle_Type p_type = Particle_Type::Explosion);
+	virtual ~Fire_Boom_Particle();
+
+
+	virtual void Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Release_Shader_Resource();
+
+	virtual void Animate(float fElapsedTime);
+	virtual void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 	virtual void Reset();
 };
