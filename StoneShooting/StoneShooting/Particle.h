@@ -51,7 +51,7 @@ protected:
 
 public:
 	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-
+	static void Release_Particle();
 	
 	Explosion_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, 
 		CMaterial* material, Particle_Type p_type = Particle_Type::Explosion);
@@ -80,6 +80,8 @@ public:
 	virtual ~Small_Explosion_Particle();
 
 	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	static void Release_Particle();
+
 	void Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 };
 
@@ -103,6 +105,7 @@ class Charge_Particle : public Particle
 	float						Active_Particle = 0;
 public:
 	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	static void Release_Particle();
 
 	Charge_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 		float Range, float cycle_time, CMaterial* material, Particle_Type p_type = Particle_Type::Charge);
@@ -147,6 +150,7 @@ class Firework_Particle : public Particle
 
 public:
 	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	static void Release_Particle();
 
 	Firework_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 		float cycle_time, CMaterial* material, Particle_Type p_type = Particle_Type::Firework);
@@ -197,6 +201,7 @@ class Snow_Particle : public Particle
 
 public:
 	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	static void Release_Particle();
 
 	Snow_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 		XMFLOAT3 start_pos, float range, CMaterial* material, Particle_Type p_type = Particle_Type::Snow);
@@ -236,7 +241,7 @@ class Fire_Boom_Particle : public Particle
 
 public:
 	static void Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-
+	static void Release_Particle();
 
 	Fire_Boom_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 		CMaterial* material, Particle_Type p_type = Particle_Type::Explosion);

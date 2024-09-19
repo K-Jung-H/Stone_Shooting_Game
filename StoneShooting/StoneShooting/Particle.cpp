@@ -82,6 +82,11 @@ void Particle::Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList
 
 void Particle::Release_Shader_Resource()
 {
+	if (m_pConstant_Buffer)
+	{
+		m_pConstant_Buffer->Unmap(0, NULL);
+		m_pConstant_Buffer->Release();
+	}
 }
 
 void Particle::Animate(float fElapsedTime)
@@ -129,6 +134,11 @@ void Explosion_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12Graphi
 		m_ExplosionMesh = new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 5.5f, 5.5f, 5.5f);
 		Setting = true;
 	}
+}
+
+void Explosion_Particle::Release_Particle()
+{
+	delete m_ExplosionMesh;
 }
 
 void Explosion_Particle::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -254,6 +264,11 @@ void Small_Explosion_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12
 	}
 }
 
+void Small_Explosion_Particle::Release_Particle()
+{
+	delete m_ExplosionMesh;
+}
+
 void Small_Explosion_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
 	//IsVisible(pCamera)
@@ -333,6 +348,11 @@ void Charge_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 		m_ChargeMesh = new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 1.5f, 1.5f, 1.5f);
 		Setting = true;
 	}
+}
+
+void Charge_Particle::Release_Particle()
+{
+	delete m_ChargeMesh;
 }
 
 void Charge_Particle::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -513,6 +533,11 @@ void Firework_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12Graphic
 		m_FireworkMesh = new CCubeMeshIlluminated(pd3dDevice, pd3dCommandList, 3.0f, 1.0f, 3.0f);
 		Setting = true;
 	}
+}
+
+void Firework_Particle::Release_Particle()
+{
+	delete m_FireworkMesh;
 }
 
 void Firework_Particle::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -730,6 +755,11 @@ void Snow_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 	}
 }
 
+void Snow_Particle::Release_Particle()
+{
+	delete m_SnowMesh;
+}
+
 void Snow_Particle::Create_Shader_Resource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	UINT ncbElementBytes1 = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256ÀÇ ¹è¼ö
@@ -830,9 +860,6 @@ void Snow_Particle::Animate(float fElapsedTime)
 			m_pxmf4x4Transforms[i] = Matrix4x4::Multiply(Matrix4x4::RotationAxis(Particle_Rotation_Vector[i], Particle_Rotation * Particle_ElapsedTime[i]), m_pxmf4x4Transforms[i]);
 		}
 	}
-	//if (m_fDuration < m_fElapsedTimes)
-	//	Reset();
-
 }
 void Snow_Particle::Particle_Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
@@ -890,7 +917,10 @@ void Fire_Boom_Particle::Prepare_Particle(ID3D12Device* pd3dDevice, ID3D12Graphi
 	}
 }
 
-
+void Fire_Boom_Particle::Release_Particle()
+{
+	delete m_Fire_Boom_Mesh;
+}    
 
 Fire_Boom_Particle::Fire_Boom_Particle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 	CMaterial* material, Particle_Type p_type) : Particle(pd3dDevice, pd3dCommandList, p_type)

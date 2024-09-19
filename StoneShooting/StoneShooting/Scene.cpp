@@ -214,8 +214,13 @@ Loading_Scene::Loading_Scene()
 
 Loading_Scene::~Loading_Scene()
 {
+
 }
 
+void Loading_Scene::ReleaseObjects()
+{
+
+}
 void Loading_Scene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
@@ -1012,6 +1017,61 @@ void Start_Scene::BuildUIs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 
 void Start_Scene::ReleaseObjects()
 {
+	Release_Shader_Resource();
+
+	for (UI* ui_ptr : UI_list)
+		delete ui_ptr;
+	UI_list.clear();
+
+	for (CGameObject* obj_ptr : game_objects)
+		obj_ptr->Release();
+
+
+	if (m_pLights)
+		delete m_pLights;
+
+	if (UI_GraphicsRootSignature)
+		UI_GraphicsRootSignature->Release();
+
+	if (m_pd3dGraphicsRootSignature)
+		m_pd3dGraphicsRootSignature->Release();
+
+	for (int j = 0; j < N_Object_Shader; ++j)
+	{
+		Object_Shader[j].ReleaseUploadBuffers();
+		Object_Shader[j].ReleaseObjects();
+	}
+
+	for (int j = 0; j < N_UI_Shader; ++j)
+	{
+		UI_Shader[j].ReleaseUploadBuffers();
+		UI_Shader[j].ReleaseObjects();
+	}
+
+	for (int j = 0; j < N_Outline_Shader; ++j)
+	{
+		Outline_Shader[j].ReleaseUploadBuffers();
+		Outline_Shader[j].ReleaseObjects();
+	}
+
+	for (int j = 0; j < N_Texture_Shader; ++j)
+	{
+		Texture_Shader[j].ReleaseUploadBuffers();
+		Texture_Shader[j].ReleaseObjects();
+	}
+
+	if (Object_Shader)
+		delete[] Object_Shader;
+
+	if (UI_Shader)
+		delete[] UI_Shader;
+
+	if (Outline_Shader)
+		delete[] Outline_Shader;
+
+	if (Texture_Shader)
+		delete[] Texture_Shader;
+
 }
 void Start_Scene::ReleaseUploadBuffers()
 {
@@ -1820,12 +1880,47 @@ void Playing_Scene::ReleaseObjects()
 {
 	Release_Shader_Resource();
 
+	for (UI* ui_ptr : UI_list)
+		delete ui_ptr;
+	UI_list.clear();
+
+	for (Particle* particle_ptr : m_particle)
+	{
+		particle_ptr->Release_Shader_Resource();
+		delete particle_ptr;
+	}
+	m_particle.clear();
+
+	//Explosion_Particle::Release_Particle();
+	//Small_Explosion_Particle::Release_Particle();
+	//Charge_Particle::Release_Particle();
+	//Firework_Particle::Release_Particle();
+	//Snow_Particle::Release_Particle();
+	//Fire_Boom_Particle::Release_Particle();
+
+	for (Item* item_ptr : Game_Items)
+	{
+		delete item_ptr;
+	}
+	Game_Items.clear();
+
+	delete item_manager;
+
+	for (StoneObject* stone_ptr : GameObject_Stone)
+		stone_ptr->Release();
+	GameObject_Stone.clear();
+
+	m_pBoards->Release();
+
+	player1.Item_Inventory.clear();
+	player1.stone_list.clear();
+	computer.stone_list.clear();
+
 	if (m_pLights)
 		delete m_pLights;
 
-	//if (m_pMaterials)
-	//	delete m_pMaterials;
-
+	if (UI_GraphicsRootSignature)
+		UI_GraphicsRootSignature->Release();
 
 	if (m_pd3dGraphicsRootSignature) 
 		m_pd3dGraphicsRootSignature->Release();
@@ -1833,19 +1928,43 @@ void Playing_Scene::ReleaseObjects()
 	if (GameObject_Stone.size())
 		GameObject_Stone.clear();
 
+	for (int j = 0; j < N_Object_Shader; ++j)
+	{
+		Object_Shader[j].ReleaseUploadBuffers();
+		Object_Shader[j].ReleaseObjects();
+	}
+
+	for (int j = 0; j < N_UI_Shader; ++j)
+	{
+		UI_Shader[j].ReleaseUploadBuffers();
+		UI_Shader[j].ReleaseObjects();
+	}
+
+	for (int j = 0; j < N_Outline_Shader; ++j)
+	{
+		Outline_Shader[j].ReleaseUploadBuffers();
+		Outline_Shader[j].ReleaseObjects();
+	}
+
+	for (int j = 0; j < N_Texture_Shader; ++j)
+	{
+		Texture_Shader[j].ReleaseUploadBuffers();
+		Texture_Shader[j].ReleaseObjects();
+	}
+
 	if (Object_Shader)
 		delete[] Object_Shader;
 
-	/*for (int j = 0; j < m_n_uiShaders; ++j)
-	{
-		m_uiShaders[j].ReleaseShaderVariables();
-		m_uiShaders[j].ReleaseObjects();
-	}*/
+	if (UI_Shader)
+		delete[] UI_Shader;
+
+	if (Outline_Shader)
+		delete[] Outline_Shader;
+
+	if (Texture_Shader)
+		delete[] Texture_Shader;
 
 
-
-	//if (m_uiShaders)
-	//	delete[] m_uiShaders;
 }
 
 void Playing_Scene::ReleaseUploadBuffers()

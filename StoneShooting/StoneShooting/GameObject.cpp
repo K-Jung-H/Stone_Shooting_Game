@@ -243,21 +243,7 @@ CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 
 CGameObject::~CGameObject()
 {
-
-	for (CGameObject* p_sibling : m_pSibling)
-	{
-		if (p_sibling)
-			delete p_sibling;
-		p_sibling = NULL;
-	}
 	m_pSibling.clear();
-
-	for (CGameObject* p_child : m_pChild)
-	{
-		if (p_child)
-			delete p_child;
-		p_child = NULL;
-	}
 	m_pChild.clear();
 
 	for (CMesh* p_mesh : mesh_list)
@@ -292,10 +278,10 @@ void CGameObject::AddRef()
 void CGameObject::Release()
 {
 	for (CGameObject* child_ptr : m_pChild)
-		delete child_ptr;
+		child_ptr->Release();
 
 	for (CGameObject* sibling_ptr : m_pSibling)
-		delete sibling_ptr;
+		sibling_ptr->Release();
 
 	if (--m_nReferences <= 0) 
 		delete this;

@@ -32,6 +32,12 @@ public:
 
 struct Stone_Item_Info
 {
+	~Stone_Item_Info()
+	{
+		delete stone;
+		delete particle;
+	}
+
 	StoneObject*	stone		= NULL;
 	Particle*		particle	= NULL;
 	int				turn		= 0;

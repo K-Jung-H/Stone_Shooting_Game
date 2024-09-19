@@ -72,7 +72,7 @@ public:
 	std::vector<UI_Object*>ui_object;
 
 	UI(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, RECT& monitor_area);
-	virtual ~UI() {}
+	virtual ~UI();
 
 	virtual void Update_Shader_Resource(ID3D12GraphicsCommandList* pd3dCommandList);
 

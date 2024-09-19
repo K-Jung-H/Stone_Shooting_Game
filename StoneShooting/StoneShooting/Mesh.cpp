@@ -14,9 +14,9 @@ CMesh::~CMesh()
 	if (m_pd3dIndexBuffer) m_pd3dIndexBuffer->Release();
 	if (m_pd3dIndexUploadBuffer) m_pd3dIndexUploadBuffer->Release();
 
-	if (m_pVertices_D) delete[] m_pVertices_D;
-	if (m_pVertices_I) delete[] m_pVertices_I;
-	if (m_pnIndices) delete[] m_pnIndices;
+	//if (m_pVertices_D) delete[] m_pVertices_D;
+	//if (m_pVertices_I) delete[] m_pVertices_I;
+	//if (m_pnIndices) delete[] m_pnIndices;
 
 }
 

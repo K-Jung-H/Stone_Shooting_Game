@@ -206,6 +206,19 @@ Item_Manager::Item_Manager()
 
 Item_Manager::~Item_Manager()
 {
+	delete Double_Power_obj;
+	delete Max_Power_obj;
+	delete Fire_Shot_obj;
+
+	for (Stone_Item_Info* item_info_ptr : Frozen_Time_obj)
+		delete item_info_ptr;
+
+	for (Stone_Item_Info* item_info_ptr : Ghost_obj)
+		delete item_info_ptr;
+
+	for (Stone_Item_Info* item_info_ptr : Taunt_obj)
+		delete item_info_ptr;
+
 }
 
 void Item_Manager::Add_Stone_Item_Applied(StoneObject* stone)

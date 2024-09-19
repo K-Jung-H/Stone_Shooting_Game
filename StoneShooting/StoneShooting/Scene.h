@@ -126,6 +126,8 @@ public:
 	Loading_Scene();
 	~Loading_Scene();
 	
+	void ReleaseObjects();
+
 	bool OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam) override;
 
 	void BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) override;

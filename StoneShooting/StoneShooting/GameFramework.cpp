@@ -485,7 +485,7 @@ void CGameFramework::Build_Loading_Scene(CPlayer* cplayer)
 	Scene_Loading->Add_Brush(m_pd2dbrText_W);
 	Scene_Loading->BuildScene(m_pd3dDevice, m_pd3dCommandList);
 
-	scene_list.push_back(Scene_Beginning);
+	scene_list.push_back(Scene_Loading);
 
 
 	m_pd3dCommandList->Close();
@@ -591,14 +591,13 @@ void CGameFramework::WaitForGpuComplete()
 
 void CGameFramework::FrameAdvance()
 {
-	m_GameTimer.Tick(60.0f); // 60프레임으로 고정하기
+	m_GameTimer.Tick(300.0f); // 60프레임으로 고정하기
 	
 	ProcessInput();
 	
 	if (Scene_Loading != NULL && Scene_Playing == NULL)
 		if (Scene_Loading->Is_Loading_End())
 		{
-			
 			Build_Playing_Scene(player_list[0], Scene_Loading->difficulty);
 			rendering_scene = Scene_Playing;
 		}
