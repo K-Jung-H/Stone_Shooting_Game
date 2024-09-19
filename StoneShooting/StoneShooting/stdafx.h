@@ -140,6 +140,13 @@ enum class Difficulty_Type
 	ETC,
 };
 
+enum class Board_Type
+{
+	Thin,
+	Mini,
+	Large,
+};
+
 #define RESOURCE_TEXTURE2D			0x01
 #define RESOURCE_TEXTURE2D_ARRAY	0x02	
 #define RESOURCE_TEXTURE2DARRAY		0x03

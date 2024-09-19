@@ -148,7 +148,9 @@ public:
 	void Message_Render(ID2D1DeviceContext2* pd2dDevicecontext) override;
 
 	bool Is_Loading_End() { return !loading; }
+	bool IS_Back_to_Start() { return (loading && selecting_line == -1); }
 
+	void Reset();
 public:
 	CTexture* loading_texture = NULL;
 	XMFLOAT4X4	texture_Transform = Matrix4x4::Identity();
@@ -157,8 +159,10 @@ public:
 	CB_GAMEOBJECT_INFO* Mapped_Loading_Texture_Tranform = NULL;
 	D3D12_GPU_DESCRIPTOR_HANDLE CBV_Loading_Texture_Tranform;
 
-	bool difficulty_selected = false;
+	bool All_selected = false;
 	bool loading = true;
+	int selecting_line = 0;
+
 	float index_value = 0.0f;
 	float Difficulty_Scale = 1.0f;
 
@@ -166,7 +170,14 @@ public:
 	int difficulty_index = 0;
 
 	Difficulty_Type difficulty = Difficulty_Type::ETC;
-	
+
+
+
+	std::wstring board_word[3] = { L"Thin", L"Mini", L"Large" };
+	int board_index = 0;
+
+	Board_Type b_type = Board_Type::Thin;
+
 protected:
 	ID3D12DescriptorHeap* m_pd3dCbvSrvDescriptorHeap = NULL;
 
@@ -241,7 +252,7 @@ private:
 	void UpdateVelocities(StoneObject* stone1, StoneObject* stone2, XMVECTOR vel1, XMVECTOR vel2);
 
 public:
-	Playing_Scene(Difficulty_Type difficulty = Difficulty_Type::Normal);
+	Playing_Scene(Difficulty_Type difficulty = Difficulty_Type::Normal, Board_Type board_type = Board_Type::Thin);
 	~Playing_Scene();
 
 	//씬에서 마우스와 키보드 메시지를 처리한다. 
@@ -363,7 +374,8 @@ public:
 	//=============================================
 protected:
 	Difficulty_Type difficulty;
-
+	int Board_Width = 0;
+	int Board_Height = 0;
 //==========================================
 
 	LIGHTS* m_pLights = NULL; // 씬의 조명

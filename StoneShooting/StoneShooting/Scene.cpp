@@ -219,7 +219,49 @@ Loading_Scene::~Loading_Scene()
 
 void Loading_Scene::ReleaseObjects()
 {
+	Release_Shader_Resource();
 
+	for (CGameObject* obj_ptr : game_objects)
+		obj_ptr->Release();
+
+	if (m_pd3dGraphicsRootSignature)
+		m_pd3dGraphicsRootSignature->Release();
+
+	for (int j = 0; j < N_Object_Shader; ++j)
+	{
+		Object_Shader[j].ReleaseUploadBuffers();
+		Object_Shader[j].ReleaseObjects();
+	}
+
+	for (int j = 0; j < N_UI_Shader; ++j)
+	{
+		UI_Shader[j].ReleaseUploadBuffers();
+		UI_Shader[j].ReleaseObjects();
+	}
+
+	for (int j = 0; j < N_Outline_Shader; ++j)
+	{
+		Outline_Shader[j].ReleaseUploadBuffers();
+		Outline_Shader[j].ReleaseObjects();
+	}
+
+	for (int j = 0; j < N_Texture_Shader; ++j)
+	{
+		Texture_Shader[j].ReleaseUploadBuffers();
+		Texture_Shader[j].ReleaseObjects();
+	}
+
+	if (Object_Shader)
+		delete[] Object_Shader;
+
+	if (UI_Shader)
+		delete[] UI_Shader;
+
+	if (Outline_Shader)
+		delete[] Outline_Shader;
+
+	if (Texture_Shader)
+		delete[] Texture_Shader;
 }
 void Loading_Scene::BuildScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
@@ -409,12 +451,12 @@ void Loading_Scene::AnimateObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 	else if (Difficulty_Scale < 1.0f)
 		Difficulty_Scale = 1.0f;
 
-	if (difficulty_selected)
+	if (All_selected)
 	{
 		if (loading)
 		{
 			if (index_value < 48.0f)
-				index_value += 20.0f * fTimeElapsed;
+				index_value += 30.0f * fTimeElapsed;
 			else
 			{
 				index_value = 47.0f;
@@ -425,7 +467,6 @@ void Loading_Scene::AnimateObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 	XMMATRIX ScaleMatrix = XMMatrixScaling(0.1f, 0.1f, 0.1f);
 	XMMATRIX TranslationMatrix = XMMatrixTranslation(0.0f, 0.3f, 0.0f);
-
 	XMMATRIX TransformMatrix = ScaleMatrix * TranslationMatrix;
 
 	XMStoreFloat4x4(&texture_Transform, TransformMatrix);
@@ -448,7 +489,7 @@ void Loading_Scene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 	pd3dCommandList->RSSetViewports(1, &m_d3dViewport);
 	pd3dCommandList->RSSetScissorRects(1, &m_d3dScissorRect);
 
-	if (difficulty_selected)
+	if (All_selected)
 	{
 		// 텍스쳐 업데이트
 		loading_texture->UpdateShaderVariables(pd3dCommandList);
@@ -465,58 +506,69 @@ void Loading_Scene::Render(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 		pd3dCommandList->DrawInstanced(4, 1, 0, 0);
 	}
 }
+
+// 스케일링 적용 함수
+void ApplyScalingTransform(ID2D1DeviceContext2* pd2dDevicecontext, const D2D1_RECT_F& area, float scale, const D2D1_MATRIX_3X2_F& oldTransform)
+{
+	// 중심 좌표 계산
+	float cx = area.left + (area.right - area.left) / 2.0f;
+	float cy = area.top + (area.bottom - area.top) / 2.0f;
+
+	// 스케일링 변환 적용
+	D2D1_MATRIX_3X2_F Matrix_T1 = D2D1::Matrix3x2F::Translation(-cx, -cy);
+	D2D1_MATRIX_3X2_F Matrix_S = D2D1::Matrix3x2F::Scale(scale, scale);
+	D2D1_MATRIX_3X2_F Matrix_T2 = D2D1::Matrix3x2F::Translation(cx, cy);
+	D2D1_MATRIX_3X2_F finalTransform = Matrix_T1 * Matrix_S * Matrix_T2 * oldTransform;
+
+	pd2dDevicecontext->SetTransform(finalTransform);
+}
+
+
 void Loading_Scene::Message_Render(ID2D1DeviceContext2* pd2dDevicecontext)
 {
-	// 텍스트 영역
-	D2D1_RECT_F guide_message_area_1 = D2D1::RectF(50, 30, 750, 200);
-	D2D1_RECT_F guide_message_area_2 = D2D1::RectF(50, 400, 750, 500);
+	// 텍스트 영역 정의
+	D2D1_RECT_F guide_message_area_1 = D2D1::RectF(50, 30, 750, 100);
+	D2D1_RECT_F guide_message_area_2 = D2D1::RectF(50, 490, 750, 540);
+	D2D1_RECT_F guide_message_area_3 = D2D1::RectF(50, 290, 750, 340);
+	D2D1_RECT_F board_area = D2D1::RectF(50, 300, 750, 400);
+	D2D1_RECT_F difficulty_area = D2D1::RectF(50, 500, 750, 600);
 
+	// 공통 메시지 그리기
+	pd2dDevicecontext->DrawTextW(L"Press Enter", 12, write_font_list[1], &guide_message_area_1, brush_list[0]);
+	pd2dDevicecontext->DrawTextW(L"Board_Type", 10, write_font_list[1], &guide_message_area_3, brush_list[0]);
+	pd2dDevicecontext->DrawTextW(L"Difficulty", 10, write_font_list[1], &guide_message_area_2, brush_list[0]);
 
-	std::wstring guide_message_1 = L"Press Space Bar";
-	pd2dDevicecontext->DrawTextW(guide_message_1.c_str(), (UINT32)wcslen(guide_message_1.c_str()), write_font_list[0], &guide_message_area_1, brush_list[0]);
+	// 기존 변환 행렬 저장
+	D2D1_MATRIX_3X2_F oldTransform;
+	pd2dDevicecontext->GetTransform(&oldTransform);
 
-
-	if (difficulty_selected == false)
+	// 선택된 라인에 따라 아이콘과 텍스트 처리
+	if (selecting_line == 2)
 	{
-
-		// 텍스트 그리기
-		std::wstring guide_message_2 = L"Select Difficulty";
-		pd2dDevicecontext->DrawTextW(guide_message_2.c_str(), (UINT32)wcslen(guide_message_2.c_str()), write_font_list[0], &guide_message_area_2, brush_list[0]);
-
-
-		// 텍스트 영역
-		D2D1_RECT_F difficulty_area = D2D1::RectF(50, 500, 750, 600);
-
-		// 텍스트 그리기
-		std::wstring icon_message = L"◀                ▶";
-		pd2dDevicecontext->DrawTextW(icon_message.c_str(), (UINT32)wcslen(icon_message.c_str()), write_font_list[0], &difficulty_area, brush_list[0]);
-
-
-		// 텍스트 영역의 중심 좌표 계산
-		float cx = difficulty_area.left + (difficulty_area.right - difficulty_area.left) / 2.0f;
-		float cy = difficulty_area.top + (difficulty_area.bottom - difficulty_area.top) / 2.0f;
-
-		// 기존 변환 행렬 저장
-		D2D1_MATRIX_3X2_F oldTransform;
-		pd2dDevicecontext->GetTransform(&oldTransform);
-
-		D2D1_MATRIX_3X2_F Matrix_T1 = D2D1::Matrix3x2F::Translation(-cx, -cy);  // 중심으로 이동
-		D2D1_MATRIX_3X2_F Matrix_S = D2D1::Matrix3x2F::Scale(Difficulty_Scale, Difficulty_Scale);                   // 스케일 적용
-		D2D1_MATRIX_3X2_F Matrix_T2 = D2D1::Matrix3x2F::Translation(cx, cy);    // 원래 위치로 복귀
-
-		// 최종 변환 행렬 계산: 중심 이동 -> 스케일링 -> 원래 위치로 복귀
-		D2D1_MATRIX_3X2_F finalTransform = Matrix_T1 * Matrix_S * Matrix_T2 * oldTransform;
-		pd2dDevicecontext->SetTransform(finalTransform);
-
-		// 텍스트 그리기
-		std::wstring difficulty_message = difficulty_word[difficulty_index];
-		pd2dDevicecontext->DrawTextW(difficulty_message.c_str(), (UINT32)wcslen(difficulty_message.c_str()), write_font_list[0], &difficulty_area, brush_list[0]);
-
-		// 원래 변환으로 복구
-		pd2dDevicecontext->SetTransform(oldTransform);
-
+		// 선택 라인 아이콘
+		D2D1_RECT_F icon_area = D2D1::RectF(50, 100, 750, 150);
+		pd2dDevicecontext->DrawTextW(L"▲", 1, write_font_list[0], &icon_area, brush_list[0]);
 	}
+
+	// Board 처리
+	if (selecting_line == 0)
+	{
+		pd2dDevicecontext->DrawTextW(L"◀                ▶", 20, write_font_list[0], &board_area, brush_list[0]);
+		ApplyScalingTransform(pd2dDevicecontext, board_area, Difficulty_Scale, oldTransform);
+	}
+	pd2dDevicecontext->DrawTextW(board_word[board_index].c_str(), (UINT32)wcslen(board_word[board_index].c_str()), write_font_list[0], &board_area, brush_list[0]);
+	if (selecting_line == 0) pd2dDevicecontext->SetTransform(oldTransform);
+
+	// Difficulty 처리
+	if (selecting_line == 1)
+	{
+		pd2dDevicecontext->DrawTextW(L"◀                ▶", 20, write_font_list[0], &difficulty_area, brush_list[0]);
+		ApplyScalingTransform(pd2dDevicecontext, difficulty_area, Difficulty_Scale, oldTransform);
+	}
+	pd2dDevicecontext->DrawTextW(difficulty_word[difficulty_index].c_str(), (UINT32)wcslen(difficulty_word[difficulty_index].c_str()), write_font_list[0], &difficulty_area, brush_list[0]);
+	if (selecting_line == 1) pd2dDevicecontext->SetTransform(oldTransform);
 }
+
 
 bool Loading_Scene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
@@ -526,51 +578,119 @@ bool Loading_Scene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPAR
 	case WM_KEYDOWN:
 		switch (wParam)
 		{
-		case VK_LEFT:
-		case VK_DOWN:
+		case VK_RETURN:
 		{
-			Difficulty_Scale = 2.0f;
-			difficulty_index -= 1;
+			if (0 <= selecting_line && selecting_line <= 1)
+				selecting_line += 1;
+			else if (selecting_line == 2)
+			{
+				switch (board_index)
+				{
+				case 0:
+					b_type = Board_Type::Thin;
+					break;
 
-			if (difficulty_index < 0)
-				difficulty_index = 0;
+				case 1:
+					b_type = Board_Type::Mini;
+					break;
+
+				case 2:
+					b_type = Board_Type::Large;
+					break;
+
+				default:
+					b_type = Board_Type::Thin;
+					break;
+				}
+
+				switch (difficulty_index)
+				{
+				case 0:
+					difficulty = Difficulty_Type::Normal;
+					break;
+
+				case 1:
+					difficulty = Difficulty_Type::Hard;
+					break;
+
+				case 2:
+					difficulty = Difficulty_Type::Hell;
+					break;
+
+				default:
+					difficulty = Difficulty_Type::Normal;
+					break;
+				}
+
+				All_selected = true;
+			}
+		}
+		break;
+
+		case VK_ESCAPE:
+		{
+			if (All_selected == false)
+			{
+				if (selecting_line > 0)
+					selecting_line -= 1;
+				else if (selecting_line == 0)
+					selecting_line = -1;
+			}
 		}
 			break;
+
+		case VK_LEFT:
+		{
+			if (selecting_line == 0)
+			{
+				board_index -= 1;
+
+				if (board_index < 0)
+					board_index = 0;
+				else
+					Difficulty_Scale = 2.0f;
+			}
+			else if (selecting_line == 1)
+			{
+				Difficulty_Scale = 2.0f;
+				difficulty_index -= 1;
+
+				if (difficulty_index < 0)
+					difficulty_index = 0;
+				else
+					Difficulty_Scale = 2.0f;
+
+			}
+		}
+		break;
 		
 		case VK_RIGHT:
-		case VK_UP:
 		{
-			int size = sizeof(difficulty_word) / sizeof(std::wstring);
-
-			Difficulty_Scale = 2.0f;
-			difficulty_index += 1;
-
-			if (difficulty_index >= size)
-				difficulty_index = size - 1;
-		}
-			break;
-
-		case VK_SPACE:
-			difficulty_selected = true;
-
-			switch (difficulty_index)
+			if (selecting_line == 0)
 			{
-			case 0:
-				difficulty = Difficulty_Type::Normal;
-				break;
+				int size = sizeof(difficulty_word) / sizeof(std::wstring);
 
-			case 1:
-				difficulty = Difficulty_Type::Hard;
-				break;
 
-			case 2:
-				difficulty = Difficulty_Type::Hell;
-				break;
+				board_index += 1;
 
-			default:
-				break;
+				if (board_index >= size)
+					board_index = size - 1;
+				else
+					Difficulty_Scale = 2.0f;
 			}
-			break;
+			else if (selecting_line == 1)
+			{
+				int size = sizeof(difficulty_word) / sizeof(std::wstring);
+
+				difficulty_index += 1;
+
+				if (difficulty_index >= size)
+					difficulty_index = size - 1;
+				else
+					Difficulty_Scale = 2.0f;
+			}
+		}
+		break;
 
 		default:
 			break;
@@ -583,7 +703,16 @@ bool Loading_Scene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPAR
 	return true;
 }
 
+void Loading_Scene::Reset()
+{
+	selecting_line = 0;
+	difficulty_index = 0;
+	board_index = 0;
 
+	All_selected = false;
+	loading = true;
+	index_value = 0;
+}
 //=========================================================================================
 
 Start_Scene::Start_Scene()
@@ -864,11 +993,12 @@ void Start_Scene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 // 게임 객체
 	Object_Shader = new CObjectsShader[N_Object_Shader];
 	Object_Shader[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
-
+	Object_Shader[0].AddRef();
 	//===========================================================
 
 	Outline_Shader = new OutlineShader[N_Outline_Shader];
 	Outline_Shader[0].CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
+	Outline_Shader[0].AddRef();
 	((OutlineShader*)&Outline_Shader[0])->Create_Outline_Buffer(pd3dDevice, pd3dCommandList);
 
 	material_color_none->SetShader(&Outline_Shader[0]);
@@ -1060,17 +1190,17 @@ void Start_Scene::ReleaseObjects()
 		Texture_Shader[j].ReleaseObjects();
 	}
 
-	if (Object_Shader)
-		delete[] Object_Shader;
+	//if (Object_Shader)
+	//	delete[] Object_Shader;
 
-	if (UI_Shader)
-		delete[] UI_Shader;
+	//if (UI_Shader)
+	//	delete[] UI_Shader;
 
-	if (Outline_Shader)
-		delete[] Outline_Shader;
+	//if (Outline_Shader)
+	//	delete[] Outline_Shader;
 
-	if (Texture_Shader)
-		delete[] Texture_Shader;
+	//if (Texture_Shader)
+	//	delete[] Texture_Shader;
 
 }
 void Start_Scene::ReleaseUploadBuffers()
@@ -1255,9 +1385,29 @@ void Start_Scene::ProcessInput(UCHAR* pKeysBuffer, XMFLOAT3 rotate, float fTimeE
 
 //=========================================================================================
 
-Playing_Scene::Playing_Scene(Difficulty_Type play_difficulty)
+Playing_Scene::Playing_Scene(Difficulty_Type play_difficulty, Board_Type board_type)
 {
 	difficulty = play_difficulty;
+	switch (board_type)
+	{
+	case Board_Type::Thin:
+		Board_Width = 200;
+		Board_Height = 600;
+		break;
+
+	case Board_Type::Mini:
+		Board_Width = 320;
+		Board_Height = 320;
+		break;
+
+	case Board_Type::Large:
+		Board_Width = 600;
+		Board_Height = 600;
+		break;
+
+	default:
+		break;
+	}
 }
 Playing_Scene::~Playing_Scene()
 {
@@ -1501,7 +1651,6 @@ void Playing_Scene::Create_Board(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	float Board_Half_Depth = Board_Depth / 2;
 
 	CPlaneMeshIlluminated* pboard_mesh = new CPlaneMeshIlluminated(pd3dDevice, pd3dCommandList, Board_Half_Width * 2.0f, Board_Half_Depth * 2.0f, 500);
-	//CPlaneMeshTextured* pboard_mesh = new CPlaneMeshTextured(pd3dDevice, pd3dCommandList, Board_Half_Width * 2.0f, Board_Half_Depth * 2.0f, 500);
 
 	
 	m_pBoards = new CBoardObject(pd3dDevice, pd3dCommandList);
@@ -1640,7 +1789,7 @@ void Playing_Scene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 
 	material_color_none->SetShader(&Outline_Shader[0]);
 
-	Create_Board(pd3dDevice, pd3dCommandList, 200, 600);
+	Create_Board(pd3dDevice, pd3dCommandList, Board_Width, Board_Height);
 
 	XMFLOAT3 xmf3Scale(16.0f, 6.0f, 16.0f);
 	XMFLOAT4 xmf4Color(0.0f, 0.2f, 0.0f, 0.0f);
@@ -2383,7 +2532,6 @@ void Playing_Scene::Check_Item_and_Stone_Collisions(ID3D12Device* pd3dDevice, ID
 	}
 }
 
-
 bool Playing_Scene::Update_Item_Manager(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	// 컴퓨터 턴에는 ghost만 검사하기
@@ -2500,12 +2648,24 @@ XMFLOAT3 Playing_Scene::Item_Spawn(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 	int N = sizeof(item_type_list) / sizeof(Item_Type);
 	Item_Type spawn_type = item_type_list[rand() % N];
-	XMFLOAT3 spawn_pos = { (rand() % 201) - 100.0f, 100.0f, (rand() % 601) - 300.0f };
 
-	Setting_Item(pd3dDevice, pd3dCommandList, spawn_pos, spawn_type);
-	Setting_Particle(pd3dDevice, pd3dCommandList, spawn_pos, material_color_yellow_particle, Particle_Type::Small_Explosion);
+	int max_x = Board_Width;
+	int min_x = Board_Width / 2;
 
-	return spawn_pos;
+	int max_z = Board_Height;
+	int min_z = Board_Height / 2;
+
+	// 'float'로 명시적 캐스팅
+	XMFLOAT3 spawn_position = { 
+		static_cast<float>((rand() % max_x + 1) - min_x), 
+		100.0f, 
+		static_cast<float>((rand() % max_z) - min_z) 
+	};
+
+	Setting_Item(pd3dDevice, pd3dCommandList, spawn_position, spawn_type);
+	Setting_Particle(pd3dDevice, pd3dCommandList, spawn_position, material_color_yellow_particle, Particle_Type::Small_Explosion);
+
+	return spawn_position;
 }
 
 bool Playing_Scene::Change_Turn()
@@ -3350,7 +3510,6 @@ bool Playing_Scene::Check_Item(Item_Type i_type)
 	// 플레이어가 해당 아이템을 보유하고 있다면
 	if (player1.Item_Inventory[i_type])
 		return true;
-
 	else
 		return false;
 }
@@ -3483,7 +3642,8 @@ bool Playing_Scene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM 
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
 		Mark_selected_stone();
-		Charge_Effect->Apply_Item(player1.selected_Item_Type);
+		if(Check_Item(player1.selected_Item_Type))
+			Charge_Effect->Apply_Item(player1.selected_Item_Type);
 		break;
 
 	case WM_MOUSEWHEEL:

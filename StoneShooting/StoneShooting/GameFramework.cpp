@@ -324,6 +324,11 @@ void CGameFramework::CreateDirect2DDevice()
 	hResult = m_pdw_Message_Font->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
 
+	hResult = m_pdWriteFactory->CreateTextFormat(L"맑은 고딕", NULL, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 20.0f, L"ko-KR", &m_pdw_Message_Small_Font);
+	hResult = m_pdw_Message_Small_Font->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+	hResult = m_pdw_Message_Small_Font->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+
 	hResult = m_pdWriteFactory->CreateTextFormat(L"맑은 고딕", NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 30.0f, L"ko-KR", &m_pdw_Inventory_Font);
 	hResult = m_pdw_Inventory_Font->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
 	hResult = m_pdw_Inventory_Font->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
@@ -482,6 +487,7 @@ void CGameFramework::Build_Loading_Scene(CPlayer* cplayer)
 
 	Scene_Loading->SetPlayer(cplayer);
 	Scene_Loading->Add_Font(m_pdw_Timer_Font);
+	Scene_Loading->Add_Font(m_pdw_Message_Small_Font);
 	Scene_Loading->Add_Brush(m_pd2dbrText_W);
 	Scene_Loading->BuildScene(m_pd3dDevice, m_pd3dCommandList);
 
@@ -520,11 +526,11 @@ void CGameFramework::Build_Start_Scene(CPlayer* cplayer)
 	m_GameTimer.Reset();
 }
 
-void CGameFramework::Build_Playing_Scene(CPlayer* cplayer, Difficulty_Type difficulty)
+void CGameFramework::Build_Playing_Scene(CPlayer* cplayer, Difficulty_Type difficulty, Board_Type b_type)
 {
 	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
 
-	Scene_Playing = new Playing_Scene(Scene_Loading->difficulty);
+	Scene_Playing = new Playing_Scene(Scene_Loading->difficulty, Scene_Loading->b_type);
 	Scene_Playing->SetPlayer(cplayer);
 	Scene_Playing->Add_Font(m_pdw_Timer_Font);
 	Scene_Playing->Add_Font(m_pdw_Inventory_Font);
@@ -591,15 +597,20 @@ void CGameFramework::WaitForGpuComplete()
 
 void CGameFramework::FrameAdvance()
 {
-	m_GameTimer.Tick(300.0f); // 60프레임으로 고정하기
+	m_GameTimer.Tick(60.0f); // 60프레임으로 고정하기
 	
 	ProcessInput();
 	
 	if (Scene_Loading != NULL && Scene_Playing == NULL)
 		if (Scene_Loading->Is_Loading_End())
 		{
-			Build_Playing_Scene(player_list[0], Scene_Loading->difficulty);
+			Build_Playing_Scene(player_list[0], Scene_Loading->difficulty, Scene_Loading->b_type);
 			rendering_scene = Scene_Playing;
+		}
+		else if (Scene_Loading->IS_Back_to_Start())
+		{
+			Scene_Loading->Reset();
+			rendering_scene = Scene_Beginning;
 		}
 	Animate_Scene_Objects();
 	
@@ -797,7 +808,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 
 		case VK_ESCAPE:
-			::PostQuitMessage(0);
+			//::PostQuitMessage(0);
 			break;
 		default:
 			break;

@@ -86,6 +86,7 @@ private:
 
 	IDWriteTextFormat* m_pdw_Timer_Font = NULL;
 	IDWriteTextFormat* m_pdw_Message_Font = NULL;
+	IDWriteTextFormat* m_pdw_Message_Small_Font = NULL;
 	IDWriteTextFormat* m_pdw_Inventory_Font = NULL;
 
 	IDWriteTextLayout* m_pdwTextLayout = NULL;
@@ -132,7 +133,7 @@ public:
 	void Build_Scene();
 	void Build_Loading_Scene(CPlayer* cplayer);
 	void Build_Start_Scene(CPlayer* cplayer);
-	void Build_Playing_Scene(CPlayer* cplayer, Difficulty_Type difficulty);
+	void Build_Playing_Scene(CPlayer* cplayer, Difficulty_Type difficulty, Board_Type b_type);
 	void BuildObjects();
 	void ReleaseObjects();
 	//렌더링할 메쉬와 게임 객체를 생성하고 소멸하는 함수이다.
