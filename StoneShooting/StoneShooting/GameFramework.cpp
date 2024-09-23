@@ -598,9 +598,9 @@ void CGameFramework::WaitForGpuComplete()
 void CGameFramework::FrameAdvance()
 {
 	m_GameTimer.Tick(60.0f); // 60프레임으로 고정하기
-	
+
 	ProcessInput();
-	
+
 	if (Scene_Loading != NULL && Scene_Playing == NULL)
 		if (Scene_Loading->Is_Loading_End())
 		{
@@ -611,6 +611,17 @@ void CGameFramework::FrameAdvance()
 		{
 			Scene_Loading->Reset();
 			rendering_scene = Scene_Beginning;
+		}
+	
+	if (Scene_Playing != NULL)
+		if (Scene_Playing->Get_GameOver())
+		{
+			Scene_Playing->ReleaseObjects();
+			delete Scene_Playing;
+			Scene_Playing = NULL;
+			Scene_Loading->Reset();
+			rendering_scene = Scene_Beginning;
+
 		}
 	Animate_Scene_Objects();
 	

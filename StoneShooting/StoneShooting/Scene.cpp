@@ -2036,7 +2036,7 @@ void Playing_Scene::ReleaseObjects()
 	for (Particle* particle_ptr : m_particle)
 	{
 		particle_ptr->Release_Shader_Resource();
-		delete particle_ptr;
+		particle_ptr->Release();
 	}
 	m_particle.clear();
 
@@ -2049,7 +2049,7 @@ void Playing_Scene::ReleaseObjects()
 
 	for (Item* item_ptr : Game_Items)
 	{
-		delete item_ptr;
+		item_ptr->Release();
 	}
 	Game_Items.clear();
 
@@ -2057,6 +2057,7 @@ void Playing_Scene::ReleaseObjects()
 
 	for (StoneObject* stone_ptr : GameObject_Stone)
 		stone_ptr->Release();
+
 	GameObject_Stone.clear();
 
 	m_pBoards->Release();
@@ -2692,12 +2693,11 @@ bool Playing_Scene::Change_Turn()
 		Set_BackGround_Color(XMFLOAT4(0.8f, 0.8f, 0.8f, 0.0f));
 
 		if (computer.select_Stone->active)
-		{
 			computer.select_Stone->ChangeMaterial(1);
-			computer.select_Stone = NULL;
-			computer.target_Stone = NULL;
-		
-		}
+
+		computer.select_Stone = NULL;
+		computer.target_Stone = NULL;
+
 		Charge_Effect->ChangeMaterial(1);
 	}
 	
@@ -2942,7 +2942,7 @@ void Playing_Scene::AnimateObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 	Scene_Update(pd3dDevice, pd3dCommandList, fTimeElapsed);
 }
 
-void Playing_Scene::Scene_Update(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fTimeElapsed)
+void Playing_Scene::Scene_Update(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fTimeElapsed)    
 {
 	if (Player_Turn) // 플레이어 턴
 	{
@@ -2979,8 +2979,6 @@ void Playing_Scene::Scene_Update(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 				if (Stone_Pair.first == NULL || Stone_Pair.second == NULL)
 				{
 					DebugOutput("Com can't select Stone_Pair to shoot");
-					::PostQuitMessage(0);
-					return;
 				}
 
 				computer.select_Stone = Stone_Pair.first;
@@ -3063,6 +3061,9 @@ void Playing_Scene::Scene_Update(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 		Need_to_change_turn = Check_Turn();
 		Limit_time += fTimeElapsed;
 	}
+
+
+	Game_Over = Check_GameOver();
 
 	Check_Item_and_Stone_Collisions(pd3dDevice, pd3dCommandList);
 	Check_Board_and_Stone_Collisions(pd3dDevice, pd3dCommandList);
@@ -3393,7 +3394,6 @@ std::pair<StoneObject*, StoneObject*> Playing_Scene::Select_Stone_Com()
 	if (pairs.empty())
 	{
 		DebugOutput("No Pair to Shoot Target");
-		::PostQuitMessage(0);
 		return std::pair<StoneObject*, StoneObject*>{NULL, NULL};
 	}
 
@@ -3404,11 +3404,9 @@ std::pair<StoneObject*, StoneObject*> Playing_Scene::Select_Stone_Com()
 		});
 
 	int maxIndex = std::min<int>(3, static_cast<int>(pairs.size()) - 1);
-
 	if (maxIndex < 0)
 	{
 		DebugOutput("No Pair to Shoot Target");
-		::PostQuitMessage(0);
 		return std::pair<StoneObject*, StoneObject*>{NULL, NULL};
 	}
 
@@ -3776,7 +3774,21 @@ bool Playing_Scene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPAR
 			break;
 
 		case VK_ESCAPE:
+			Game_Over = true;
 			break;
+
+		case VK_OEM_PLUS:
+			for (CGameObject* stone_ptr : player1.stone_list)
+			{
+				stone_ptr->active = false;
+			}
+			break;
+
+		case VK_OEM_MINUS:
+			for (CGameObject* stone_ptr : computer.stone_list)
+			{
+				stone_ptr->active = false;
+			}
 		default:
 			break;
 		}

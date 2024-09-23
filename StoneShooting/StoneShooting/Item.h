@@ -34,8 +34,8 @@ struct Stone_Item_Info
 {
 	~Stone_Item_Info()
 	{
-		delete stone;
-		delete particle;
+		stone = NULL;
+		particle = NULL;
 	}
 
 	StoneObject*	stone		= NULL;

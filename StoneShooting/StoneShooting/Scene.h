@@ -364,6 +364,7 @@ public:
 	XMFLOAT3 Item_Spawn(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	bool Check_Turn();
 	bool Check_GameOver();
+	bool Get_GameOver() { return Game_Over; }
 
 	void Remove_Unnecessary_Objects();
 
